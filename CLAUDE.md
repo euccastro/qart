@@ -43,9 +43,12 @@ make run      # Build and run the current program
 ## Current Status
 
 - Minimal "Hello World" implementation complete (hello_nasm.asm)
-- Ready to begin Forth interpreter bootstrap
-- Explored NASM data directives (db, dw, dd, dq), sections, and alignment
-- Created example files demonstrating various assembly concepts
+- Began Forth interpreter bootstrap with tiny incremental steps:
+  - Step 0.1: Basic stack in memory with manual push/pop (step01_stack.asm)
+  - Step 0.2: Push/pop subroutines with multiple values (step02_push_pop.asm)
+  - Next: Step 0.3 - Threaded list without interpreter
+- Using Indirect Threaded Code (ITC) model
+- Stack pointer in RBP, growing downward
 
 ## Technical Decisions
 
@@ -53,11 +56,47 @@ make run      # Build and run the current program
 - Using System V AMD64 ABI for Linux x86_64
 - Building with GNU ld linker
 - Makefile set up for easy compilation
+- Indirect Threaded Code (ITC) for good balance of size/speed/flexibility
+- Classical two-stack memory model (data stack + return stack)
+- RBP dedicated to data stack pointer
 
-## Next Steps for Forth Implementation
+## Register Usage
 
-- Design basic Forth memory layout (dictionary, stacks)
-- Implement core interpreter loop (NEXT, DOCOL, EXIT)
-- Create primitive words
-- Add input parsing and number conversion
-- Build up toward advanced features (continuations, effects, etc.)
+Please maintain `register-cheatsheet.md` as we use more registers. When implementing new functionality:
+1. Check the cheatsheet before choosing registers
+2. Update the "Our Usage" column when dedicating a register
+3. Add new registers to the "Used in Our Forth Implementation" section
+4. Document why each register choice was made (required vs arbitrary)
+
+## System Call Documentation
+
+Please maintain `syscall-abi.md` with information about:
+1. New system calls as we use them
+2. Any surprising behavior or gotchas discovered
+3. Register preservation/clobbering rules
+4. Error handling patterns
+
+## Implementation Roadmap
+
+### Completed Steps
+0.1. Stack in memory - allocate buffer, manual push/pop
+0.2. Push/pop subroutines - reusable functions
+
+### Next Tiny Steps
+0.3. Threaded list (no interpreter) - array of addresses, manual walk
+0.4. Code vs Data - introduce LIT primitive
+0.5. NEXT mechanism - the inner interpreter
+0.6. Add primitive - first arithmetic operation
+
+### Future Steps
+1. Basic I/O primitives (EMIT, KEY)
+2. Static dictionary structure  
+3. Number parsing
+4. INTERPRET loop
+5. Compiler words
+6. Advanced features (continuations, effects, etc.)
+
+## Key Documentation Files
+
+- `register-cheatsheet.md` - x86_64 register reference and our usage
+- `syscall-abi.md` - Linux system call conventions and preservation rules
