@@ -1,2 +1,4 @@
 *.o
 hello_nasm
+step01_stack
+step02_push_pop
