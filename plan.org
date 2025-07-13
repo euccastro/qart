@@ -1,0 +1,2 @@
+* stack
+** pedir-lhe que faga um .gitignore
