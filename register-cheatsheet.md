@@ -34,7 +34,8 @@ R8-R15 are new registers added in x86_64 with no historical baggage.
 | Register | Special Features | Our Usage | Why This Choice? |
 |----------|-----------------|-----------|------------------|
 | RAX | • Syscall number & return<br>• Division dividend (low)<br>• Multiplication result<br>• Shorter encodings | • Syscall numbers<br>• Math operations<br>• General computation | Required for syscalls and div/mul |
-| RBP | • Traditional frame pointer<br>• Callee-saved | • Forth data stack pointer | Arbitrary - could use any |
+| RBP | • Traditional frame pointer<br>• Callee-saved | • Forth data stack pointer (DSP) | Arbitrary - could use any |
+| RBX | • Callee-saved<br>• General purpose | • Forth instruction pointer (IP) | Arbitrary - needs to be preserved |
 | RDI | • Syscall arg 1<br>• Function arg 1<br>• String destination | • Syscall parameter 1<br>• String operations | Required for syscalls |
 | RSI | • Syscall arg 2<br>• Function arg 2<br>• String source | • Syscall parameter 2 | Required for syscalls |
 | RDX | • Syscall arg 3<br>• Function arg 3<br>• Division dividend (high)<br>• Multiplication result (high) | • Syscall parameter 3<br>• Division operations | Required for syscalls and div |
@@ -44,7 +45,6 @@ R8-R15 are new registers added in x86_64 with no historical baggage.
 
 | Register | Special Features | Planned Usage |
 |----------|-----------------|---------------|
-| RBX | • Callee-saved | IP (Instruction Pointer) for ITC |
 | RSP | • Hardware stack pointer | System stack (must not change) |
 | R12-R15 | • Callee-saved | TBD - Good for Forth VM registers |
 | R8-R11 | • Caller-saved<br>• Function args 5-6 (R8-R9) | TBD - Temporary values |

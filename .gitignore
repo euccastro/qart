@@ -2,3 +2,7 @@
 hello_nasm
 step01_stack
 step02_push_pop
+step03_threaded_list
+step04_lit_primitive
+step05_next_mechanism
+step06_add_primitive
