@@ -42,13 +42,12 @@ make run      # Build and run the current program
 
 ## Current Status
 
-- Minimal "Hello World" implementation complete (hello_nasm.asm)
-- Began Forth interpreter bootstrap with tiny incremental steps:
-  - Step 0.1: Basic stack in memory with manual push/pop (step01_stack.asm)
-  - Step 0.2: Push/pop subroutines with multiple values (step02_push_pop.asm)
-  - Next: Step 0.3 - Threaded list without interpreter
-- Using Indirect Threaded Code (ITC) model
-- Stack pointer in RBP, growing downward
+- Working Forth interpreter in qart.asm with:
+  - NEXT inner interpreter (ITC model)
+  - Data stack with DSP in RBP
+  - Instruction pointer (IP) in RBX
+  - Core primitives: LIT, ADD, DOT (.), EXIT
+- Test program demonstrates: 10 20 + 15 + .
 
 ## Technical Decisions
 
@@ -78,23 +77,24 @@ Please maintain `syscall-abi.md` with information about:
 
 ## Implementation Roadmap
 
-### Completed Steps
-0.1. Stack in memory - allocate buffer, manual push/pop
-0.2. Push/pop subroutines - reusable functions
+### Completed
+- Basic ITC interpreter with NEXT mechanism
+- Data stack operations
+- LIT for inline literals
+- ADD arithmetic primitive
+- DOT (.) for output
+- EXIT for clean termination
 
-### Next Tiny Steps
-0.3. Threaded list (no interpreter) - array of addresses, manual walk
-0.4. Code vs Data - introduce LIT primitive
-0.5. NEXT mechanism - the inner interpreter
-0.6. Add primitive - first arithmetic operation
-
-### Future Steps
-1. Basic I/O primitives (EMIT, KEY)
-2. Static dictionary structure  
-3. Number parsing
-4. INTERPRET loop
-5. Compiler words
-6. Advanced features (continuations, effects, etc.)
+### Next Steps
+1. Stack primitives: DUP, DROP, SWAP, OVER
+2. More arithmetic: SUB (-), MUL (*), DIV (/)
+3. Basic I/O: EMIT, KEY
+4. Dictionary structure with FIND
+5. Number parsing (NUMBER)
+6. INTERPRET loop for interactive use
+7. Compiler words: CREATE, : (colon), ; (semicolon)
+8. Control flow: IF, THEN, ELSE, BEGIN, UNTIL
+9. Advanced features (continuations, effects, concurrency)
 
 ## Key Documentation Files
 

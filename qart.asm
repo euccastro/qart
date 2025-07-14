@@ -1,5 +1,5 @@
-; step06_add_primitive.asm - Complete basic interpreter with ADD
-; Goal: Clean implementation with proper Forth naming conventions
+; qart.asm - A Forth-like language implementation in x86_64 assembly
+; Starting from basic ITC interpreter, building toward advanced features
 
 %define IP rbx              ; Instruction Pointer
 %define DSP rbp             ; Data Stack Pointer

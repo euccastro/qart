@@ -1,2 +1,2 @@
 * stack
-** pedir-lhe que faga um .gitignore
+** perguntar por asm linters?
