@@ -85,16 +85,23 @@ Please maintain `syscall-abi.md` with information about:
 - DOT (.) for output
 - EXIT for clean termination
 
-### Next Steps
-1. Stack primitives: DUP, DROP, SWAP, OVER
-2. More arithmetic: SUB (-), MUL (*), DIV (/)
-3. Basic I/O: EMIT, KEY
-4. Dictionary structure with FIND
-5. Number parsing (NUMBER)
-6. INTERPRET loop for interactive use
-7. Compiler words: CREATE, : (colon), ; (semicolon)
-8. Control flow: IF, THEN, ELSE, BEGIN, UNTIL
-9. Advanced features (continuations, effects, concurrency)
+### Immediate Next Steps (Chosen Path)
+1. **NUMBER** - Parse integers from strings (essential for input)
+2. **Simple Command Dispatcher** - Hardcoded command recognition
+   - Start with fixed buffer: "42 DUP ADD DOT"
+   - Parse and execute each token
+   - Shows how interpreter will work
+3. **Basic Stack Words** - DUP, DROP, SWAP (as needed for testing)
+4. **Toward Full Interpreter** - Build up to FIND and INTERPRET
+
+### Future Steps
+1. Return stack and related words (>R, R>, R@)
+2. Basic I/O: EMIT, KEY for interactive use
+3. Dictionary structure with proper FIND
+4. Full INTERPRET loop
+5. Compiler words: CREATE, : (colon), ; (semicolon)
+6. Control flow: IF, THEN, ELSE, BEGIN, UNTIL
+7. Advanced features (continuations, effects, concurrency)
 
 ## Key Documentation Files
 
