@@ -5,12 +5,16 @@ ASFLAGS = -f elf64
 LD = ld
 LDFLAGS = 
 
+# All source files
+SRCS = qart.asm flow.asm stack.asm arithmetic.asm memory.asm io.asm dictionary.asm
+OBJS = $(SRCS:.asm=.o)
+
 # Default target
 all: qart
 
 # Build qart
-qart: qart.o
-	$(LD) $(LDFLAGS) $< -o $@
+qart: $(OBJS)
+	$(LD) $(LDFLAGS) $^ -o $@
 
 # Pattern rule for assembly files
 %.o: %.asm

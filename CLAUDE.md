@@ -29,7 +29,14 @@ make run      # Build and run the current program
 
 ## Project Structure
 
-- `*.asm` - Assembly source files (NASM Intel syntax)
+- `qart.asm` - Main file with data section and entry point
+- `flow.asm` - Control flow primitives (NEXT, DOCOL, EXIT)
+- `stack.asm` - Stack manipulation (LIT, DUP, DROP)
+- `arithmetic.asm` - Arithmetic operations (ADD)
+- `memory.asm` - Memory access (TO_R, R_FROM, R_FETCH, FETCH, STORE, C_FETCH, C_STORE)
+- `io.asm` - I/O operations (DOT, NUMBER)
+- `dictionary.asm` - Dictionary lookup (FIND)
+- `forth.inc` - Common definitions (register assignments)
 - `Makefile` - Build configuration
 - Object files and executables are built in the root directory
 
@@ -42,7 +49,7 @@ make run      # Build and run the current program
 
 ## Current Status
 
-- Working Forth interpreter in qart.asm with:
+- Working Forth interpreter with modular assembly files:
   - Dictionary-based NEXT inner interpreter (ITC model)
   - Data stack with DSP in R15
   - Return stack with RSTACK in R14
