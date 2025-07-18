@@ -6,6 +6,8 @@ section .text
 
 global DOT
 global NUMBER
+global EMIT
+global KEY
 
 extern NEXT
 extern buffer
@@ -61,6 +63,49 @@ DOT:
     mov rdx, 1
     syscall
     
+    jmp NEXT
+
+; EMIT ( c -- ) Output character
+EMIT:
+    mov rax, [DSP]          ; Get character code
+    add DSP, 8              ; Drop from stack
+    
+    ; Store character in buffer temporarily
+    mov [buffer], al        ; Store low byte (character)
+    
+    ; Write single character
+    mov rax, 1              ; sys_write
+    mov rdi, 1              ; stdout
+    mov rsi, buffer         ; Address of character
+    mov rdx, 1              ; One byte
+    syscall
+    
+    jmp NEXT
+
+; KEY ( -- c ) Read one character from stdin
+KEY:
+    ; Read one character into buffer
+    mov rax, 0              ; sys_read
+    mov rdi, 0              ; stdin
+    mov rsi, buffer         ; Read into buffer
+    mov rdx, 1              ; Read 1 byte
+    syscall
+    
+    ; Check for EOF or error
+    test rax, rax
+    jle .eof
+    
+    ; Push character onto stack
+    movzx rax, byte [buffer] ; Zero-extend character
+    sub DSP, 8
+    mov [DSP], rax
+    jmp NEXT
+    
+.eof:
+    ; Push -1 for EOF
+    mov rax, -1
+    sub DSP, 8
+    mov [DSP], rax
     jmp NEXT
 
 ; NUMBER ( c-addr u -- n ) Parse string as signed integer

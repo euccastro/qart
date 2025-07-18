@@ -37,8 +37,18 @@ dict_DOT:
     db 1, ".", 0, 0, 0, 0, 0, 0
     dq DOT
 
-dict_C_STORE:
+dict_EMIT:
     dq dict_DOT
+    db 4, "EMIT", 0, 0, 0
+    dq EMIT
+
+dict_KEY:
+    dq dict_EMIT
+    db 3, "KEY", 0, 0, 0, 0
+    dq KEY
+
+dict_C_STORE:
+    dq dict_KEY
     db 2, "C!", 0, 0, 0, 0, 0
     dq C_STORE
 
@@ -133,6 +143,23 @@ dict_EXECUTE:
         dq dict_ADD             ; Add them (5 + 5 = 10)
         dq dict_DOT             ; Print result (should be 10)
         
+        ; Test EMIT
+        dq dict_LIT, 72         ; Push 'H' (ASCII 72)
+        dq dict_EMIT            ; Print H
+        dq dict_LIT, 105        ; Push 'i' (ASCII 105)
+        dq dict_EMIT            ; Print i
+        dq dict_LIT, 33         ; Push '!' (ASCII 33)
+        dq dict_EMIT            ; Print !
+        dq dict_LIT, 10         ; Push newline
+        dq dict_EMIT            ; Print newline
+        
+        ; Test KEY - echo one character
+        dq dict_KEY             ; Read a character
+        dq dict_DUP             ; Duplicate it
+        dq dict_EMIT            ; Echo it back
+        dq dict_LIT, 10         ; Push newline
+        dq dict_EMIT            ; Print newline
+        
         dq dict_EXIT            ; Done
 
     minus_sign: db '-'
@@ -170,6 +197,8 @@ extern STORE
 extern C_FETCH
 extern C_STORE
 extern DOT
+extern EMIT
+extern KEY
 extern NUMBER
 extern FIND
 
