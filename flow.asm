@@ -8,6 +8,7 @@ section .text
 global NEXT
 global DOCOL
 global EXIT
+global EXECUTE
 
 ; NEXT - The inner interpreter
 ; Dictionary-based execution: IP points to dictionary entry addresses
@@ -40,3 +41,11 @@ EXIT:
     mov rax, 60             ; sys_exit
     xor rdi, rdi
     syscall
+
+; EXECUTE ( xt -- ) Execute word given execution token
+; Execution token is a dictionary entry address
+EXECUTE:
+    mov rdx, [DSP]          ; Get execution token from stack
+    add DSP, 8              ; Drop from stack
+    mov rax, [rdx+16]       ; Get code field from dict entry
+    jmp rax                 ; Execute it (primitives will jmp NEXT themselves)

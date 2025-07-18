@@ -102,9 +102,14 @@ dict_DOUBLE:
     dq dict_DUP             ; DUP
     dq dict_ADD             ; +
     dq dict_EXIT            ; EXIT (;)
+
+dict_EXECUTE:
+    dq dict_DOUBLE          ; Link to previous
+    db 7, "EXECUTE"         ; Name (7 chars exactly)
+    dq EXECUTE              ; Code field
     
     ; LATEST points to the most recent word
-    LATEST: dq dict_DOUBLE
+    LATEST: dq dict_EXECUTE
     
     
     ; Test program: Use dictionary entries throughout
@@ -120,6 +125,13 @@ dict_DOUBLE:
         dq dict_LIT, 10         ; Push 10
         dq dict_DOUBLE          ; Call DOUBLE (should double to 20)
         dq dict_DOT             ; Print result
+        
+        ; Test EXECUTE
+        dq dict_LIT, 5          ; Push 5
+        dq dict_LIT, dict_DUP   ; Push execution token for DUP
+        dq dict_EXECUTE         ; Execute DUP (should duplicate 5)
+        dq dict_ADD             ; Add them (5 + 5 = 10)
+        dq dict_DOT             ; Print result (should be 10)
         
         dq dict_EXIT            ; Done
 
@@ -145,6 +157,7 @@ global LATEST
 extern NEXT
 extern DOCOL
 extern EXIT
+extern EXECUTE
 extern LIT
 extern DUP
 extern DROP
