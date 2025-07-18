@@ -36,7 +36,9 @@ make run      # Build and run the current program
 - `memory.asm` - Memory access (TO_R, R_FROM, R_FETCH, FETCH, STORE, C_FETCH, C_STORE)
 - `io.asm` - I/O operations (DOT, NUMBER, EMIT, KEY)
 - `dictionary.asm` - Dictionary lookup (FIND)
-- `forth.inc` - Common definitions (register assignments)
+- `input.asm` - Input buffer management (REFILL)
+- `word.asm` - Word parsing (PARSE_WORD/WORD)
+- `forth.inc` - Common definitions (register assignments, constants)
 - `Makefile` - Build configuration
 - Object files and executables are built in the root directory
 
@@ -56,16 +58,17 @@ make run      # Build and run the current program
   - Instruction pointer (IP) in RBX
   - Dictionary structure with linked list
   - DOCOL runtime for colon definitions
-  - Core primitives: LIT, DUP, DROP, ADD, >R, R>, R@, @, !, C@, C!, DOT (.), EXIT
-  - I/O primitives: DOT for numbers, EMIT for characters, KEY for input
-  - EXECUTE for dynamic word execution
-  - FIND word for dictionary lookup
-  - NUMBER word for parsing integers
+  - Core primitives: LIT, DUP, DROP, ADD, >R, R>, R@, @, !, C@, C!, DOT (.), EXIT, EXECUTE, FIND, NUMBER, REFILL, WORD
+  - I/O primitives: EMIT for characters, KEY for input
+- Input system:
+  - 256-byte input buffer with position/length tracking
+  - Line-based input with newline stripping
+  - Direct pointer returns from WORD (no copying)
 - Test program demonstrates:
   - Basic arithmetic: 21 + 21 = 42
   - Colon definition: DOUBLE word that duplicates and adds
   - EXECUTE primitive: dynamically calling DUP
-  - Character I/O: outputting "Hi!" and echoing input
+  - Line input and word parsing
 
 ## Technical Decisions
 
@@ -111,16 +114,18 @@ Please maintain `syscall-abi.md` with information about:
 - NUMBER for parsing integers
 - DOCOL runtime for colon definitions
 - EXIT for returns and program termination
+- Input buffer (256 bytes) with position/length tracking
+- REFILL for reading full lines from stdin
+- WORD for parsing space-delimited tokens from input buffer
 
 ### Immediate Next Steps
-1. **Input Buffer & Line Reading** - Create fixed-size buffer and read full lines (not just characters)
-2. **WORD** - Parse next word from input buffer
-3. **Stack manipulation** - SWAP, OVER for more complex operations
-4. **INTERPRET** - Main interpreter loop
+1. **Stack manipulation** - SWAP, OVER for more complex operations
+2. **INTERPRET** - Main interpreter loop
    - Use WORD to get next token
    - Use FIND to look it up
    - Execute if found, try NUMBER if not
-5. **Compiler words** - CREATE, : (colon), ; (semicolon)
+3. **Compiler words** - CREATE, : (colon), ; (semicolon)
+4. **QUIT** - Outer interpreter loop that calls REFILL and INTERPRET
 
 ### Future Steps
 1. Control flow: IF, THEN, ELSE, BEGIN, UNTIL
@@ -142,6 +147,19 @@ Please maintain `syscall-abi.md` with information about:
 - Character I/O uses a temporary buffer for syscalls (can't pass stack directly)
 - KEY returns -1 for EOF, following Unix convention
 - Test programs can be built incrementally in the data section using dictionary references
+- **Register preservation is critical**: Accidentally clobbering RBX (IP) causes crashes. Always preserve IP, DSP, RSTACK
+- **NASM reserved words**: WORD is reserved, had to rename to PARSE_WORD internally
+- **Direct pointers are more efficient**: WORD returns pointers into input_buffer rather than copying
+- **Constants in forth.inc**: Shared constants like INPUT_BUFFER_SIZE should go in forth.inc to avoid duplication
+- **sys_read behavior**: Always includes newline when user presses Enter; REFILL strips it for cleaner parsing
+- **Primitive structure**: Assembly primitives don't use code pointer indirection like colon definitions
+
+### Critical Things to Watch For
+1. **Register preservation**: Never clobber RBX (IP), R15 (DSP), or R14 (RSTACK) in primitives
+2. **Stack direction**: Data stack grows downward (sub DSP, 8 to push)
+3. **NASM reserved words**: Check if a word name conflicts before using it
+4. **Buffer bounds**: Always validate positions against buffer length
+5. **Transient strings**: WORD results are only valid until next REFILL
 
 ### Next Action
-Implement input buffer and line reading functionality to move beyond single-character input. This will enable parsing whole commands and is essential for the WORD primitive and interactive REPL.
+Implement SWAP and OVER stack manipulation words, then build INTERPRET to create a basic REPL.

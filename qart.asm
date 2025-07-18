@@ -7,6 +7,11 @@ section .data
     buffer: times 20 db 0
     newline: db 10
     
+    ; Input buffer and tracking variables
+    input_buffer: times INPUT_BUFFER_SIZE db 0  ; Input line buffer
+    input_length: dq 0                          ; Number of chars in buffer
+    input_position: dq 0                        ; Current parse position
+    
     ; Test variables for memory access
     test_var: dq 0              ; 64-bit test variable
     test_byte: db 0             ; Byte test variable
@@ -117,9 +122,19 @@ dict_EXECUTE:
     dq dict_DOUBLE          ; Link to previous
     db 7, "EXECUTE"         ; Name (7 chars exactly)
     dq EXECUTE              ; Code field
+
+dict_REFILL:
+    dq dict_EXECUTE         ; Link to previous
+    db 6, "REFILL", 0       ; Name
+    dq REFILL               ; Code field
+
+dict_WORD:
+    dq dict_REFILL          ; Link to previous
+    db 4, "WORD", 0, 0, 0   ; Name
+    dq PARSE_WORD           ; Code field
     
     ; LATEST points to the most recent word
-    LATEST: dq dict_EXECUTE
+    LATEST: dq dict_WORD
     
     
     ; Test program: Use dictionary entries throughout
@@ -153,10 +168,30 @@ dict_EXECUTE:
         dq dict_LIT, 10         ; Push newline
         dq dict_EMIT            ; Print newline
         
-        ; Test KEY - echo one character
-        dq dict_KEY             ; Read a character
-        dq dict_DUP             ; Duplicate it
-        dq dict_EMIT            ; Echo it back
+        ; Test REFILL and WORD - read and parse a line
+        dq dict_REFILL          ; Read a line into buffer
+        dq dict_DOT             ; Print result (should be -1 for success)
+        dq dict_LIT, 10         ; Push newline
+        dq dict_EMIT            ; Print newline
+        
+        ; Parse first word
+        dq dict_WORD            ; Parse first word
+        dq dict_DOT             ; Print length
+        dq dict_DROP            ; Drop address
+        dq dict_LIT, 10         ; Push newline
+        dq dict_EMIT            ; Print newline
+        
+        ; Parse second word
+        dq dict_WORD            ; Parse second word
+        dq dict_DOT             ; Print length
+        dq dict_DROP            ; Drop address
+        dq dict_LIT, 10         ; Push newline
+        dq dict_EMIT            ; Print newline
+        
+        ; Parse third word (should be 0 0)
+        dq dict_WORD            ; Parse third word
+        dq dict_DOT             ; Print length (should be 0)
+        dq dict_DROP            ; Drop address
         dq dict_LIT, 10         ; Push newline
         dq dict_EMIT            ; Print newline
         
@@ -179,6 +214,9 @@ global buffer
 global minus_sign
 global space
 global LATEST
+global input_buffer
+global input_length
+global input_position
 
 ; Import all the primitives from other files
 extern NEXT
@@ -201,6 +239,8 @@ extern EMIT
 extern KEY
 extern NUMBER
 extern FIND
+extern REFILL
+extern PARSE_WORD
 
 ; ---- Main Program ----
 

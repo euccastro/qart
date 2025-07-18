@@ -6,7 +6,7 @@ LD = ld
 LDFLAGS = 
 
 # All source files
-SRCS = qart.asm flow.asm stack.asm arithmetic.asm memory.asm io.asm dictionary.asm
+SRCS = qart.asm flow.asm stack.asm arithmetic.asm memory.asm io.asm dictionary.asm input.asm word.asm
 OBJS = $(SRCS:.asm=.o)
 
 # Default target
