@@ -67,27 +67,26 @@ DOT:
 
 ; EMIT ( c -- ) Output character
 EMIT:
-    mov rax, [DSP]          ; Get character code
-    add DSP, 8              ; Drop from stack
-    
-    ; Store character in buffer temporarily
-    mov [buffer], al        ; Store low byte (character)
-    
-    ; Write single character
+    ; Write directly from stack (low byte contains the character)
     mov rax, 1              ; sys_write
     mov rdi, 1              ; stdout
-    mov rsi, buffer         ; Address of character
-    mov rdx, 1              ; One byte
+    mov rsi, DSP            ; Address of character on stack
+    mov rdx, 1              ; One byte (just the low byte)
     syscall
     
+    add DSP, 8              ; Drop from stack
     jmp NEXT
 
 ; KEY ( -- c ) Read one character from stdin
 KEY:
-    ; Read one character into buffer
+    ; Make room on stack and zero it
+    sub DSP, 8
+    mov qword [DSP], 0      ; Clear all 8 bytes
+    
+    ; Read one character directly into stack
     mov rax, 0              ; sys_read
     mov rdi, 0              ; stdin
-    mov rsi, buffer         ; Read into buffer
+    mov rsi, DSP            ; Read into low byte of stack entry
     mov rdx, 1              ; Read 1 byte
     syscall
     
@@ -95,17 +94,12 @@ KEY:
     test rax, rax
     jle .eof
     
-    ; Push character onto stack
-    movzx rax, byte [buffer] ; Zero-extend character
-    sub DSP, 8
-    mov [DSP], rax
+    ; Character is already on stack (zero-extended)
     jmp NEXT
     
 .eof:
-    ; Push -1 for EOF
-    mov rax, -1
-    sub DSP, 8
-    mov [DSP], rax
+    ; Replace with -1 for EOF
+    mov qword [DSP], -1
     jmp NEXT
 
 ; NUMBER ( c-addr u -- n ) Parse string as signed integer
