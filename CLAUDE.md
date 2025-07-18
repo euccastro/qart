@@ -34,7 +34,7 @@ make run      # Build and run the current program
 - `stack.asm` - Stack manipulation (LIT, DUP, DROP)
 - `arithmetic.asm` - Arithmetic operations (ADD)
 - `memory.asm` - Memory access (TO_R, R_FROM, R_FETCH, FETCH, STORE, C_FETCH, C_STORE)
-- `io.asm` - I/O operations (DOT, NUMBER)
+- `io.asm` - I/O operations (DOT, NUMBER, EMIT, KEY)
 - `dictionary.asm` - Dictionary lookup (FIND)
 - `forth.inc` - Common definitions (register assignments)
 - `Makefile` - Build configuration
@@ -57,11 +57,15 @@ make run      # Build and run the current program
   - Dictionary structure with linked list
   - DOCOL runtime for colon definitions
   - Core primitives: LIT, DUP, DROP, ADD, >R, R>, R@, @, !, C@, C!, DOT (.), EXIT
+  - I/O primitives: DOT for numbers, EMIT for characters, KEY for input
+  - EXECUTE for dynamic word execution
   - FIND word for dictionary lookup
   - NUMBER word for parsing integers
 - Test program demonstrates:
   - Basic arithmetic: 21 + 21 = 42
   - Colon definition: DOUBLE word that duplicates and adds
+  - EXECUTE primitive: dynamically calling DUP
+  - Character I/O: outputting "Hi!" and echoing input
 
 ## Technical Decisions
 
@@ -100,7 +104,8 @@ Please maintain `syscall-abi.md` with information about:
 - Memory access: @, !, C@, C!
 - Stack primitives: DUP, DROP
 - Arithmetic: ADD
-- I/O: DOT (.) for decimal output
+- I/O: DOT (.) for decimal output, EMIT for character output, KEY for character input
+- EXECUTE for dynamic execution of words
 - Dictionary structure with 7-char names
 - FIND for dictionary lookups
 - NUMBER for parsing integers
@@ -108,9 +113,9 @@ Please maintain `syscall-abi.md` with information about:
 - EXIT for returns and program termination
 
 ### Immediate Next Steps
-1. **EXECUTE** - Execute word given execution token
-2. **Input Buffer** - Basic line input with KEY
-3. **WORD** - Parse next word from input buffer
+1. **Input Buffer & Line Reading** - Create fixed-size buffer and read full lines (not just characters)
+2. **WORD** - Parse next word from input buffer
+3. **Stack manipulation** - SWAP, OVER for more complex operations
 4. **INTERPRET** - Main interpreter loop
    - Use WORD to get next token
    - Use FIND to look it up
@@ -118,13 +123,25 @@ Please maintain `syscall-abi.md` with information about:
 5. **Compiler words** - CREATE, : (colon), ; (semicolon)
 
 ### Future Steps
-1. Basic I/O: EMIT for character output, KEY for input
-2. Control flow: IF, THEN, ELSE, BEGIN, UNTIL
-3. More stack manipulation: SWAP, OVER, ROT
-4. Constants and variables
-5. Advanced features (continuations, effects, concurrency)
+1. Control flow: IF, THEN, ELSE, BEGIN, UNTIL
+2. More stack manipulation: ROT, -ROT, 2DUP, 2DROP
+3. Constants and variables
+4. Advanced features (continuations, effects, concurrency)
+5. Low-level networking - raw socket programming for future distributed computing
 
 ## Key Documentation Files
 
 - `register-cheatsheet.md` - x86_64 register reference and our usage
 - `syscall-abi.md` - Linux system call conventions and preservation rules
+
+## Implementation Notes
+
+### Session Learnings
+- EXECUTE implementation: Primitives must handle their own `jmp NEXT` after execution
+- Stack ordering for EXECUTE: execution token should be on top of stack
+- Character I/O uses a temporary buffer for syscalls (can't pass stack directly)
+- KEY returns -1 for EOF, following Unix convention
+- Test programs can be built incrementally in the data section using dictionary references
+
+### Next Action
+Implement input buffer and line reading functionality to move beyond single-character input. This will enable parsing whole commands and is essential for the WORD primitive and interactive REPL.
