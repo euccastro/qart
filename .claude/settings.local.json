@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(as:*)",
+      "Bash(ld:*)",
+      "Bash(apt list:*)",
+      "Bash(rm:*)",
+      "Bash(make:*)",
+      "Bash(nasm:*)",
+      "Bash(xxd:*)",
+      "Bash(readelf:*)",
+      "Bash(objdump:*)",
+      "Bash(nm:*)",
+      "Bash(./step01_stack)",
+      "Bash(./step02_push_pop:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(./step03_threaded_list)",
+      "Bash(./step04_lit_primitive)",
+      "Bash(./step05_next_mechanism)",
+      "Bash(./step06_add_primitive:*)",
+      "Bash(cp:*)",
+      "Bash(./qart)",
+      "Bash(size:*)",
+      "Bash(strip:*)",
+      "Bash(gdb:*)"
+    ],
+    "deny": []
+  }
+}
