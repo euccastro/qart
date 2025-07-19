@@ -57,8 +57,8 @@ ZBRANCH:
   add IP, 8
   mov rax, [DSP]
   add DSP, 8
+  xor rcx, rcx
   test rax, rax
-  jnz .done
-  lea IP, [IP + rdx*8]
-  .done:
+  cmovz rcx, rdx
+  lea IP, [IP + rcx*8]
   jmp NEXT

@@ -160,8 +160,10 @@ LATEST: dq dict_WORD
   ;; Test program: Use dictionary entries throughout
   align 8
 test_program:
+  dq dict_LIT, 42
   dq dict_LIT, 0
-  dq dict_ZEROEQ
+  dq dict_ZBRANCH, 2
+  dq dict_LIT, 99
   dq dict_DOT
   dq dict_EXIT
 
