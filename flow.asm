@@ -50,6 +50,15 @@ EXECUTE:
   add DSP, 8              ; Drop from stack
   jmp rax                 ; Execute it (primitives will jmp NEXT themselves)
 
+  ;; BRANCH ( n -- ) Skip next n words unconditionally
+BRANCH:
+  mov rdx, [IP]
+  add IP, 8
+  mov rax, [DSP]
+  add DSP, 8
+  lea IP, [IP + rdx*8]
+  jmp NEXT
+
   ;; ZBRANCH ( n -- ) Skip next n words if zero in TOS
 ZBRANCH:
   mov rdx, [IP]
