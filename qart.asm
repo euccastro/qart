@@ -133,8 +133,13 @@ dict_EXECUTE:
     db 7, "EXECUTE"         ; Name (7 chars exactly)
     dq EXECUTE              ; Code field
 
+dict_ZBRANCH:
+  dq dict_EXECUTE
+  db 7, "0BRANCH"
+  dq ZBRANCH
+
 dict_REFILL:
-    dq dict_EXECUTE         ; Link to previous
+    dq dict_ZBRANCH         ; Link to previous
     db 6, "REFILL", 0       ; Name
     dq REFILL               ; Code field
 
@@ -150,14 +155,12 @@ dict_WORD:
     ; Test program: Use dictionary entries throughout
     align 8
     test_program:
-        dq dict_LIT, 1
-        dq dict_LIT, 2
-        dq dict_OVER
-        dq dict_DOT 
+        dq dict_LIT, 42
+        dq dict_LIT, 0
+        dq dict_ZBRANCH, 2
+        dq dict_LIT, 99
         dq dict_DOT
-        dq dict_DOT
-        
-        dq dict_EXIT            ; Done
+        dq dict_EXIT
 
     minus_sign: db '-'
     space: db ' '
@@ -185,6 +188,7 @@ extern NEXT
 extern DOCOL
 extern EXIT
 extern EXECUTE
+extern ZBRANCH
 extern LIT
 extern DUP
 extern DROP
