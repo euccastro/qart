@@ -100,8 +100,18 @@ dict_SWAP:
   db 4, "SWAP", 0, 0, 0
   dq SWAP
 
-dict_OVER:
+dict_TWO_DUP:
   dq dict_SWAP
+  db 4, "2DUP", 0, 0, 0
+  dq TWO_DUP
+
+dict_TWO_DROP:
+  dq dict_TWO_DUP
+  db 5, "2DROP", 0, 0
+  dq TWO_DROP
+
+dict_OVER:
+  dq dict_TWO_DROP
   db 4, "OVER", 0, 0, 0
   dq OVER
 
@@ -192,17 +202,27 @@ LATEST: dq dict_ERRCR
   
   align 8
 test_program:
-  ;; Test stdout: TYPE and CR
-  dq dict_LIT, test_type 
-  dq dict_LIT, test_type_len
-  dq dict_TYPE
+  ;; Test 2DUP: push 3 and 7, duplicate them
+  dq dict_LIT, 3
+  dq dict_LIT, 7
+  dq dict_TWO_DUP         ; Stack: 3 7 3 7
+  
+  ;; Print all four values to verify 2DUP worked
+  dq dict_DOT             ; Print top (7)
+  dq dict_DOT             ; Print next (3)
+  dq dict_DOT             ; Print next (7)
+  dq dict_DOT             ; Print bottom (3)
   dq dict_CR
   
-  ;; Test stderr: ERRTYPE and ERRCR
-  dq dict_LIT, test_type
-  dq dict_LIT, test_type_len
-  dq dict_ERRTYPE
-  dq dict_ERRCR
+  ;; Test 2DROP: push 10 and 20, then drop them
+  dq dict_LIT, 10
+  dq dict_LIT, 20
+  dq dict_TWO_DROP        ; Stack should be empty
+  
+  ;; Push 42 to verify stack is working after 2DROP
+  dq dict_LIT, 42
+  dq dict_DOT             ; Should print 42
+  dq dict_CR
   
   dq dict_EXIT
 
@@ -240,6 +260,8 @@ return_stack_top:
   extern DROP
   extern OVER
   extern SWAP
+  extern TWO_DUP
+  extern TWO_DROP
   extern ADD
   extern ZEROEQ
   extern TO_R

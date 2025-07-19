@@ -9,6 +9,8 @@ global DUP
 global DROP
 global OVER
 global SWAP
+global TWO_DUP
+global TWO_DROP
 
 extern NEXT
 
@@ -45,4 +47,18 @@ SWAP:
     mov rsi, [DSP+8]
     mov [DSP+8], rax
     mov [DSP], rsi
+    jmp NEXT
+
+; 2DUP ( x1 x2 -- x1 x2 x1 x2 ) Duplicate top two cells
+TWO_DUP:
+    mov rax, [DSP+8]        ; Get second item
+    mov rdx, [DSP]          ; Get top item
+    sub DSP, 16             ; Make room for two cells
+    mov [DSP+8], rax        ; Push copy of second
+    mov [DSP], rdx          ; Push copy of top
+    jmp NEXT
+
+; 2DROP ( x1 x2 -- ) Drop top two cells
+TWO_DROP:
+    add DSP, 16             ; Drop two items
     jmp NEXT
