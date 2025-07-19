@@ -7,6 +7,8 @@ section .text
 global LIT
 global DUP
 global DROP
+global OVER
+global SWAP
 
 extern NEXT
 
@@ -28,4 +30,19 @@ DUP:
 ; DROP ( n -- ) Remove top of stack
 DROP:
     add DSP, 8              ; Drop top item
+    jmp NEXT
+
+; OVER ( n m -- n m n ) Push next-to-last to top
+OVER:
+    mov rax, [DSP+8]
+    sub DSP, 8
+    mov [DSP], rax
+    jmp NEXT
+
+; SWAP ( n m -- m n ) Swap two topmost stack values
+SWAP:
+    mov rax, [DSP]
+    mov rsi, [DSP+8]
+    mov [DSP+8], rax
+    mov [DSP], rsi
     jmp NEXT

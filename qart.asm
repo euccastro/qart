@@ -97,8 +97,18 @@ dict_DROP:
     db 4, "DROP", 0, 0, 0
     dq DROP
 
-dict_DUP:
+dict_SWAP:
     dq dict_DROP
+    db 4, "SWAP", 0, 0, 0
+    dq SWAP
+
+dict_OVER:
+    dq dict_SWAP
+    db 4, "OVER", 0, 0, 0
+    dq OVER
+
+dict_DUP:
+    dq dict_OVER
     db 3, "DUP", 0, 0, 0, 0
     dq DUP
 
@@ -140,60 +150,12 @@ dict_WORD:
     ; Test program: Use dictionary entries throughout
     align 8
     test_program:
-        ; Test with primitives first
-        dq dict_LIT, 21         ; Push 21
-        dq dict_LIT, 21         ; Push 21 
-        dq dict_ADD             ; Add them
-        dq dict_DOT             ; Print result (should be 42)
-        
-        ; Now test colon definition
-        dq dict_LIT, 10         ; Push 10
-        dq dict_DOUBLE          ; Call DOUBLE (should double to 20)
-        dq dict_DOT             ; Print result
-        
-        ; Test EXECUTE
-        dq dict_LIT, 5          ; Push 5
-        dq dict_LIT, dict_DUP   ; Push execution token for DUP
-        dq dict_EXECUTE         ; Execute DUP (should duplicate 5)
-        dq dict_ADD             ; Add them (5 + 5 = 10)
-        dq dict_DOT             ; Print result (should be 10)
-        
-        ; Test EMIT
-        dq dict_LIT, 72         ; Push 'H' (ASCII 72)
-        dq dict_EMIT            ; Print H
-        dq dict_LIT, 105        ; Push 'i' (ASCII 105)
-        dq dict_EMIT            ; Print i
-        dq dict_LIT, 33         ; Push '!' (ASCII 33)
-        dq dict_EMIT            ; Print !
-        dq dict_LIT, 10         ; Push newline
-        dq dict_EMIT            ; Print newline
-        
-        ; Test REFILL and WORD - read and parse a line
-        dq dict_REFILL          ; Read a line into buffer
-        dq dict_DOT             ; Print result (should be -1 for success)
-        dq dict_LIT, 10         ; Push newline
-        dq dict_EMIT            ; Print newline
-        
-        ; Parse first word
-        dq dict_WORD            ; Parse first word
-        dq dict_DOT             ; Print length
-        dq dict_DROP            ; Drop address
-        dq dict_LIT, 10         ; Push newline
-        dq dict_EMIT            ; Print newline
-        
-        ; Parse second word
-        dq dict_WORD            ; Parse second word
-        dq dict_DOT             ; Print length
-        dq dict_DROP            ; Drop address
-        dq dict_LIT, 10         ; Push newline
-        dq dict_EMIT            ; Print newline
-        
-        ; Parse third word (should be 0 0)
-        dq dict_WORD            ; Parse third word
-        dq dict_DOT             ; Print length (should be 0)
-        dq dict_DROP            ; Drop address
-        dq dict_LIT, 10         ; Push newline
-        dq dict_EMIT            ; Print newline
+        dq dict_LIT, 1
+        dq dict_LIT, 2
+        dq dict_OVER
+        dq dict_DOT 
+        dq dict_DOT
+        dq dict_DOT
         
         dq dict_EXIT            ; Done
 
@@ -226,6 +188,8 @@ extern EXECUTE
 extern LIT
 extern DUP
 extern DROP
+extern OVER
+extern SWAP
 extern ADD
 extern TO_R
 extern R_FROM
