@@ -92,8 +92,13 @@ dict_ADD:
   db 1, "+", 0, 0, 0, 0, 0, 0
   dq ADD
 
-dict_DROP:
+dict_ZEROEQ:
   dq dict_ADD
+  db 2, "0=", 0, 0, 0, 0, 0
+  dq ZEROEQ
+
+dict_DROP:
+  dq dict_ZEROEQ
   db 4, "DROP", 0, 0, 0
   dq DROP
 
@@ -155,10 +160,8 @@ LATEST: dq dict_WORD
   ;; Test program: Use dictionary entries throughout
   align 8
 test_program:
-  dq dict_LIT, 42
   dq dict_LIT, 0
-  dq dict_ZBRANCH, 2
-  dq dict_LIT, 99
+  dq dict_ZEROEQ
   dq dict_DOT
   dq dict_EXIT
 
@@ -195,6 +198,7 @@ return_stack_top:
   extern OVER
   extern SWAP
   extern ADD
+  extern ZEROEQ
   extern TO_R
   extern R_FROM
   extern R_FETCH
