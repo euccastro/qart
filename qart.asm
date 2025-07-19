@@ -12,17 +12,10 @@ input_buffer: times INPUT_BUFFER_SIZE db 0  ; Input line buffer
 input_length: dq 0                          ; Number of chars in buffer
 input_position: dq 0                        ; Current parse position
   
-  ;; Test variables for memory access
-test_var: dq 0              ; 64-bit test variable
-test_byte: db 0             ; Byte test variable
   
   ;; Test strings for FIND
-test_dup: db "DUP"
-  test_dup_len equ 3
-test_plus: db "+"
-  test_plus_len equ 1
-test_bad: db "BADWORD"
-  test_bad_len equ 7
+test_type: db "this is a test"
+  test_type_len equ 14
   
   ;; Dictionary structure
   ;; Format per entry:
@@ -152,23 +145,70 @@ dict_WORD:
   dq dict_REFILL          ; Link to previous
   db 4, "WORD", 0, 0, 0   ; Name
   dq PARSE_WORD           ; Code field
-  
+
+dict_FIND:
+  dq dict_WORD
+  db 4, "FIND", 0, 0, 0
+  dq FIND
+
+dict_NUMBER:
+  dq dict_FIND
+  db 6, "NUMBER", 0
+  dq NUMBER
+
+dict_TYPE:
+  dq dict_NUMBER
+  db 4, "TYPE", 0, 0, 0
+  dq TYPE
+
+dict_ERRTYPE:
+  dq dict_TYPE
+  db 7, "ERRTYPE"
+  dq ERRTYPE
+
+  ;; CR ( -- ) Output newline to stdout
+  align 8
+dict_CR:
+  dq dict_ERRTYPE         ; Link to previous
+  db 2, "CR", 0, 0, 0, 0, 0 ; Name must be exactly 8 bytes
+  dq DOCOL                ; Colon definition
+  ;; Body starts here at offset 24
+  dq dict_LIT, 10         ; Push newline character
+  dq dict_EMIT            ; Output it
+  dq dict_EXIT
+
+  ;; ERRCR ( -- ) Output newline to stderr  
+dict_ERRCR:
+  dq dict_CR              ; Link to previous
+  db 5, "ERRCR", 0, 0
+  dq DOCOL                ; Colon definition
+  dq dict_LIT, newline_str ; Push address of newline
+  dq dict_LIT, 1          ; Push length (1)
+  dq dict_ERRTYPE         ; Output to stderr
+  dq dict_EXIT
+
   ;; LATEST points to the most recent word
-LATEST: dq dict_WORD
+LATEST: dq dict_ERRCR
   
-  
-  ;; Test program: Use dictionary entries throughout
   align 8
 test_program:
-  dq dict_LIT, 42
-  dq dict_LIT, 0
-  dq dict_ZBRANCH, 2
-  dq dict_LIT, 99
-  dq dict_DOT
+  ;; Test stdout: TYPE and CR
+  dq dict_LIT, test_type 
+  dq dict_LIT, test_type_len
+  dq dict_TYPE
+  dq dict_CR
+  
+  ;; Test stderr: ERRTYPE and ERRCR
+  dq dict_LIT, test_type
+  dq dict_LIT, test_type_len
+  dq dict_ERRTYPE
+  dq dict_ERRCR
+  
   dq dict_EXIT
 
 minus_sign: db '-'
 space: db ' '
+newline_str: db 10
 
   section .bss
   align 8
@@ -183,6 +223,7 @@ return_stack_top:
   global buffer
   global minus_sign
   global space
+  global newline_str
   global LATEST
   global input_buffer
   global input_length
@@ -215,6 +256,8 @@ return_stack_top:
   extern FIND
   extern REFILL
   extern PARSE_WORD
+  extern TYPE
+  extern ERRTYPE
 
   ;; ---- Main Program ----
 

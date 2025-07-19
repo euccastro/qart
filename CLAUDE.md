@@ -105,8 +105,10 @@ Please maintain `syscall-abi.md` with information about:
 - Data stack operations (R15)
 - Return stack operations (R14) with >R, R>, R@
 - Memory access: @, !, C@, C!
-- Stack primitives: DUP, DROP
+- Stack primitives: DUP, DROP, SWAP, OVER
 - Arithmetic: ADD
+- Comparison: 0= (ZEROEQ) using branchless SETcc technique
+- Control flow: 0BRANCH (ZBRANCH) using branchless CMOVcc optimization
 - I/O: DOT (.) for decimal output, EMIT for character output, KEY for character input
 - EXECUTE for dynamic execution of words
 - Dictionary structure with 7-char names
@@ -119,13 +121,15 @@ Please maintain `syscall-abi.md` with information about:
 - WORD for parsing space-delimited tokens from input buffer
 
 ### Immediate Next Steps
-1. **Stack manipulation** - SWAP, OVER for more complex operations
-2. **INTERPRET** - Main interpreter loop
+1. **INTERPRET** - Main interpreter loop as a colon definition
+   - Need dictionary entries for FIND and NUMBER first
    - Use WORD to get next token
    - Use FIND to look it up
    - Execute if found, try NUMBER if not
-3. **Compiler words** - CREATE, : (colon), ; (semicolon)
-4. **QUIT** - Outer interpreter loop that calls REFILL and INTERPRET
+   - Handle errors gracefully
+2. **Compiler words** - CREATE, : (colon), ; (semicolon)
+3. **QUIT** - Outer interpreter loop that calls REFILL and INTERPRET
+4. **Additional comparison/control** - More comparison operators and BRANCH for unconditional jumps
 
 ### Future Steps
 1. Control flow: IF, THEN, ELSE, BEGIN, UNTIL
@@ -153,6 +157,12 @@ Please maintain `syscall-abi.md` with information about:
 - **Constants in forth.inc**: Shared constants like INPUT_BUFFER_SIZE should go in forth.inc to avoid duplication
 - **sys_read behavior**: Always includes newline when user presses Enter; REFILL strips it for cleaner parsing
 - **Primitive structure**: Assembly primitives don't use code pointer indirection like colon definitions
+- **Dictionary name field alignment**: 7-character names need exactly 8 bytes total (1 length + 7 chars), no extra padding needed
+- **LIT behavior in threaded code**: `dq dict_LIT, value` creates TWO cells; must account for this when calculating branch offsets
+- **MOV doesn't set flags**: Must use explicit TEST or CMP before conditional jumps; this caught us with ZBRANCH
+- **Branchless optimizations**: CMOVcc for conditional data movement (ZBRANCH), SETcc for flag-to-value conversion (ZEROEQ)
+- **Forth architecture constraint**: Primitives shouldn't call other words; use colon definitions for that (this is why INTERPRET should be a colon word)
+- **NASM syntax**: Multiple values on one line need commas: `dq dict_LIT, 42` not `dq dict_LIT 42`
 
 ### Critical Things to Watch For
 1. **Register preservation**: Never clobber RBX (IP), R15 (DSP), or R14 (RSTACK) in primitives
@@ -161,5 +171,8 @@ Please maintain `syscall-abi.md` with information about:
 4. **Buffer bounds**: Always validate positions against buffer length
 5. **Transient strings**: WORD results are only valid until next REFILL
 
+### Development Approach
+**Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.
+
 ### Next Action
-Implement SWAP and OVER stack manipulation words, then build INTERPRET to create a basic REPL.
+Add dictionary entries for FIND and NUMBER primitives, then implement INTERPRET as a colon definition. This will enable a basic REPL.

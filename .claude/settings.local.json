@@ -25,7 +25,8 @@
       "Bash(./qart)",
       "Bash(size:*)",
       "Bash(strip:*)",
-      "Bash(gdb:*)"
+      "Bash(gdb:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

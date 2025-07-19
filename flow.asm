@@ -44,11 +44,10 @@ EXIT:
   syscall
 
   ;; EXECUTE ( xt -- ) Execute word given execution token
-  ;; Execution token is a dictionary entry address
+  ;; Execution token is a code field address
 EXECUTE:
-  mov rdx, [DSP]          ; Get execution token from stack
+  mov rax, [DSP]          ; Get execution token from stack
   add DSP, 8              ; Drop from stack
-  mov rax, [rdx+16]       ; Get code field from dict entry
   jmp rax                 ; Execute it (primitives will jmp NEXT themselves)
 
   ;; ZBRANCH ( n -- ) Skip next n words if zero in TOS
