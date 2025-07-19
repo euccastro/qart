@@ -7,3 +7,4 @@
 
 ; Constants
 INPUT_BUFFER_SIZE equ 256   ; Size of input line buffer
+NEWLINE equ 10              ; ASCII newline character

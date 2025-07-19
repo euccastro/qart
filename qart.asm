@@ -5,7 +5,7 @@
 
   section .data
 buffer: times 20 db 0
-newline: db 10
+newline: db NEWLINE
   
   ;; Input buffer and tracking variables
 input_buffer: times INPUT_BUFFER_SIZE db 0  ; Input line buffer
@@ -183,7 +183,7 @@ dict_CR:
   db 2, "CR", 0, 0, 0, 0, 0 ; Name must be exactly 8 bytes
   dq DOCOL                ; Colon definition
   ;; Body starts here at offset 24
-  dq dict_LIT, 10         ; Push newline character
+  dq dict_LIT, NEWLINE    ; Push newline character
   dq dict_EMIT            ; Output it
   dq dict_EXIT
 
@@ -192,7 +192,7 @@ dict_ERRCR:
   dq dict_CR              ; Link to previous
   db 5, "ERRCR", 0, 0
   dq DOCOL                ; Colon definition
-  dq dict_LIT, newline_str ; Push address of newline
+  dq dict_LIT, newline     ; Push address of newline
   dq dict_LIT, 1          ; Push length (1)
   dq dict_ERRTYPE         ; Output to stderr
   dq dict_EXIT
@@ -228,7 +228,6 @@ test_program:
 
 minus_sign: db '-'
 space: db ' '
-newline_str: db 10
 
   section .bss
   align 8
@@ -243,7 +242,6 @@ return_stack_top:
   global buffer
   global minus_sign
   global space
-  global newline_str
   global LATEST
   global input_buffer
   global input_length

@@ -44,7 +44,7 @@ REFILL:
     je .no_newline
     dec rcx
     mov al, [rsi + rcx]
-    cmp al, 10                 ; newline
+    cmp al, NEWLINE            ; newline
     je .found_newline
     jmp .find_newline
     
