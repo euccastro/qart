@@ -11,8 +11,10 @@ global FETCH
 global STORE
 global C_FETCH
 global C_STORE
+global STATE_word
 
 extern NEXT
+extern STATE
 
 ; >R ( n -- ) (R: -- n) Move from data stack to return stack
 TO_R:
@@ -67,4 +69,10 @@ C_STORE:
     mov dl, [DSP]           ; Get byte value (low 8 bits)
     add DSP, 8              ; Drop it
     mov [rax], dl           ; Store byte at address
+    jmp NEXT
+
+; STATE ( -- addr ) Push address of STATE variable
+STATE_word:
+    sub DSP, 8              ; Make room
+    mov qword [DSP], STATE  ; Push address
     jmp NEXT

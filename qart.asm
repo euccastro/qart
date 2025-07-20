@@ -15,6 +15,9 @@ newline: db NEWLINE
 input_buffer: times INPUT_BUFFER_SIZE db 0  ; Input line buffer
 input_length: dq 0                          ; Number of chars in buffer
 input_position: dq 0                        ; Current parse position
+
+  ;; Compiler state
+STATE: dq 0                                  ; 0 = interpret, non-zero = compile
   
   
 bye_msg: db "bye."
@@ -246,8 +249,14 @@ dict_INTERPRET:
   dq dict_TWO_DROP
   dq dict_EXIT
 
+  ;; STATE ( -- addr ) Push address of STATE variable
+dict_STATE:
+  dq dict_INTERPRET       ; Link to previous
+  db 5, "STATE", 0, 0     ; Name
+  dq STATE_word           ; Code field
+
   ;; LATEST points to the most recent word
-LATEST: dq dict_INTERPRET
+LATEST: dq dict_STATE
   
   align 8
 test_program:
@@ -288,6 +297,7 @@ return_stack_top:
   global input_buffer
   global input_length
   global input_position
+  global STATE
 
   ;; Import all the primitives from other files
   extern NEXT
@@ -321,6 +331,7 @@ return_stack_top:
   extern PARSE_WORD
   extern TYPE
   extern ERRTYPE
+  extern STATE_word
 
   ;; ---- Main Program ----
 
