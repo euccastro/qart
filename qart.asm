@@ -18,6 +18,9 @@ input_position: dq 0                        ; Current parse position
 
   ;; Compiler state
 STATE: dq 0                                  ; 0 = interpret, non-zero = compile
+
+  ;; Output stream control
+OUTPUT: dq 1                                 ; 1 = stdout, 2 = stderr
   
   
 bye_msg: db "bye."
@@ -187,10 +190,27 @@ dict_TYPE:
   db 4, "TYPE", 0, 0, 0
   dq TYPE
 
+  ;; ERRTYPE ( c-addr u -- ) Output string to stderr
 dict_ERRTYPE:
   dq dict_TYPE
   db 7, "ERRTYPE"
-  dq ERRTYPE
+  dq DOCOL                ; Colon definition
+  ;; Save current OUTPUT
+  dq dict_OUTPUT          ; ( c-addr u OUTPUT )
+  dq dict_FETCH           ; ( c-addr u old-output )
+  dq dict_TO_R            ; ( c-addr u ) (R: old-output)
+  ;; Set OUTPUT to stderr
+  dq dict_LIT
+  dq 2                    ; ( c-addr u 2 )
+  dq dict_OUTPUT          ; ( c-addr u 2 OUTPUT )
+  dq dict_STORE           ; ( c-addr u )
+  ;; Output the string
+  dq dict_TYPE            ; ( )
+  ;; Restore OUTPUT
+  dq dict_R_FROM          ; ( old-output )
+  dq dict_OUTPUT          ; ( old-output OUTPUT )
+  dq dict_STORE           ; ( )
+  dq dict_EXIT
 
   ;; CR ( -- ) Output newline to stdout
   align 8
@@ -208,9 +228,21 @@ dict_ERRCR:
   dq dict_CR              ; Link to previous
   db 5, "ERRCR", 0, 0
   dq DOCOL                ; Colon definition
-  dq dict_LIT, newline     ; Push address of newline
-  dq dict_LIT, 1          ; Push length (1)
-  dq dict_ERRTYPE         ; Output to stderr
+  ;; Save current OUTPUT
+  dq dict_OUTPUT          ; ( OUTPUT )
+  dq dict_FETCH           ; ( old-output )
+  dq dict_TO_R            ; ( ) (R: old-output)
+  ;; Set OUTPUT to stderr
+  dq dict_LIT
+  dq 2                    ; ( 2 )
+  dq dict_OUTPUT          ; ( 2 OUTPUT )
+  dq dict_STORE           ; ( )
+  ;; Output newline
+  dq dict_CR              ; ( )
+  ;; Restore OUTPUT
+  dq dict_R_FROM          ; ( old-output )
+  dq dict_OUTPUT          ; ( old-output OUTPUT )
+  dq dict_STORE           ; ( )
   dq dict_EXIT
 
   ;; Error message for unknown word
@@ -266,9 +298,15 @@ dict_ASSERT:
   db 6, "ASSERT", 0       ; Name
   dq ASSERT               ; Code field
 
+  ;; OUTPUT ( -- addr ) Push address of OUTPUT variable
+dict_OUTPUT:
+  dq dict_ASSERT          ; Link to previous
+  db 6, "OUTPUT", 0       ; Name
+  dq OUTPUT_word          ; Code field
+
   ;; SHOWWORDS ( -- ) Debug word parsing by showing each word as bytes
 dict_SHOWWORDS:
-  dq dict_ASSERT          ; Link to previous
+  dq dict_OUTPUT          ; Link to previous
   db 5, "SHOWW", 0, 0
   dq DOCOL                ; Colon definition
   .loop:
@@ -356,6 +394,7 @@ return_stack_top:
   global input_length
   global input_position
   global STATE
+  global OUTPUT
 
   ;; Import all the primitives from other files
   extern NEXT
@@ -389,8 +428,8 @@ return_stack_top:
   extern REFILL
   extern PARSE_WORD
   extern TYPE
-  extern ERRTYPE
   extern STATE_word
+  extern OUTPUT_word
   extern ASSERT
 
   ;; ---- Main Program ----

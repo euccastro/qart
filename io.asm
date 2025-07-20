@@ -8,7 +8,6 @@
   global NUMBER
   global EMIT
   global TYPE
-  global ERRTYPE
   global KEY
   global ASSERT
 
@@ -16,6 +15,7 @@
   extern buffer
   extern minus_sign
   extern space
+  extern OUTPUT
 
   ;; DOT ( n -- ) Pop and print number with trailing space
 DOT:
@@ -30,7 +30,7 @@ DOT:
   
   ;; Print minus sign
   mov rax, 1              ; sys_write
-  mov rdi, 1              ; stdout
+  mov rdi, [OUTPUT]       ; Use OUTPUT variable
   mov rsi, minus_sign
   mov rdx, 1
   syscall
@@ -56,12 +56,12 @@ DOT:
   mov rsi, rdi
   mov rdx, buffer + 19
   sub rdx, rdi
-  mov rdi, 1              ; stdout
+  mov rdi, [OUTPUT]       ; Use OUTPUT variable
   syscall
   
   ;; Print space (Forth convention)
   mov rax, 1
-  mov rdi, 1
+  mov rdi, [OUTPUT]       ; Use OUTPUT variable
   mov rsi, space
   mov rdx, 1
   syscall
@@ -72,7 +72,7 @@ DOT:
 EMIT:
   ;; Write directly from stack (low byte contains the character)
   mov rax, 1              ; sys_write
-  mov rdi, 1              ; stdout
+  mov rdi, [OUTPUT]       ; Use OUTPUT variable
   mov rsi, DSP            ; Address of character on stack
   mov rdx, 1              ; One byte (just the low byte)
   syscall
@@ -80,21 +80,10 @@ EMIT:
   add DSP, 8              ; Drop from stack
   jmp NEXT
 
-  ;; TYPE ( c-addr u -- ) Output string to stdout
+  ;; TYPE ( c-addr u -- ) Output string
 TYPE:
   mov rax, 1              ; sys_write
-  mov rdi, 1              ; stdout
-  mov rsi, [DSP+8]        ; String address
-  mov rdx, [DSP]          ; Length
-  syscall
-
-  add DSP, 16
-  jmp NEXT
-
-  ;; ERRTYPE ( c-addr u -- ) Output string to stderr
-ERRTYPE:
-  mov rax, 1              ; sys_write
-  mov rdi, 2              ; stderr
+  mov rdi, [OUTPUT]       ; Use OUTPUT variable
   mov rsi, [DSP+8]        ; String address
   mov rdx, [DSP]          ; Length
   syscall
@@ -204,16 +193,27 @@ ASSERT:
   test rdx, rdx
   jnz .ok                 ; Non-zero = true = pass
   
-  ;; Print "FAIL: " to stderr
+  ;; Save current OUTPUT, set to stderr
+  push qword [OUTPUT]
+  mov qword [OUTPUT], 2   ; stderr
+  
+  ;; Print "FAIL: " 
   push rax                ; Save id
   mov rax, 1              ; sys_write
   mov rdi, 2              ; stderr
   mov rsi, .fail_msg
   mov rdx, 6              ; "FAIL: " length
   syscall
-  
-  ;; Print the test ID number
   pop rax                 ; Restore id
+  
+  ;; Push id back on stack for DOT
+  sub DSP, 8
+  mov [DSP], rax
+  
+  ;; We can't call DOT from here (primitives don't call words)
+  ;; So we still need to inline the number printing
+  mov rax, [DSP]
+  add DSP, 8
   
   ;; Handle negative numbers
   test rax, rax
@@ -231,7 +231,7 @@ ASSERT:
   pop rax                 ; Restore number
   
 .print_positive:
-  ;; Convert to decimal string (reuse DOT's logic)
+  ;; Convert to decimal string
   mov rdi, buffer + 19
   mov rcx, 10
   
@@ -258,6 +258,9 @@ ASSERT:
   mov rsi, .newline_char
   mov rdx, 1
   syscall
+  
+  ;; Restore OUTPUT
+  pop qword [OUTPUT]
   
 .ok:
   jmp NEXT
