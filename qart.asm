@@ -256,9 +256,16 @@ test_program:
   dq dict_LIT, ' '
   dq dict_EMIT
   dq dict_REFILL
+  dq dict_ZBRANCH, BRANCH_OFFSET(.bye)
   dq dict_INTERPRET
   dq dict_CR
   dq dict_BRANCH, BRANCH_OFFSET(test_program)
+  .bye:
+  dq dict_LIT, bye_msg
+  dq dict_LIT, bye_msg_len
+  dq dict_TYPE
+  dq dict_CR
+  dq dict_EXIT
 
 
 minus_sign: db '-'
