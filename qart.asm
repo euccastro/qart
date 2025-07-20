@@ -258,11 +258,7 @@ test_program:
   dq dict_REFILL
   dq dict_INTERPRET
   dq dict_CR
-  dq dict_LIT, bye_msg
-  dq dict_LIT, bye_msg_len
-  dq dict_TYPE
-  dq dict_CR
-  dq dict_EXIT
+  dq dict_BRANCH, BRANCH_OFFSET(test_program)
 
 
 minus_sign: db '-'
