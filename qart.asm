@@ -312,9 +312,11 @@ test_program:
   dq dict_EMIT
   dq dict_REFILL
   dq dict_ZBRANCH, BRANCH_OFFSET(.bye)
-  dq dict_SHOWWORDS       ; Use SHOWWORDS instead of INTERPRET
+  dq dict_INTERPRET       ; Back to INTERPRET
+  dq dict_CR
   dq dict_BRANCH, BRANCH_OFFSET(test_program)
   .bye:
+  dq dict_CR
   dq dict_LIT, bye_msg
   dq dict_LIT, bye_msg_len
   dq dict_TYPE

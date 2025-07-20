@@ -22,7 +22,7 @@ PARSE_WORD:
     cmp rsi, rcx
     jge .no_more_words
     
-    ; Skip leading spaces
+    ; Skip leading spaces and newlines
     mov rdi, input_buffer
     add rdi, rsi                ; Point to current position
 .skip_spaces:
@@ -30,7 +30,10 @@ PARSE_WORD:
     jge .no_more_words
     mov al, [rdi]
     cmp al, ' '
+    je .skip_this_char
+    cmp al, NEWLINE         ; Also skip newlines
     jne .found_word_start
+.skip_this_char:
     inc rsi
     inc rdi
     jmp .skip_spaces
@@ -40,12 +43,14 @@ PARSE_WORD:
     mov rdx, rsi                ; Start of word
     mov r8, rdi                 ; Start address
     
-    ; Find end of word (next space or end of buffer)
+    ; Find end of word (next space or newline or end of buffer)
 .find_word_end:
     cmp rsi, rcx
     jge .found_word_end
     mov al, [rdi]
     cmp al, ' '
+    je .found_word_end
+    cmp al, NEWLINE         ; Also treat newline as whitespace
     je .found_word_end
     inc rsi
     inc rdi
