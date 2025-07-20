@@ -96,8 +96,13 @@ dict_ZEROEQ:
   db 2, "0=", 0, 0, 0, 0, 0
   dq ZEROEQ
 
-dict_DROP:
+dict_EQUAL:
   dq dict_ZEROEQ
+  db 1, "=", 0, 0, 0, 0, 0, 0
+  dq EQUAL
+
+dict_DROP:
+  dq dict_EQUAL
   db 4, "DROP", 0, 0, 0
   dq DROP
 
@@ -255,9 +260,15 @@ dict_STATE:
   db 5, "STATE", 0, 0     ; Name
   dq STATE_word           ; Code field
 
+  ;; ASSERT ( flag id -- ) Check assertion and print FAIL: id if false
+dict_ASSERT:
+  dq dict_STATE           ; Link to previous
+  db 6, "ASSERT", 0       ; Name
+  dq ASSERT               ; Code field
+
   ;; SHOWWORDS ( -- ) Debug word parsing by showing each word as bytes
 dict_SHOWWORDS:
-  dq dict_STATE           ; Link to previous
+  dq dict_ASSERT          ; Link to previous
   db 5, "SHOWW", 0, 0
   dq DOCOL                ; Colon definition
   .loop:
@@ -362,6 +373,7 @@ return_stack_top:
   extern TWO_DROP
   extern ADD
   extern ZEROEQ
+  extern EQUAL
   extern TO_R
   extern R_FROM
   extern R_FETCH
@@ -379,6 +391,7 @@ return_stack_top:
   extern TYPE
   extern ERRTYPE
   extern STATE_word
+  extern ASSERT
 
   ;; ---- Main Program ----
 
