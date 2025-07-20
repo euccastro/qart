@@ -8,18 +8,23 @@
   %define BRANCH_OFFSET(target) (((target - $) // 8) - 2)
 
   section .data
+  align 8
 buffer: times 20 db 0
 newline: db NEWLINE
   
   ;; Input buffer and tracking variables
+  align 8
 input_buffer: times INPUT_BUFFER_SIZE db 0  ; Input line buffer
+  align 8
 input_length: dq 0                          ; Number of chars in buffer
 input_position: dq 0                        ; Current parse position
 
   ;; Compiler state
+  align 8
 STATE: dq 0                                  ; 0 = interpret, non-zero = compile
 
   ;; Output stream control
+  align 8
 OUTPUT: dq 1                                 ; 1 = stdout, 2 = stderr
   
   
