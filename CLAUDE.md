@@ -60,10 +60,10 @@ make run      # Build and run the current program
   - Instruction pointer (IP) in RBX
   - Dictionary structure with linked list
   - DOCOL runtime for colon definitions
-  - Core primitives: LIT, DUP, DROP, ADD, >R, R>, R@, @, !, C@, C!, DOT (.), EXIT, EXECUTE, FIND, NUMBER, REFILL, WORD
+  - Core primitives: LIT, DUP, DROP, ADD, >R, R>, R@, @, !, C@, C!, DOT (.), EXIT, EXECUTE, FIND, NUMBER, REFILL, WORD, SP@ (stack pointer fetch)
   - I/O primitives: EMIT for characters, KEY for input
 - Input system:
-  - 256-byte input buffer with position/length tracking
+  - 1MB input buffer (in .bss section) with position/length tracking
   - Line-based input with newline stripping
   - Direct pointer returns from WORD (no copying)
 - Test program demonstrates:
@@ -107,12 +107,13 @@ Please maintain `syscall-abi.md` with information about:
 - Data stack operations (R15)
 - Return stack operations (R14) with >R, R>, R@
 - Memory access: @, !, C@, C!
-- Stack primitives: DUP, DROP, SWAP, OVER
+- Stack primitives: DUP, DROP, SWAP, OVER, 2DUP, 2DROP, SP@
 - Arithmetic: ADD, = (EQUAL), 0= (ZEROEQ) using branchless SETcc technique
 - Control flow: BRANCH, 0BRANCH (ZBRANCH) using branchless CMOVcc optimization
 - I/O: DOT (.) for decimal output, EMIT for character output, KEY for character input, TYPE for string output
 - Testing: ASSERT for unit test support with numeric IDs
 - Output control: OUTPUT variable for stdout/stderr switching
+- Debug control: FLAGS variable (bit 0 = verbose ASSERT)
 - EXECUTE for dynamic execution of words
 - Dictionary structure with 7-char names
 - FIND for dictionary lookups (returns dictionary pointer as execution token)
@@ -170,6 +171,12 @@ Please maintain `syscall-abi.md` with information about:
 - **NUMBER returns proper flag**: (n 1) on success, (c-addr u 0) on failure - can distinguish zero from error
 - **OUTPUT variable controls streams**: Colon definitions like ERRTYPE save/restore OUTPUT for stderr output
 - **Test suite reveals bugs**: `test.fs` contains regression tests that currently expose failures and a segfault
+- **FLAGS variable for debugging**: Bit 0 controls verbose ASSERT output (pass/fail messages to stderr)
+- **SP@ for memory testing**: Returns stack pointer, useful for getting valid addresses in tests
+- **Input buffer size matters**: Increased from 256 bytes to 1MB to handle large test files
+- **.bss section for large buffers**: Keeps executable size small while allowing large runtime buffers
+- **FIND return values**: When found returns (xt 1), when not found returns (c-addr u 0)
+- **Branch offset calculations**: Must account for LIT using two cells when calculating offsets
 
 ### Critical Things to Watch For
 1. **Register preservation**: Never clobber RBX (IP), R15 (DSP), or R14 (RSTACK) in primitives

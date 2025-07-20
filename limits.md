@@ -55,6 +55,11 @@ This document describes known limitations of the qart Forth implementation.
 - **No string literals**: Cannot type strings in source code
   - Must use character codes with EMIT
   - No S" or ." operators
+- **Input buffer size**: 1MB (1048576 bytes)
+  - Single line cannot exceed this size
+  - Files piped to stdin cannot exceed this size (entire file read at once)
+  - Test files must fit in buffer since REFILL reads all available input
+  - Buffer allocated in .bss section to keep executable small
 
 ## Compiler Limitations
 - **No immediate words**: Cannot mark words as immediate
