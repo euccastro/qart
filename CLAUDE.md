@@ -41,7 +41,7 @@ make run      # Build and run the current program
 - `word.asm` - Word parsing (PARSE_WORD/WORD)
 - `forth.inc` - Common definitions (register assignments, constants)
 - `Makefile` - Build configuration
-- `test.fs` - Regression test suite (run with `./qart < test.fs`)
+- `test.fth` - Regression test suite (run with `./qart < test.fth`)
 - Object files and executables are built in the root directory
 
 ## Assembly Conventions
@@ -170,7 +170,7 @@ Please maintain `syscall-abi.md` with information about:
 - **DOCOL receives dictionary pointer in RDX**: Both from NEXT and EXECUTE, enabling uniform handling
 - **NUMBER returns proper flag**: (n 1) on success, (c-addr u 0) on failure - can distinguish zero from error
 - **OUTPUT variable controls streams**: Colon definitions like ERRTYPE save/restore OUTPUT for stderr output
-- **Test suite reveals bugs**: `test.fs` contains regression tests that currently expose failures and a segfault
+- **Test suite**: `test.fth` contains regression tests; run with `./test.sh` or `./test-verbose.sh` for detailed output
 - **FLAGS variable for debugging**: Bit 0 controls verbose ASSERT output (pass/fail messages to stderr)
 - **SP@ for memory testing**: Returns stack pointer, useful for getting valid addresses in tests
 - **Input buffer size matters**: Increased from 256 bytes to 1MB to handle large test files
