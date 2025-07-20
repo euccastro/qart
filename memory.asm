@@ -13,10 +13,12 @@ global C_FETCH
 global C_STORE
 global STATE_word
 global OUTPUT_word
+global FLAGS_word
 
 extern NEXT
 extern STATE
 extern OUTPUT
+extern FLAGS
 
 ; >R ( n -- ) (R: -- n) Move from data stack to return stack
 TO_R:
@@ -83,4 +85,10 @@ STATE_word:
 OUTPUT_word:
     sub DSP, 8              ; Make room
     mov qword [DSP], OUTPUT ; Push address
+    jmp NEXT
+
+; FLAGS ( -- addr ) Push address of FLAGS variable
+FLAGS_word:
+    sub DSP, 8              ; Make room
+    mov qword [DSP], FLAGS  ; Push address
     jmp NEXT

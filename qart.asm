@@ -26,6 +26,10 @@ STATE: dq 0                                  ; 0 = interpret, non-zero = compile
   ;; Output stream control
   align 8
 OUTPUT: dq 1                                 ; 1 = stdout, 2 = stderr
+
+  ;; Debug and behavior flags (bit 0 = verbose ASSERT)
+  align 8
+FLAGS: dq 0                                  ; Bit flags for various behaviors
   
   
 bye_msg: db "bye."
@@ -139,8 +143,13 @@ dict_DUP:
   db 3, "DUP", 0, 0, 0, 0
   dq DUP
 
-dict_LIT:
+dict_SP_FETCH:
   dq dict_DUP
+  db 3, "SP@", 0, 0, 0, 0
+  dq SP_FETCH
+
+dict_LIT:
+  dq dict_SP_FETCH
   db 3, "LIT", 0, 0, 0, 0
   dq LIT
 
@@ -309,9 +318,15 @@ dict_OUTPUT:
   db 6, "OUTPUT", 0       ; Name
   dq OUTPUT_word          ; Code field
 
+  ;; FLAGS ( -- addr ) Push address of FLAGS variable
+dict_FLAGS:
+  dq dict_OUTPUT          ; Link to previous
+  db 5, "FLAGS", 0, 0     ; Name
+  dq FLAGS_word           ; Code field
+
   ;; SHOWWORDS ( -- ) Debug word parsing by showing each word as bytes
 dict_SHOWWORDS:
-  dq dict_OUTPUT          ; Link to previous
+  dq dict_FLAGS           ; Link to previous
   db 5, "SHOWW", 0, 0
   dq DOCOL                ; Colon definition
   .loop:
@@ -400,6 +415,7 @@ return_stack_top:
   global input_position
   global STATE
   global OUTPUT
+  global FLAGS
 
   ;; Import all the primitives from other files
   extern NEXT
@@ -413,6 +429,7 @@ return_stack_top:
   extern DROP
   extern OVER
   extern SWAP
+  extern SP_FETCH
   extern TWO_DUP
   extern TWO_DROP
   extern ADD
@@ -435,6 +452,7 @@ return_stack_top:
   extern TYPE
   extern STATE_word
   extern OUTPUT_word
+  extern FLAGS_word
   extern ASSERT
 
   ;; ---- Main Program ----

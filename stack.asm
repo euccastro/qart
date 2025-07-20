@@ -11,6 +11,7 @@ global OVER
 global SWAP
 global TWO_DUP
 global TWO_DROP
+global SP_FETCH
 
 extern NEXT
 
@@ -61,4 +62,11 @@ TWO_DUP:
 ; 2DROP ( x1 x2 -- ) Drop top two cells
 TWO_DROP:
     add DSP, 16             ; Drop two items
+    jmp NEXT
+
+; SP@ ( -- addr ) Push current stack pointer (points to TOS)
+SP_FETCH:
+    mov rax, DSP            ; Save current stack pointer
+    sub DSP, 8              ; Make room
+    mov [DSP], rax          ; Push the saved pointer
     jmp NEXT
