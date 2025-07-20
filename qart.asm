@@ -255,8 +255,54 @@ dict_STATE:
   db 5, "STATE", 0, 0     ; Name
   dq STATE_word           ; Code field
 
+  ;; SHOWWORDS ( -- ) Debug word parsing by showing each word as bytes
+dict_SHOWWORDS:
+  dq dict_STATE           ; Link to previous
+  db 5, "SHOWW", 0, 0
+  dq DOCOL                ; Colon definition
+  .loop:
+  ;; Get next word
+  dq dict_WORD            ; ( -- c-addr u )
+  dq dict_DUP             ; ( c-addr u u )
+  dq dict_ZBRANCH, BRANCH_OFFSET(.done)
+  
+  ;; For each character in the word
+  .byte_loop:
+  dq dict_DUP             ; ( c-addr u u )
+  dq dict_ZBRANCH, BRANCH_OFFSET(.end_word)
+  
+  ;; Print one byte
+  dq dict_OVER            ; ( c-addr count c-addr )
+  dq dict_C_FETCH         ; ( c-addr count byte )
+  dq dict_DOT             ; ( c-addr count )
+  dq dict_LIT, ' '
+  dq dict_EMIT
+  
+  ;; Next byte
+  dq dict_SWAP            ; ( count c-addr )
+  dq dict_LIT, 1
+  dq dict_ADD             ; ( count c-addr+1 )
+  dq dict_SWAP            ; ( c-addr+1 count )
+  dq dict_LIT, -1
+  dq dict_ADD
+  dq dict_BRANCH, BRANCH_OFFSET(.byte_loop)
+  
+  .end_word:
+  ;; Clean up
+  dq dict_TWO_DROP        ; ( c-addr u )
+  dq dict_LIT, '.'
+  dq dict_EMIT
+  dq dict_LIT, ' '
+  dq dict_EMIT            ; Double space
+  dq dict_BRANCH, BRANCH_OFFSET(.loop)
+  
+  .done:
+  dq dict_TWO_DROP
+  dq dict_CR
+  dq dict_EXIT
+
   ;; LATEST points to the most recent word
-LATEST: dq dict_STATE
+LATEST: dq dict_SHOWWORDS
   
   align 8
 test_program:
@@ -266,8 +312,7 @@ test_program:
   dq dict_EMIT
   dq dict_REFILL
   dq dict_ZBRANCH, BRANCH_OFFSET(.bye)
-  dq dict_INTERPRET
-  dq dict_CR
+  dq dict_SHOWWORDS       ; Use SHOWWORDS instead of INTERPRET
   dq dict_BRANCH, BRANCH_OFFSET(test_program)
   .bye:
   dq dict_LIT, bye_msg
