@@ -9,7 +9,6 @@
   global EMIT
   global TYPE
   global KEY
-  global ASSERT
 
   extern NEXT
   extern buffer
@@ -184,86 +183,3 @@ NUMBER:
   mov qword [DSP], 0
   jmp NEXT
 
-  ;; ASSERT ( flag id -- ) Print "FAIL: <id>" to stderr if flag is false
-ASSERT:
-  mov rax, [DSP]          ; Get id
-  add DSP, 8
-  mov rdx, [DSP]          ; Get flag
-  add DSP, 8
-  test rdx, rdx
-  jnz .ok                 ; Non-zero = true = pass
-  
-  ;; Save current OUTPUT, set to stderr
-  push qword [OUTPUT]
-  mov qword [OUTPUT], 2   ; stderr
-  
-  ;; Print "FAIL: " 
-  push rax                ; Save id
-  mov rax, 1              ; sys_write
-  mov rdi, 2              ; stderr
-  mov rsi, .fail_msg
-  mov rdx, 6              ; "FAIL: " length
-  syscall
-  pop rax                 ; Restore id
-  
-  ;; Push id back on stack for DOT
-  sub DSP, 8
-  mov [DSP], rax
-  
-  ;; We can't call DOT from here (primitives don't call words)
-  ;; So we still need to inline the number printing
-  mov rax, [DSP]
-  add DSP, 8
-  
-  ;; Handle negative numbers
-  test rax, rax
-  jns .print_positive
-  neg rax                 ; Make positive
-  push rax                ; Save number
-  
-  ;; Print minus sign
-  mov rax, 1              ; sys_write
-  mov rdi, 2              ; stderr
-  mov rsi, minus_sign
-  mov rdx, 1
-  syscall
-  
-  pop rax                 ; Restore number
-  
-.print_positive:
-  ;; Convert to decimal string
-  mov rdi, buffer + 19
-  mov rcx, 10
-  
-.convert_loop:
-  xor rdx, rdx
-  div rcx
-  add dl, '0'
-  dec rdi
-  mov [rdi], dl
-  test rax, rax
-  jnz .convert_loop
-  
-  ;; Print the number
-  mov rax, 1              ; sys_write
-  mov rsi, rdi
-  mov rdx, buffer + 19
-  sub rdx, rdi
-  mov rdi, 2              ; stderr
-  syscall
-  
-  ;; Print newline
-  mov rax, 1
-  mov rdi, 2              ; stderr
-  mov rsi, .newline_char
-  mov rdx, 1
-  syscall
-  
-  ;; Restore OUTPUT
-  pop qword [OUTPUT]
-  
-.ok:
-  jmp NEXT
-
-.fail_msg: db "FAIL: "
-.newline_char: db NEWLINE
