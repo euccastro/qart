@@ -41,6 +41,7 @@ make run      # Build and run the current program
 - `word.asm` - Word parsing (PARSE_WORD/WORD)
 - `forth.inc` - Common definitions (register assignments, constants)
 - `Makefile` - Build configuration
+- `test.fs` - Regression test suite (run with `./qart < test.fs`)
 - Object files and executables are built in the root directory
 
 ## Assembly Conventions
@@ -168,6 +169,7 @@ Please maintain `syscall-abi.md` with information about:
 - **DOCOL receives dictionary pointer in RDX**: Both from NEXT and EXECUTE, enabling uniform handling
 - **NUMBER returns proper flag**: (n 1) on success, (c-addr u 0) on failure - can distinguish zero from error
 - **OUTPUT variable controls streams**: Colon definitions like ERRTYPE save/restore OUTPUT for stderr output
+- **Test suite reveals bugs**: `test.fs` contains regression tests that currently expose failures and a segfault
 
 ### Critical Things to Watch For
 1. **Register preservation**: Never clobber RBX (IP), R15 (DSP), or R14 (RSTACK) in primitives
@@ -180,4 +182,8 @@ Please maintain `syscall-abi.md` with information about:
 **Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.
 
 ### Next Action
-Implement the tick operator (') to enable pushing execution tokens without executing them. This will allow proper testing of EXECUTE and enable metaprogramming capabilities.
+Debug and fix the test suite failures:
+1. Run `./qart < test.fs 2>test-errors.txt` to capture assertion failures
+2. Identify which tests are failing (check test-errors.txt for FAIL messages)
+3. Debug the segmentation fault that occurs during test execution
+4. Fix the underlying issues to get a clean test run
