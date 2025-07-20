@@ -12,9 +12,7 @@
 buffer: times 20 db 0
 newline: db NEWLINE
   
-  ;; Input buffer and tracking variables
-  align 8
-input_buffer: times INPUT_BUFFER_SIZE db 0  ; Input line buffer
+  ;; Input tracking variables
   align 8
 input_length: dq 0                          ; Number of chars in buffer
 input_position: dq 0                        ; Current parse position
@@ -397,6 +395,8 @@ minus_sign: db '-'
 space: db ' '
 
   section .bss
+  align 8
+input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   align 8
 stack_base: resq 1024
 stack_top:
