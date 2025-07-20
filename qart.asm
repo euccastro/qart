@@ -3,6 +3,10 @@
 
   %include "forth.inc"
 
+  ;; Macro for calculating branch offsets
+  ;; Usage: BRANCH_OFFSET(target_label) or JUMP_TO(target_label)
+  %define BRANCH_OFFSET(target) (((target - $) // 8) - 2)
+
   section .data
 buffer: times 20 db 0
 newline: db NEWLINE
@@ -13,9 +17,8 @@ input_length: dq 0                          ; Number of chars in buffer
 input_position: dq 0                        ; Current parse position
   
   
-  ;; Test strings for FIND
-test_type: db "this is a test"
-  test_type_len equ 14
+bye_msg: db "bye."
+  bye_msg_len equ 4
   
   ;; Dictionary structure
   ;; Format per entry:
@@ -141,8 +144,13 @@ dict_EXECUTE:
   db 7, "EXECUTE"         ; Name (7 chars exactly)
   dq EXECUTE              ; Code field
 
-dict_ZBRANCH:
+dict_BRANCH:
   dq dict_EXECUTE
+  db 6, "BRANCH", 0
+  dq BRANCH
+
+dict_ZBRANCH:
+  dq dict_BRANCH
   db 7, "0BRANCH"
   dq ZBRANCH
 
@@ -197,34 +205,65 @@ dict_ERRCR:
   dq dict_ERRTYPE         ; Output to stderr
   dq dict_EXIT
 
+  ;; Error message for unknown word
+unknown_word_msg: db "Unknown word: "
+  unknown_word_msg_len equ 14
+
+  ;; INTERPRET ( -- ) Process words from input buffer
+  align 8
+dict_INTERPRET:
+  dq dict_ERRCR           ; Link to previous
+  db 7, "INTERPR"
+  dq DOCOL                ; Colon definition
+  .loop:
+  ;; Get next word
+  dq dict_WORD            ; ( -- c-addr u )
+  dq dict_DUP             ; ( c-addr u u )
+  dq dict_ZBRANCH, BRANCH_OFFSET(.done)
+
+  ;; Try to find in dictionary
+  dq dict_FIND            ; ( xt 1 | c-addr u 0 )
+  dq dict_ZBRANCH, BRANCH_OFFSET(.try_number)       ; If not found, skip to .try_number
+  
+  ;; Found - execute it
+  dq dict_EXECUTE         ; Execute the word
+  dq dict_BRANCH, BRANCH_OFFSET(.loop)
+
+  .try_number:
+  ;; Not in dictionary, try NUMBER
+  dq dict_NUMBER          ; ( n 1 | c-addr u 0 )
+  dq dict_ZEROEQ
+  dq dict_ZBRANCH, BRANCH_OFFSET(.loop)      ; If not failed, number is in stack
+  ;; Unknown word - print error
+  dq dict_LIT, unknown_word_msg
+  dq dict_LIT, unknown_word_msg_len
+  dq dict_ERRTYPE         ; Print "Unknown word: "
+  dq dict_ERRTYPE         ; Print the word itself
+  dq dict_ERRCR           ; Print newline
+  dq dict_EXIT
+  
+  .done:
+  dq dict_TWO_DROP
+  dq dict_EXIT
+
   ;; LATEST points to the most recent word
-LATEST: dq dict_ERRCR
+LATEST: dq dict_INTERPRET
   
   align 8
 test_program:
-  ;; Test 2DUP: push 3 and 7, duplicate them
-  dq dict_LIT, 3
-  dq dict_LIT, 7
-  dq dict_TWO_DUP         ; Stack: 3 7 3 7
-  
-  ;; Print all four values to verify 2DUP worked
-  dq dict_DOT             ; Print top (7)
-  dq dict_DOT             ; Print next (3)
-  dq dict_DOT             ; Print next (7)
-  dq dict_DOT             ; Print bottom (3)
+  dq dict_LIT, '>'
+  dq dict_EMIT
+  dq dict_LIT, ' '
+  dq dict_EMIT
+  dq dict_REFILL
+  dq dict_INTERPRET
   dq dict_CR
-  
-  ;; Test 2DROP: push 10 and 20, then drop them
-  dq dict_LIT, 10
-  dq dict_LIT, 20
-  dq dict_TWO_DROP        ; Stack should be empty
-  
-  ;; Push 42 to verify stack is working after 2DROP
-  dq dict_LIT, 42
-  dq dict_DOT             ; Should print 42
+  dq dict_LIT, bye_msg
+  dq dict_LIT, bye_msg_len
+  dq dict_TYPE
   dq dict_CR
-  
   dq dict_EXIT
+
 
 minus_sign: db '-'
 space: db ' '
@@ -252,6 +291,7 @@ return_stack_top:
   extern DOCOL
   extern EXIT
   extern EXECUTE
+  extern BRANCH
   extern ZBRANCH
   extern LIT
   extern DUP
