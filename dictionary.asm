@@ -58,9 +58,8 @@ FIND:
 .found:
     ; Drop saved values
     add rsp, 16
-    ; Replace string with xt
-    mov rax, [rdi+16]       ; Get code field
-    mov [DSP+8], rax        ; Replace c-addr with xt
+    ; Replace string with xt (dictionary pointer)
+    mov [DSP+8], rdi        ; Replace c-addr with dict pointer
     mov qword [DSP], 1      ; Replace length with true flag
     jmp NEXT
     

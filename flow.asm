@@ -45,11 +45,12 @@ EXIT:
   syscall
 
   ;; EXECUTE ( xt -- ) Execute word given execution token
-  ;; Execution token is a code field address
+  ;; Execution token is a dictionary pointer
 EXECUTE:
-  mov rax, [DSP]          ; Get execution token from stack
+  mov rdx, [DSP]          ; Get dictionary pointer from stack
   add DSP, 8              ; Drop from stack
-  jmp rax                 ; Execute it (primitives will jmp NEXT themselves)
+  mov rax, [rdx+16]       ; Load code address from dict entry
+  jmp rax                 ; Jump to the code
 
   ;; BRANCH ( -- ) Skip next n words unconditionally
 BRANCH:
