@@ -1,6 +1,6 @@
 # qart
 
-Playing with x86_64 assembly, FORTH, and Claude
+Playing with x86_64 assembly, FORTH, and Claude.
 
 ## Requirements
 
