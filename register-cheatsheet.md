@@ -39,7 +39,7 @@ R8-R15 are new registers added in x86_64 with no historical baggage.
 | R14 | • Callee-saved<br>• No special meaning | • Forth return stack pointer | Callee-saved, no conflicts |
 | RDI | • Syscall arg 1<br>• Function arg 1<br>• String destination | • Syscall parameter 1<br>• String operations | Required for syscalls |
 | RSI | • Syscall arg 2<br>• Function arg 2<br>• String source | • Syscall parameter 2 | Required for syscalls |
-| RDX | • Syscall arg 3<br>• Function arg 3<br>• Division dividend (high)<br>• Multiplication result (high) | • Syscall parameter 3<br>• Division operations | Required for syscalls and div |
+| RDX | • Syscall arg 3<br>• Function arg 3<br>• Division dividend (high)<br>• Multiplication result (high) | • Syscall parameter 3<br>• Division operations<br>• Dictionary entry for DOCOL | Required for syscalls and div |
 | RCX | • Syscall arg 4 (not used in Linux)<br>• Function arg 4<br>• Loop counter<br>• REP count | • Divisor in conversions | Arbitrary choice |
 
 ### Reserved for Future Use

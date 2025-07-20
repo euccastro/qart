@@ -33,8 +33,8 @@ make run      # Build and run the current program
 - `flow.asm` - Control flow primitives (NEXT, DOCOL, EXIT)
 - `stack.asm` - Stack manipulation (LIT, DUP, DROP)
 - `arithmetic.asm` - Arithmetic operations (ADD)
-- `memory.asm` - Memory access (TO_R, R_FROM, R_FETCH, FETCH, STORE, C_FETCH, C_STORE)
-- `io.asm` - I/O operations (DOT, NUMBER, EMIT, KEY)
+- `memory.asm` - Memory access (TO_R, R_FROM, R_FETCH, FETCH, STORE, C_FETCH, C_STORE, STATE_word, OUTPUT_word)
+- `io.asm` - I/O operations (DOT, NUMBER, EMIT, KEY, TYPE, ASSERT)
 - `dictionary.asm` - Dictionary lookup (FIND)
 - `input.asm` - Input buffer management (REFILL)
 - `word.asm` - Word parsing (PARSE_WORD/WORD)
@@ -106,30 +106,30 @@ Please maintain `syscall-abi.md` with information about:
 - Return stack operations (R14) with >R, R>, R@
 - Memory access: @, !, C@, C!
 - Stack primitives: DUP, DROP, SWAP, OVER
-- Arithmetic: ADD
-- Comparison: 0= (ZEROEQ) using branchless SETcc technique
-- Control flow: 0BRANCH (ZBRANCH) using branchless CMOVcc optimization
-- I/O: DOT (.) for decimal output, EMIT for character output, KEY for character input
+- Arithmetic: ADD, = (EQUAL), 0= (ZEROEQ) using branchless SETcc technique
+- Control flow: BRANCH, 0BRANCH (ZBRANCH) using branchless CMOVcc optimization
+- I/O: DOT (.) for decimal output, EMIT for character output, KEY for character input, TYPE for string output
+- Testing: ASSERT for unit test support with numeric IDs
+- Output control: OUTPUT variable for stdout/stderr switching
 - EXECUTE for dynamic execution of words
 - Dictionary structure with 7-char names
-- FIND for dictionary lookups
-- NUMBER for parsing integers
+- FIND for dictionary lookups (returns dictionary pointer as execution token)
+- NUMBER for parsing integers (returns success flag)
 - DOCOL runtime for colon definitions
+- INTERPRET for processing input (colon definition)
 - EXIT for returns and program termination
 - Input buffer (256 bytes) with position/length tracking
 - REFILL for reading full lines from stdin
 - WORD for parsing space-delimited tokens from input buffer
+- Working colon definitions: CR, ERRTYPE, ERRCR demonstrating OUTPUT switching
 
 ### Immediate Next Steps
-1. **INTERPRET** - Main interpreter loop as a colon definition
-   - Need dictionary entries for FIND and NUMBER first
-   - Use WORD to get next token
-   - Use FIND to look it up
-   - Execute if found, try NUMBER if not
-   - Handle errors gracefully
+1. **Tick operator (')** - Push execution token without executing
+   - Needed for testing EXECUTE and for metaprogramming
 2. **Compiler words** - CREATE, : (colon), ; (semicolon)
+   - STATE variable exists but needs compiler support
 3. **QUIT** - Outer interpreter loop that calls REFILL and INTERPRET
-4. **Additional comparison/control** - More comparison operators and BRANCH for unconditional jumps
+4. **Additional stack words** - ROT, -ROT, 2SWAP, NIP, TUCK
 
 ### Future Steps
 1. Control flow: IF, THEN, ELSE, BEGIN, UNTIL
@@ -163,6 +163,10 @@ Please maintain `syscall-abi.md` with information about:
 - **Branchless optimizations**: CMOVcc for conditional data movement (ZBRANCH), SETcc for flag-to-value conversion (ZEROEQ)
 - **Forth architecture constraint**: Primitives shouldn't call other words; use colon definitions for that (this is why INTERPRET should be a colon word)
 - **NASM syntax**: Multiple values on one line need commas: `dq dict_LIT, 42` not `dq dict_LIT 42`
+- **Execution tokens are dictionary pointers**: Not CFAs! This unifies threaded code and EXECUTE semantics
+- **DOCOL receives dictionary pointer in RDX**: Both from NEXT and EXECUTE, enabling uniform handling
+- **NUMBER returns proper flag**: (n 1) on success, (c-addr u 0) on failure - can distinguish zero from error
+- **OUTPUT variable controls streams**: Colon definitions like ERRTYPE save/restore OUTPUT for stderr output
 
 ### Critical Things to Watch For
 1. **Register preservation**: Never clobber RBX (IP), R15 (DSP), or R14 (RSTACK) in primitives
@@ -175,4 +179,4 @@ Please maintain `syscall-abi.md` with information about:
 **Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.
 
 ### Next Action
-Add dictionary entries for FIND and NUMBER primitives, then implement INTERPRET as a colon definition. This will enable a basic REPL.
+Implement the tick operator (') to enable pushing execution tokens without executing them. This will allow proper testing of EXECUTE and enable metaprogramming capabilities.

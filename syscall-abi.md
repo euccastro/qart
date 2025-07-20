@@ -52,6 +52,16 @@ syscall
 ; Does not return
 ```
 
+### sys_read (0)
+```asm
+mov rax, 0          ; System call number
+mov rdi, 0          ; File descriptor (0 = stdin)
+mov rsi, buffer     ; Pointer to buffer
+mov rdx, count      ; Maximum bytes to read
+syscall
+; Returns: number of bytes read in RAX, 0 on EOF, negative on error
+```
+
 ## Important Notes
 
 1. **Always reload arguments between syscalls** - The previous syscall may have modified RDI, RSI, RDX, etc.

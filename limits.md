@@ -47,22 +47,21 @@ This document describes known limitations of the qart Forth implementation.
 - **Case sensitive**: No case-insensitive option
 
 ## Missing Error Handling
-- **NUMBER**: Returns 0 on parse error
-  - Cannot distinguish from valid zero
-  - No error flag or exception
 - **Stack operations**: No checking for sufficient items
   - DUP on empty stack causes segfault
   - Binary operations need 2 items
-- **Dictionary**: No "word not found" error mechanism
 
 ## I/O Limitations
-- **No input yet**: Only output (DOT) implemented
-- **No character I/O**: No EMIT or KEY
-- **No string handling**: No string literals or operations
+- **No string literals**: Cannot type strings in source code
+  - Must use character codes with EMIT
+  - No S" or ." operators
 
 ## Compiler Limitations
-- **No immediate words**: All words are compile-only
-- **No STATE variable**: Cannot switch between compile/interpret modes
+- **No immediate words**: Cannot mark words as immediate
+  - No compile-time execution control
+- **No compilation mode**: STATE exists but unused
+  - Cannot define new words interactively
+  - No : and ; operators
 - **No CREATE/DOES>**: Cannot define defining words
 - **No compiler security**: Can corrupt dictionary
 
