@@ -9,9 +9,9 @@ global FIND
 extern NEXT
 extern LATEST
 
-; FIND ( c-addr u -- xt 1 | c-addr u 0 ) Look up word in dictionary
-; If found: returns execution token and 1
-; If not found: returns original string and 0
+; FIND ( c-addr u -- xt -1 | c-addr u 0 ) Look up word in dictionary
+; If found: returns execution token and -1 (true)
+; If not found: returns original string and 0 (false)
 FIND:
     ; Save string for possible return
     mov rax, [DSP]          ; Length
@@ -60,7 +60,7 @@ FIND:
     add rsp, 16
     ; Replace string with xt (dictionary pointer)
     mov [DSP+8], rdi        ; Replace c-addr with dict pointer
-    mov qword [DSP], 1      ; Replace length with true flag
+    mov qword [DSP], -1     ; Replace length with true flag (-1 for standard Forth)
     jmp NEXT
     
 .not_found:

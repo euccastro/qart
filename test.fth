@@ -118,7 +118,7 @@ SP@ R@ = ASSERT
 \ It reads branch offset from [IP] which points to interpreter code during interpretation
 
 \ Test 0= (ZEROEQ)
-0 0= 1 = ASSERT
+0 0= -1 = ASSERT
 1 0= 0 = ASSERT
 -1 0= 0 = ASSERT
 42 0= 0 = ASSERT
@@ -212,7 +212,7 @@ WORD 0 NUMBER ASSERT 0 = ASSERT
 SP@ R@ = ASSERT
 
 \ Test FIND and EXECUTE
-2 WORD DOUBLE FIND 1 = ASSERT EXECUTE 4 = ASSERT
+2 WORD DOUBLE FIND -1 = ASSERT EXECUTE 4 = ASSERT
 SP@ R@ = ASSERT
 
 \ Test FIND with non-existent word

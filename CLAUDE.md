@@ -111,7 +111,7 @@ Please maintain `syscall-abi.md` with information about:
 - Arithmetic: ADD, = (EQUAL), 0= (ZEROEQ) using branchless SETcc technique
 - Control flow: BRANCH, 0BRANCH (ZBRANCH) using branchless CMOVcc optimization
 - I/O: DOT (.) for decimal output, EMIT for character output, KEY for character input, TYPE for string output
-- Testing: ASSERT for unit test support with numeric IDs
+- Testing: ASSERT for unit test support (prints line:col on failure)
 - Output control: OUTPUT variable for stdout/stderr switching
 - Debug control: FLAGS variable (bit 0 = verbose ASSERT)
 - EXECUTE for dynamic execution of words
@@ -168,14 +168,15 @@ Please maintain `syscall-abi.md` with information about:
 - **NASM syntax**: Multiple values on one line need commas: `dq dict_LIT, 42` not `dq dict_LIT 42`
 - **Execution tokens are dictionary pointers**: Not CFAs! This unifies threaded code and EXECUTE semantics
 - **DOCOL receives dictionary pointer in RDX**: Both from NEXT and EXECUTE, enabling uniform handling
-- **NUMBER returns proper flag**: (n 1) on success, (c-addr u 0) on failure - can distinguish zero from error
+- **NUMBER returns proper flag**: (n -1) on success, (c-addr u 0) on failure - can distinguish zero from error
 - **OUTPUT variable controls streams**: Colon definitions like ERRTYPE save/restore OUTPUT for stderr output
 - **Test suite**: `test.fth` contains regression tests; run with `./test.sh` or `./test-verbose.sh` for detailed output
 - **FLAGS variable for debugging**: Bit 0 controls verbose ASSERT output (pass/fail messages to stderr)
 - **SP@ for memory testing**: Returns stack pointer, useful for getting valid addresses in tests
 - **Input buffer size matters**: Increased from 256 bytes to 1MB to handle large test files
 - **.bss section for large buffers**: Keeps executable size small while allowing large runtime buffers
-- **FIND return values**: When found returns (xt 1), when not found returns (c-addr u 0)
+- **FIND return values**: When found returns (xt -1), when not found returns (c-addr u 0)
+- **Standard Forth true value**: All boolean operations now return -1 for true, 0 for false (EQUAL, ZEROEQ, FIND, NUMBER)
 - **Branch offset calculations**: Must account for LIT using two cells when calculating offsets
 - **0BRANCH is compile-only**: Cannot be used interactively; it reads offset from [IP] which points to interpreter code during interpretation, not user input
 
@@ -205,7 +206,7 @@ Please maintain `syscall-abi.md` with information about:
 - Implemented \ (BACKSLASH) for rest-of-line comments
 - Merged comprehensive store tests into main test.fth
 - Added comments to all tests explaining what they verify
-- Fixed duplicate ASSERT IDs in NUMBER tests
+- Updated ASSERT to show line:col instead of numeric IDs
 - Tests now use comments to clarify test purposes without over-explaining mechanics
 - Added comprehensive tests for all words in alphabetical order:
   - Stack manipulation: DUP, DROP, SWAP, OVER, 2DUP, 2DROP, SP@
@@ -227,7 +228,6 @@ Please maintain `syscall-abi.md` with information about:
 ### Next Actions
 1. Debug why output is missing when running simple programs with piped input
 2. Once output issue is fixed, verify line tracking with comprehensive tests
-3. Consider modifying ASSERT to use line:col instead of numeric IDs
 4. After line tracking is solid, implement:
    - **Tick operator (')** - Push execution token without executing
    - **Compiler words** - CREATE, : (colon), ; (semicolon) with STATE support

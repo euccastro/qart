@@ -114,7 +114,7 @@ KEY:
   mov qword [DSP], -1
   jmp NEXT
 
-  ;; NUMBER ( c-addr u -- n true | c-addr u false ) Parse string as signed integer
+  ;; NUMBER ( c-addr u -- n -1 | c-addr u 0 ) Parse string as signed integer
 NUMBER:
   ;; Save original values for possible error return
   mov rax, [DSP]          ; Length (u)
@@ -169,7 +169,7 @@ NUMBER:
   add rsp, 16
   ;; Replace string with number and true
   mov [DSP+8], rax        ; Store result over c-addr
-  mov qword [DSP], 1      ; Store true over u
+  mov qword [DSP], -1     ; Store true (-1 for standard Forth) over u
   jmp NEXT
   
   .error:
