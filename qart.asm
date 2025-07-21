@@ -196,7 +196,7 @@ dict_WORD:
 
 dict_BACKSLASH:
   dq dict_WORD            ; Link to previous
-  db 1, "\", 0, 0, 0, 0, 0, 0 ; Name
+  db 1, 92, 0, 0, 0, 0, 0, 0 ; Name (ASCII code not to confuse emacs)
   dq BACKSLASH            ; Code field
 
 dict_LINE_NUMBER_FETCH:
@@ -384,9 +384,40 @@ dict_FLAGS:
   db 5, "FLAGS", 0, 0     ; Name
   dq FLAGS_word           ; Code field
 
+  ;; QUIT ( -- ) Main interpreter loop
+  align 8
+dict_QUIT:
+  dq dict_FLAGS           ; Link to previous
+  db 4, "QUIT", 0, 0, 0   ; Name
+  dq DOCOL                ; Colon definition
+  .loop:
+  dq dict_LIT, '>'
+  dq dict_EMIT
+  dq dict_LIT, ' '
+  dq dict_EMIT
+  dq dict_REFILL
+  dq dict_ZBRANCH, BRANCH_OFFSET(.bye)
+  dq dict_INTERPRET
+  dq dict_CR
+  dq dict_BRANCH, BRANCH_OFFSET(.loop)
+  .bye:
+  dq dict_CR
+  dq dict_LIT, bye_msg
+  dq dict_LIT, bye_msg_len
+  dq dict_TYPE
+  dq dict_CR
+  dq dict_EXIT
+
+  ;; ABORT ( -- ) Clear stacks and jump to QUIT
+  align 8
+dict_ABORT:
+  dq dict_QUIT            ; Link to previous
+  db 5, "ABORT", 0, 0     ; Name
+  dq ABORT_word           ; Code field (primitive)
+
   ;; SHOWWORDS ( -- ) Debug word parsing by showing each word as bytes
 dict_SHOWWORDS:
-  dq dict_FLAGS           ; Link to previous
+  dq dict_ABORT           ; Link to previous
   db 5, "SHOWW", 0, 0
   dq DOCOL                ; Colon definition
   .loop:
@@ -434,23 +465,6 @@ dict_SHOWWORDS:
 LATEST: dq dict_SHOWWORDS
   
   align 8
-test_program:
-  dq dict_LIT, '>'
-  dq dict_EMIT
-  dq dict_LIT, ' '
-  dq dict_EMIT
-  dq dict_REFILL
-  dq dict_ZBRANCH, BRANCH_OFFSET(.bye)
-  dq dict_INTERPRET       ; Back to INTERPRET
-  dq dict_CR
-  dq dict_BRANCH, BRANCH_OFFSET(test_program)
-  .bye:
-  dq dict_CR
-  dq dict_LIT, bye_msg
-  dq dict_LIT, bye_msg_len
-  dq dict_TYPE
-  dq dict_CR
-  dq dict_EXIT
 
 
 minus_sign: db '-'
@@ -484,6 +498,10 @@ return_stack_top:
   global STATE
   global OUTPUT
   global FLAGS
+  global stack_top
+  global return_stack_top
+  global dict_QUIT
+  global dict_ABORT
 
   ;; Import all the primitives from other files
   extern NEXT
@@ -525,6 +543,7 @@ return_stack_top:
   extern STATE_word
   extern OUTPUT_word
   extern FLAGS_word
+  extern ABORT_word
 
   ;; ---- Main Program ----
 
@@ -537,6 +556,6 @@ _start:
   sub RSTACK, 8
   mov qword [RSTACK], 0
   
-  ;; Start interpreting
-  mov IP, test_program
-  jmp NEXT
+  ;; Call ABORT to start the system
+  ;; ABORT will clear stacks and jump to QUIT
+  jmp ABORT_word
