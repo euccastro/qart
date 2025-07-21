@@ -326,14 +326,11 @@ dict_STATE:
   db 5, "STATE", 0, 0     ; Name
   dq STATE_word           ; Code field
 
-  ;; ASSERT ( flag id -- ) Check assertion, print FAIL: line:col if false
-  ;; Now ignores the id parameter and uses LINE#/COL# instead
+  ;; ASSERT ( flag -- ) Check assertion, print FAIL: line:col if false
 dict_ASSERT:
   dq dict_STATE           ; Link to previous
   db 6, "ASSERT", 0       ; Name
   dq DOCOL                ; Colon definition
-  ;; Drop the id parameter
-  dq dict_DROP            ; ( flag )
   ;; Check if assertion failed
   dq dict_ZBRANCH, BRANCH_OFFSET(.fail)
   ;; Passed - check if verbose mode
