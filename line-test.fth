@@ -4,5 +4,7 @@ LINE# . CR  \ Should print 2
 LINE# . CR  \ Should print 4
 
 LINE# . CR  \ Should print 6
-LINE# . CR  \ Should print 7
+\ Following line should print 8
+LINE# . CR
+LINE# . CR  \ Should print 9
 WORD Done. TYPE CR

@@ -57,16 +57,10 @@ PARSE_WORD:
     cmp al, ' '
     je .found_word_end
     cmp al, NEWLINE         ; Also treat newline as whitespace
-    je .found_word_end_with_newline
+    je .found_word_end
     inc rsi
     inc rdi
     jmp .find_word_end
-    
-.found_word_end_with_newline:
-    ; Update line tracking before returning
-    inc qword [line_number]
-    mov [line_start_position], rsi
-    inc qword [line_start_position]  ; Line starts after the newline
     
 .found_word_end:
     ; Update position for next call
