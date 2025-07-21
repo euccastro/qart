@@ -207,6 +207,16 @@ Please maintain `syscall-abi.md` with information about:
 - Added comments to all tests explaining what they verify
 - Fixed duplicate ASSERT IDs in NUMBER tests
 - Tests now use comments to clarify test purposes without over-explaining mechanics
+- Added comprehensive tests for all words in alphabetical order:
+  - Stack manipulation: DUP, DROP, SWAP, OVER, 2DUP, 2DROP, SP@
+  - Arithmetic: ADD, = (EQUAL), 0= (ZEROEQ), AND
+  - Memory: @, !, C@, C!, >R, R>, R@
+  - I/O: DOT, EMIT, KEY, TYPE
+  - Control: EXECUTE, BRANCH, 0BRANCH (noted as compile-only)
+  - Parsing: WORD, NUMBER, FIND
+  - System: REFILL, EXIT, STATE, OUTPUT, FLAGS, ASSERT
+  - Comments: \ (BACKSLASH)
+  - Debugging: LINE#, COL#
 
 ### Test Organization
 - test.sh runs all test files with headers showing which file is running
