@@ -326,11 +326,54 @@ dict_STATE:
   db 5, "STATE", 0, 0     ; Name
   dq STATE_word           ; Code field
 
-  ;; ASSERT ( flag id -- ) Check assertion and print FAIL: id if false
+  ;; ASSERT ( flag id -- ) Check assertion, print FAIL: line:col if false
+  ;; Now ignores the id parameter and uses LINE#/COL# instead
 dict_ASSERT:
   dq dict_STATE           ; Link to previous
   db 6, "ASSERT", 0       ; Name
-  dq ASSERT               ; Code field
+  dq DOCOL                ; Colon definition
+  ;; Drop the id parameter
+  dq dict_DROP            ; ( flag )
+  ;; Check if assertion failed
+  dq dict_ZBRANCH, BRANCH_OFFSET(.fail)
+  ;; Passed - check if verbose mode
+  dq dict_FLAGS           ; ( FLAGS )
+  dq dict_FETCH           ; ( flags-value )
+  dq dict_LIT, 1          ; ( flags-value 1 )
+  dq dict_AND             ; ( flags&1 )
+  dq dict_ZBRANCH, BRANCH_OFFSET(.done)
+  ;; Verbose mode - push PASS message
+  dq dict_LIT, pass_msg   ; ( pass_msg )
+  dq dict_LIT, pass_msg_len ; ( pass_msg 6 )
+  dq dict_BRANCH, BRANCH_OFFSET(.print)
+  .fail:
+  ;; Failed - push FAIL message
+  dq dict_LIT, fail_msg   ; ( fail_msg )
+  dq dict_LIT, fail_msg_len ; ( fail_msg 6 )
+  .print:
+  ;; Common print path - save OUTPUT and set to stderr
+  dq dict_OUTPUT          ; ( msg len OUTPUT )
+  dq dict_FETCH           ; ( msg len old-output )
+  dq dict_TO_R            ; ( msg len ) (R: old-output)
+  dq dict_LIT, 2          ; ( msg len 2 )
+  dq dict_OUTPUT          ; ( msg len 2 OUTPUT )
+  dq dict_STORE           ; ( msg len )
+  ;; Print the message
+  dq dict_TYPE            ; ( )
+  ;; Print line:col
+  dq dict_LINE_NUMBER_FETCH ; ( line )
+  dq dict_DOT             ; ( ) - prints line to stderr
+  dq dict_LIT, ':' ; ( ':' )
+  dq dict_EMIT            ; ( )
+  dq dict_COLUMN_NUMBER_FETCH ; ( col )
+  dq dict_DOT             ; ( ) - prints col to stderr
+  dq dict_CR              ; Print newline
+  ;; Restore OUTPUT
+  dq dict_R_FROM          ; ( old-output )
+  dq dict_OUTPUT          ; ( old-output OUTPUT )
+  dq dict_STORE           ; ( )
+  .done:
+  dq dict_EXIT
 
   ;; OUTPUT ( -- addr ) Push address of OUTPUT variable
 dict_OUTPUT:
@@ -415,6 +458,10 @@ test_program:
 
 minus_sign: db '-'
 space: db ' '
+fail_msg: db "FAIL: "
+fail_msg_len equ 6
+pass_msg: db "PASS: "
+pass_msg_len equ 6
 
   section .bss
   align 8
@@ -481,7 +528,6 @@ return_stack_top:
   extern STATE_word
   extern OUTPUT_word
   extern FLAGS_word
-  extern ASSERT
 
   ;; ---- Main Program ----
 
