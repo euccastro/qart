@@ -3,5 +3,5 @@
 # Usage: ./test-verbose.sh [test-file]
 # Default: test.fth
 
-TEST_FILE="${1:-test.fth}"
-echo "1 FLAGS !" | cat - "$TEST_FILE" | ./qart
+
+echo "1 FLAGS !" | cat - test.fth | ./qart
