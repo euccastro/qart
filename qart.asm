@@ -113,8 +113,13 @@ dict_EQUAL:
   db 1, "=", 0, 0, 0, 0, 0, 0
   dq EQUAL
 
-dict_DROP:
+dict_AND:
   dq dict_EQUAL
+  db 3, "AND", 0, 0, 0, 0
+  dq AND
+
+dict_DROP:
+  dq dict_AND
   db 4, "DROP", 0, 0, 0
   dq DROP
 
@@ -454,6 +459,7 @@ return_stack_top:
   extern ADD
   extern ZEROEQ
   extern EQUAL
+  extern AND
   extern TO_R
   extern R_FROM
   extern R_FETCH

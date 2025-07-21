@@ -7,6 +7,7 @@
   global ADD
   global ZEROEQ
   global EQUAL
+  global AND
 
   extern NEXT
 
@@ -36,4 +37,11 @@ EQUAL:
   movzx rax, al           ; Zero-extend to 64 bits
   neg rax                 ; Convert 1 to -1, 0 stays 0
   mov [DSP], rax          ; Store result
+  jmp NEXT
+
+  ;; AND ( n1 n2 -- n3 ) Bitwise AND
+AND:
+  mov rax, [DSP]          ; Get n2
+  add DSP, 8              ; Drop it
+  and [DSP], rax          ; AND with n1
   jmp NEXT
