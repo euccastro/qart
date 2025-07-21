@@ -3,6 +3,34 @@ SP@ >R  \ Save initial stack pointer
 \ Verify stack tracking works
 SP@ R@ = 1 ASSERT
 
+\ Line tracking tests
+\ Test that LINE# returns current line number
+LINE# 8 = 50001 ASSERT  \ This is line 8
+LINE# 9 = 50002 ASSERT  \ This is line 9
+\ Comment line - next should be 11
+LINE# 11 = 50003 ASSERT
+
+\ Test with blank lines
+
+LINE# 15 = 50004 ASSERT
+
+\ Test multiple LINE# on same line
+LINE# 18 = 50005 ASSERT LINE# 18 = 50006 ASSERT
+
+\ Test LINE# after comment on same line  
+LINE# 21 = 50007 ASSERT \ Should still be 21
+
+\ Verify stack is clean after line tests
+SP@ R@ = 50011 ASSERT
+
+\ Test COL# (column tracking)
+COL# 4 = 50008 ASSERT COL# 26 = 50009 ASSERT
+COL#
+4 = 50010 ASSERT
+
+\ Verify stack is clean after column tests
+SP@ R@ = 50012 ASSERT
+
 \ Test ADD
 5 5 + 10 = 100 ASSERT
 21 21 + 42 = 101 ASSERT  

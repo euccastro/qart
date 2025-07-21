@@ -199,8 +199,13 @@ dict_LINE_NUMBER_FETCH:
   db 5, "LINE#", 0, 0    ; Name
   dq LINE_NUMBER_FETCH   ; Code field
 
+dict_COLUMN_NUMBER_FETCH:
+  dq dict_LINE_NUMBER_FETCH ; Link to previous
+  db 4, "COL#", 0, 0, 0  ; Name
+  dq COLUMN_NUMBER_FETCH ; Code field
+
 dict_FIND:
-  dq dict_LINE_NUMBER_FETCH
+  dq dict_COLUMN_NUMBER_FETCH
   db 4, "FIND", 0, 0, 0
   dq FIND
 
@@ -465,6 +470,7 @@ return_stack_top:
   extern PARSE_WORD
   extern BACKSLASH
   extern LINE_NUMBER_FETCH
+  extern COLUMN_NUMBER_FETCH
   extern TYPE
   extern STATE_word
   extern OUTPUT_word
