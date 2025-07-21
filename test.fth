@@ -36,6 +36,17 @@ SP@ R@ = ASSERT
 21 21 + 42 = ASSERT  
 0 0 + 0 = ASSERT
 -5 5 + 0 = ASSERT
+
+\ Test ADD with negative numbers
+-10 -20 + -30 = ASSERT
+-100 50 + -50 = ASSERT
+100 -50 + 50 = ASSERT
+
+\ Test ADD identity (n + 0 = n)
+42 0 + 42 = ASSERT
+0 42 + 42 = ASSERT
+-42 0 + -42 = ASSERT
+
 SP@ R@ = ASSERT
 
 \ Test AND
@@ -66,6 +77,12 @@ SP@ R@ = ASSERT
 5 6 = 0 = ASSERT
 0 0 = ASSERT
 -1 -1 = ASSERT
+
+\ Test = with mixed signs
+5 -5 = 0 = ASSERT
+-10 10 = 0 = ASSERT
+0 -0 = ASSERT  \ 0 and -0 should be equal
+
 SP@ R@ = ASSERT
 
 \ Test 0= (zero check)
@@ -80,8 +97,32 @@ SP@ R@ = ASSERT
 1 2 >R 3 R> 2 = ASSERT 3 = ASSERT DROP
 SP@ R@ = ASSERT
 
+\ Test return stack with negative and zero
+0 >R R@ 0 = ASSERT R> 0 = ASSERT
+-42 >R R@ -42 = ASSERT R> -42 = ASSERT
+
+\ Test multiple items on return stack
+10 >R 20 >R R@ 20 = ASSERT R> 20 = ASSERT R@ 10 = ASSERT R> 10 = ASSERT
+
+SP@ R@ = ASSERT
+
 \ Test byte store/fetch
 SP@ DUP DUP 65 SWAP C! C@ 65 = ASSERT DROP
+SP@ R@ = ASSERT
+
+\ Test C! and C@ with various byte values
+0 SP@
+DUP 0 SWAP C! DUP C@ 0 = ASSERT      \ Zero byte
+DUP 255 SWAP C! DUP C@ 255 = ASSERT  \ Max byte value
+DUP 128 SWAP C! DUP C@ 128 = ASSERT  \ Middle value
+DUP 1 SWAP C! DUP C@ 1 = ASSERT      \ Min non-zero
+
+\ Test that C! only affects one byte
+DUP 305419896 SWAP !              \ 0x12345678
+DUP 255 SWAP C!                   \ Change lowest byte to 0xFF
+DUP @ 305420031 = ASSERT              \ Should be 0x123456FF
+2DROP
+
 SP@ R@ = ASSERT
 
 \ Test user-defined word DOUBLE
