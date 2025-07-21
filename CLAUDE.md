@@ -177,6 +177,7 @@ Please maintain `syscall-abi.md` with information about:
 - **.bss section for large buffers**: Keeps executable size small while allowing large runtime buffers
 - **FIND return values**: When found returns (xt 1), when not found returns (c-addr u 0)
 - **Branch offset calculations**: Must account for LIT using two cells when calculating offsets
+- **0BRANCH is compile-only**: Cannot be used interactively; it reads offset from [IP] which points to interpreter code during interpretation, not user input
 
 ### Critical Things to Watch For
 1. **Register preservation**: Never clobber RBX (IP), R15 (DSP), or R14 (RSTACK) in primitives
@@ -188,9 +189,26 @@ Please maintain `syscall-abi.md` with information about:
 ### Development Approach
 **Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.
 
+### Current Status - Testing Phase
+**Working on**: Creating comprehensive tests for all implemented words
+- Main test suite (test.fth) is passing after fixing 0BRANCH and EXECUTE issues
+- Created store-test.fth for comprehensive ! (STORE) testing
+- Basic store tests pass (10000-10102): zero, -1, max/min values, overwriting
+- Multiple location tests fail (10200-10305): storing to stack addresses modifies the test data itself
+- **Key insight**: When we push values and use SP@ to get addresses, storing to those addresses overwrites our test data
+- **Solution**: Use return stack to save stable addresses (e.g., `SP@ >R` then use `R@` as base address)
+
+### Test Organization
+- test.sh runs all test files with headers showing which file is running
+- test-verbose.sh takes a filename argument for debugging specific tests with PASS/FAIL output
+- Creating separate test files per word/feature for better organization
+- Test IDs don't need to be globally unique anymore since we show filenames
+
 ### Next Action
-Debug and fix the test suite failures:
-1. Run `./qart < test.fs 2>test-errors.txt` to capture assertion failures
-2. Identify which tests are failing (check test-errors.txt for FAIL messages)
-3. Debug the segmentation fault that occurs during test execution
-4. Fix the underlying issues to get a clean test run
+1. Fix store-test.fth failures (tests 10200-10305) using return stack for stable addresses
+2. Continue creating comprehensive tests alphabetically (next: +, ., 0=, =, >R, @, C!, C@, etc.)
+3. After solid test coverage, implement:
+   - **Tick operator (')** - Push execution token without executing
+   - **Compiler words** - CREATE, : (colon), ; (semicolon) with STATE support
+   - **QUIT** - Outer interpreter loop that calls REFILL and INTERPRET
+   - **Additional stack words** - ROT, -ROT, 2SWAP, NIP, TUCK
