@@ -16,6 +16,8 @@ newline: db NEWLINE
   align 8
 input_length: dq 0                          ; Number of chars in buffer
 input_position: dq 0                        ; Current parse position
+line_number: dq 1                           ; Current line number (1-based)
+line_start_position: dq 0                   ; Position where current line started
 
   ;; Compiler state
   align 8
@@ -192,8 +194,13 @@ dict_BACKSLASH:
   db 1, "\", 0, 0, 0, 0, 0, 0 ; Name
   dq BACKSLASH            ; Code field
 
+dict_LINE_NUMBER_FETCH:
+  dq dict_BACKSLASH       ; Link to previous
+  db 5, "LINE#", 0, 0    ; Name
+  dq LINE_NUMBER_FETCH   ; Code field
+
 dict_FIND:
-  dq dict_BACKSLASH
+  dq dict_LINE_NUMBER_FETCH
   db 4, "FIND", 0, 0, 0
   dq FIND
 
@@ -418,6 +425,8 @@ return_stack_top:
   global input_buffer
   global input_length
   global input_position
+  global line_number
+  global line_start_position
   global STATE
   global OUTPUT
   global FLAGS
@@ -455,6 +464,7 @@ return_stack_top:
   extern REFILL
   extern PARSE_WORD
   extern BACKSLASH
+  extern LINE_NUMBER_FETCH
   extern TYPE
   extern STATE_word
   extern OUTPUT_word

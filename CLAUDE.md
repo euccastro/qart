@@ -189,25 +189,36 @@ Please maintain `syscall-abi.md` with information about:
 ### Development Approach
 **Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.
 
-### Current Status - Testing Phase
-**Working on**: Creating comprehensive tests for all implemented words
-- Main test suite (test.fth) is passing after fixing 0BRANCH and EXECUTE issues
-- Created store-test.fth for comprehensive ! (STORE) testing
-- Basic store tests pass (10000-10102): zero, -1, max/min values, overwriting
-- Multiple location tests fail (10200-10305): storing to stack addresses modifies the test data itself
-- **Key insight**: When we push values and use SP@ to get addresses, storing to those addresses overwrites our test data
-- **Solution**: Use return stack to save stable addresses (e.g., `SP@ >R` then use `R@` as base address)
+### Current Status - Line Tracking Implementation
+**Working on**: Added line number tracking for better error reporting
+- Successfully implemented line tracking infrastructure:
+  - Added `line_number` (1-based) and `line_start_position` variables to qart.asm
+  - Updated PARSE_WORD to increment line_number when encountering newlines
+  - Updated BACKSLASH to track line numbers when skipping to EOL
+  - Updated REFILL to reset line tracking (line 1, position 0)
+  - Added LINE# primitive to expose current line number
+  - Created debug.asm module for debugging primitives
+- **Issue discovered**: When testing with piped files, output appears to be missing. Need to investigate why . (DOT) isn't producing output in some contexts.
+- Line tracking works correctly: LINE# returns expected values when parsing multiline input
+
+### Recent Accomplishments
+- Implemented \ (BACKSLASH) for rest-of-line comments
+- Merged comprehensive store tests into main test.fth
+- Added comments to all tests explaining what they verify
+- Fixed duplicate ASSERT IDs in NUMBER tests
+- Tests now use comments to clarify test purposes without over-explaining mechanics
 
 ### Test Organization
 - test.sh runs all test files with headers showing which file is running
 - test-verbose.sh takes a filename argument for debugging specific tests with PASS/FAIL output
-- Creating separate test files per word/feature for better organization
-- Test IDs don't need to be globally unique anymore since we show filenames
+- Merged store-test.fth into main test.fth to avoid test fragmentation
+- All tests in test.fth now have descriptive comments
 
-### Next Action
-1. Fix store-test.fth failures (tests 10200-10305) using return stack for stable addresses
-2. Continue creating comprehensive tests alphabetically (next: +, ., 0=, =, >R, @, C!, C@, etc.)
-3. After solid test coverage, implement:
+### Next Actions
+1. Debug why output is missing when running simple programs with piped input
+2. Once output issue is fixed, verify line tracking with comprehensive tests
+3. Consider modifying ASSERT to use line:col instead of numeric IDs
+4. After line tracking is solid, implement:
    - **Tick operator (')** - Push execution token without executing
    - **Compiler words** - CREATE, : (colon), ; (semicolon) with STATE support
    - **QUIT** - Outer interpreter loop that calls REFILL and INTERPRET

@@ -8,6 +8,8 @@ global PARSE_WORD
 extern input_buffer
 extern input_length
 extern input_position
+extern line_number
+extern line_start_position
 extern NEXT
 
 ; PARSE_WORD ( -- addr length )
@@ -33,6 +35,10 @@ PARSE_WORD:
     je .skip_this_char
     cmp al, NEWLINE         ; Also skip newlines
     jne .found_word_start
+    ; Found newline - update line tracking
+    inc qword [line_number]
+    mov [line_start_position], rsi
+    inc qword [line_start_position]  ; Line starts after the newline
 .skip_this_char:
     inc rsi
     inc rdi
@@ -51,10 +57,16 @@ PARSE_WORD:
     cmp al, ' '
     je .found_word_end
     cmp al, NEWLINE         ; Also treat newline as whitespace
-    je .found_word_end
+    je .found_word_end_with_newline
     inc rsi
     inc rdi
     jmp .find_word_end
+    
+.found_word_end_with_newline:
+    ; Update line tracking before returning
+    inc qword [line_number]
+    mov [line_start_position], rsi
+    inc qword [line_start_position]  ; Line starts after the newline
     
 .found_word_end:
     ; Update position for next call

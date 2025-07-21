@@ -9,6 +9,8 @@ global BACKSLASH
 extern input_buffer
 extern input_length
 extern input_position
+extern line_number
+extern line_start_position
 extern NEXT
 
 ; REFILL ( -- flag )
@@ -17,6 +19,9 @@ extern NEXT
 REFILL:
     ; Reset position to start of buffer
     mov qword [input_position], 0
+    ; Reset line tracking
+    mov qword [line_number], 1
+    mov qword [line_start_position], 0
     
     ; Read from stdin (fd=0) into input_buffer
     mov rax, 0                  ; sys_read
@@ -67,8 +72,11 @@ BACKSLASH:
     jmp .find_newline
     
 .found_newline:
+    ; Update line tracking
+    inc qword [line_number]
     ; Skip past the newline
     inc rsi
+    mov [line_start_position], rsi  ; Line starts after the newline
     
 .at_end:
     ; Update position
