@@ -187,8 +187,13 @@ dict_WORD:
   db 4, "WORD", 0, 0, 0   ; Name
   dq PARSE_WORD           ; Code field
 
+dict_BACKSLASH:
+  dq dict_WORD            ; Link to previous
+  db 1, "\", 0, 0, 0, 0, 0, 0 ; Name
+  dq BACKSLASH            ; Code field
+
 dict_FIND:
-  dq dict_WORD
+  dq dict_BACKSLASH
   db 4, "FIND", 0, 0, 0
   dq FIND
 
@@ -449,6 +454,7 @@ return_stack_top:
   extern FIND
   extern REFILL
   extern PARSE_WORD
+  extern BACKSLASH
   extern TYPE
   extern STATE_word
   extern OUTPUT_word

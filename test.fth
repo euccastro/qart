@@ -115,6 +115,27 @@ R> DROP
 DROP DROP DROP DROP DROP
 SP@ R@ = 10305 ASSERT
 
+\ Test comment functionality
+\ This is a comment - it should be ignored
+5 5 + 10 = 20000 ASSERT
+
+21 21 + \ Comment after code
+42 = 20001 ASSERT
+
+\ Comment at start of line
+1 2 + 3 = 20002 ASSERT
+
+\ Multiple comments
+\ in a row
+\ should all be ignored
+7 7 + 14 = 20003 ASSERT
+
+100 \ Push 100 then ignore this
+200 \ Push 200 then ignore this  
++ 300 = 20004 ASSERT
+
+SP@ R@ = 20005 ASSERT
+
 R> DROP
 
 WORD Done. TYPE CR

@@ -4,6 +4,7 @@
 
 section .text
 global REFILL
+global BACKSLASH
 
 extern input_buffer
 extern input_length
@@ -38,4 +39,40 @@ REFILL:
     
 .eof:
     mov qword [DSP], 0
+    jmp NEXT
+
+; BACKSLASH ( -- )
+; Skip to end of current line (rest-of-line comment)
+BACKSLASH:
+    ; Get current position and length
+    mov rsi, [input_position]   ; Current position
+    mov rcx, [input_length]     ; Total length
+    
+    ; Check if we're already at end
+    cmp rsi, rcx
+    jge .done
+    
+    ; Search for newline
+    mov rdi, input_buffer
+    add rdi, rsi                ; Point to current position
+    
+.find_newline:
+    cmp rsi, rcx
+    jge .at_end
+    mov al, [rdi]
+    cmp al, NEWLINE
+    je .found_newline
+    inc rsi
+    inc rdi
+    jmp .find_newline
+    
+.found_newline:
+    ; Skip past the newline
+    inc rsi
+    
+.at_end:
+    ; Update position
+    mov [input_position], rsi
+    
+.done:
     jmp NEXT
