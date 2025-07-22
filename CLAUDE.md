@@ -108,7 +108,7 @@ Please maintain `syscall-abi.md` with information about:
 - Return stack operations (R14) with >R, R>, R@
 - Memory access: @, !, C@, C!
 - Stack primitives: DUP, DROP, SWAP, OVER, 2DUP, 2DROP, SP@
-- Arithmetic: ADD, = (EQUAL), 0= (ZEROEQ) using branchless SETcc technique
+- Arithmetic: ADD (+), = (EQUAL), 0= (ZEROEQ) using branchless SETcc technique
 - Control flow: BRANCH, 0BRANCH (ZBRANCH) using branchless CMOVcc optimization
 - I/O: DOT (.) for decimal output, EMIT for character output, KEY for character input, TYPE for string output
 - Testing: ASSERT for unit test support (prints line:col on failure)
@@ -121,25 +121,24 @@ Please maintain `syscall-abi.md` with information about:
 - DOCOL runtime for colon definitions
 - INTERPRET for processing input (colon definition)
 - EXIT for returns and program termination
-- Input buffer (256 bytes) with position/length tracking
+- Input buffer (1MB in .bss) with position/length tracking
 - REFILL for reading full lines from stdin
 - WORD for parsing space-delimited tokens from input buffer
 - Working colon definitions: CR, ERRTYPE, ERRCR demonstrating OUTPUT switching
+- QUIT/ABORT architecture: QUIT is the main interpreter loop, ABORT clears stacks and jumps to QUIT
+- Tick operator (') for getting execution tokens without executing
 
 ### Immediate Next Steps
-1. **Tick operator (')** - Push execution token without executing
-   - Needed for testing EXECUTE and for metaprogramming
-2. **Compiler words** - CREATE, : (colon), ; (semicolon)
+1. **Compiler words** - CREATE, : (colon), ; (semicolon)
    - STATE variable exists but needs compiler support
-3. **QUIT** - Outer interpreter loop that calls REFILL and INTERPRET
-4. **Additional stack words** - ROT, -ROT, 2SWAP, NIP, TUCK
+2. **Additional stack words** - ROT, -ROT, 2SWAP, NIP, TUCK
+3. **Control flow structures** - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
 
 ### Future Steps
-1. Control flow: IF, THEN, ELSE, BEGIN, UNTIL
-2. More stack manipulation: ROT, -ROT, 2DUP, 2DROP
-3. Constants and variables
-4. Advanced features (continuations, effects, concurrency)
-5. Low-level networking - raw socket programming for future distributed computing
+1. Constants and variables
+2. Memory allocation: HERE, ALLOT, COMMA
+3. Advanced features (continuations, effects, concurrency)
+4. Low-level networking - raw socket programming for future distributed computing
 
 ## Key Documentation Files
 
@@ -160,7 +159,7 @@ Please maintain `syscall-abi.md` with information about:
 - **Constants in forth.inc**: Shared constants like INPUT_BUFFER_SIZE should go in forth.inc to avoid duplication
 - **sys_read behavior**: Always includes newline when user presses Enter; REFILL strips it for cleaner parsing
 - **Primitive structure**: Assembly primitives don't use code pointer indirection like colon definitions
-- **Dictionary name field alignment**: 7-character names need exactly 8 bytes total (1 length + 7 chars), no extra padding needed
+- **Dictionary name field alignment**: Names need exactly 8 bytes total (1 length byte + up to 7 name chars). Tick (') has `db 1, "'", 0, 0, 0, 0, 0, 0` - that's 1 + 1 + 6 = 8 bytes
 - **LIT behavior in threaded code**: `dq dict_LIT, value` creates TWO cells; must account for this when calculating branch offsets
 - **MOV doesn't set flags**: Must use explicit TEST or CMP before conditional jumps; this caught us with ZBRANCH
 - **Branchless optimizations**: CMOVcc for conditional data movement (ZBRANCH), SETcc for flag-to-value conversion (ZEROEQ)
@@ -186,6 +185,8 @@ Please maintain `syscall-abi.md` with information about:
 3. **NASM reserved words**: Check if a word name conflicts before using it
 4. **Buffer bounds**: Always validate positions against buffer length
 5. **Transient strings**: WORD results are only valid until next REFILL
+6. **Forth stack notation**: (2 1) means 1 is TOS (top of stack), not that 2 is on top! This is the opposite of visual/pictorial representations. Be very careful when writing tests.
+7. **Dictionary name field syntax**: Must use commas between all elements! `db 1, "'", 0, 0, 0, 0, 0, 0` not `db 1 "'", 0, 0, 0, 0, 0, 0`. Missing commas cause incorrect assembly and dictionary misalignment.
 
 ### Development Approach
 **Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.
@@ -210,14 +211,22 @@ Please maintain `syscall-abi.md` with information about:
 - Tests now use comments to clarify test purposes without over-explaining mechanics
 - Added comprehensive tests for all words in alphabetical order:
   - Stack manipulation: DUP, DROP, SWAP, OVER, 2DUP, 2DROP, SP@
-  - Arithmetic: ADD, = (EQUAL), 0= (ZEROEQ), AND
+  - Arithmetic: ADD (+), = (EQUAL), 0= (ZEROEQ), AND
   - Memory: @, !, C@, C!, >R, R>, R@
-  - I/O: DOT, EMIT, KEY, TYPE
+  - I/O: DOT (.), EMIT, KEY, TYPE
   - Control: EXECUTE, BRANCH, 0BRANCH (noted as compile-only)
   - Parsing: WORD, NUMBER, FIND
   - System: REFILL, EXIT, STATE, OUTPUT, FLAGS, ASSERT
   - Comments: \ (BACKSLASH)
   - Debugging: LINE#, COL#
+- Refactored to QUIT/ABORT architecture:
+  - Removed test_program entry point
+  - QUIT is now the main interpreter loop (colon definition)
+  - ABORT clears stacks and jumps to QUIT
+  - _start simply calls ABORT to initialize the system
+- Standardized boolean return values: FIND and NUMBER now return -1 for success (consistent with EQUAL, ZEROEQ)
+- Implemented tick operator (') for getting execution tokens
+- Fixed ZBRANCH understanding: it consumes the flag it tests
 
 ### Test Organization
 - test.sh runs all test files with headers showing which file is running
@@ -226,10 +235,7 @@ Please maintain `syscall-abi.md` with information about:
 - All tests in test.fth now have descriptive comments
 
 ### Next Actions
-1. Debug why output is missing when running simple programs with piped input
-2. Once output issue is fixed, verify line tracking with comprehensive tests
-4. After line tracking is solid, implement:
-   - **Tick operator (')** - Push execution token without executing
+1. Implement:
    - **Compiler words** - CREATE, : (colon), ; (semicolon) with STATE support
-   - **QUIT** - Outer interpreter loop that calls REFILL and INTERPRET
    - **Additional stack words** - ROT, -ROT, 2SWAP, NIP, TUCK
+   - **Control flow** - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
