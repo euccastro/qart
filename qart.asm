@@ -124,8 +124,18 @@ dict_AND:
   db 3, "AND", 0, 0, 0, 0
   dq AND
 
-dict_DROP:
+dict_LSHIFT:
   dq dict_AND
+  db 6, "LSHIFT", 0
+  dq LSHIFT
+
+dict_OR:
+  dq dict_LSHIFT
+  db 2, "OR", 0, 0, 0, 0, 0
+  dq OR
+
+dict_DROP:
+  dq dict_OR
   db 4, "DROP", 0, 0, 0
   dq DROP
 
@@ -512,8 +522,41 @@ dict_COMMA:
   db 1, ",", 0, 0, 0, 0, 0, 0
   dq COMMA
 
+dict_CREATE:
+  dq dict_COMMA
+  db 6, "CREATE", 0
+  dq DOCOL
+
+  ;; Update linked list pointers
+  dq dict_HERE
+  dq dict_FETCH                 ; save original HERE before ,
+  dq dict_LATEST
+  dq dict_FETCH
+  dq dict_COMMA
+  dq dict_LATEST
+  dq dict_STORE
+
+  dq dict_WORD                  ; (c-addr u)
+  ;; XXX: error handling: 0 < u < 8
+  dq dict_SWAP                  ; (u c-addr)
+  dq dict_FETCH
+  dq dict_LIT, 8
+  dq dict_LSHIFT
+  dq dict_OR
+  dq dict_COMMA
+  dq dict_LIT, DOCOL, dict_COMMA
+  dq dict_LIT, dict_LIT, dict_COMMA
+  dq dict_HERE, dict_FETCH      ; remember to overwrite with HERE at end
+  dq dict_LIT, 0, dict_COMMA
+  dq dict_LIT, dict_EXIT, dict_COMMA
+  dq dict_HERE
+  dq dict_SWAP
+  dq dict_STORE
+  dq dict_EXIT
+
+
   ;; LATEST points to the most recent word
-LATEST: dq dict_COMMA
+LATEST: dq dict_CREATE
   
   align 8
 
@@ -575,6 +618,8 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern ZEROEQ
   extern EQUAL
   extern AND
+  extern LSHIFT
+  extern OR
   extern TO_R
   extern R_FROM
   extern R_FETCH

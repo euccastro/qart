@@ -9,6 +9,8 @@
   global EQUAL
   global AND
   global SUB
+  global LSHIFT
+  global OR
 
   extern NEXT
 
@@ -52,4 +54,20 @@ AND:
   mov rax, [DSP]          ; Get n2
   add DSP, 8              ; Drop it
   and [DSP], rax          ; AND with n1
+  jmp NEXT
+
+  ;; LSHIFT ( x1 u -- x2 ) Logical left shift
+LSHIFT:
+  mov rcx, [DSP]          ; shift count
+  add DSP, 8
+  mov rax, [DSP]          ; value to shift
+  shl rax, cl             ; shift left (only uses low 6 bits of rcx)
+  mov [DSP], rax
+  jmp NEXT
+
+  ;; OR ( x1 x2 -- x3 ) Bitwise OR
+OR:
+  mov rax, [DSP]          ; second operand
+  add DSP, 8
+  or [DSP], rax           ; OR with first operand
   jmp NEXT
