@@ -8,6 +8,7 @@
   global ZEROEQ
   global EQUAL
   global AND
+  global SUB
 
   extern NEXT
 
@@ -16,6 +17,13 @@ ADD:
   mov rax, [DSP]          ; Get top (n2)
   add DSP, 8              ; Drop it
   add [DSP], rax          ; Add to new top (n1)
+  jmp NEXT
+
+  ;; SUB ( n1 n2 -- n3 ) Subtract TOS from second stack item
+SUB:
+  mov rax, [DSP]          ; Get top (n2)
+  add DSP, 8              ; Drop it
+  sub [DSP], rax          ; Add to new top (n1)
   jmp NEXT
 
   ;; 0= ( n -- b ) b := -1 if n=0, 0 otherwise

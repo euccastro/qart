@@ -30,6 +30,7 @@ OUTPUT: dq 1                                 ; 1 = stdout, 2 = stderr
   ;; Debug and behavior flags (bit 0 = verbose ASSERT)
   align 8
 FLAGS: dq 0                                  ; Bit flags for various behaviors
+HERE:  dq dict_space
   
   
 bye_msg: db "bye."
@@ -103,8 +104,13 @@ dict_ADD:
   db 1, "+", 0, 0, 0, 0, 0, 0
   dq ADD
 
-dict_ZEROEQ:
+dict_SUB:
   dq dict_ADD
+  db 1, "-", 0, 0, 0, 0, 0, 0
+  dq SUB
+
+dict_ZEROEQ:
+  dq dict_SUB
   db 2, "0=", 0, 0, 0, 0, 0
   dq ZEROEQ
 
@@ -412,10 +418,16 @@ dict_FLAGS:
   db 5, "FLAGS", 0, 0     ; Name
   dq FLAGS_word           ; Code field
 
+  ;; HERE ( -- addr ) Push address of HERE variable
+dict_HERE:
+  dq dict_FLAGS          ; Link to previous
+  db 4, "HERE", 0, 0, 0     ; Name
+  dq HERE_word           ; Code field
+
   ;; QUIT ( -- ) Main interpreter loop
   align 8
 dict_QUIT:
-  dq dict_FLAGS           ; Link to previous
+  dq dict_HERE           ; Link to previous
   db 4, "QUIT", 0, 0, 0   ; Name
   dq DOCOL                ; Colon definition
   .loop:
@@ -489,8 +501,13 @@ dict_SHOWWORDS:
   dq dict_CR
   dq dict_EXIT
 
+dict_COMMA:
+  dq dict_SHOWWORDS
+  db 1, ",", 0, 0, 0, 0, 0, 0
+  dq COMMA
+
   ;; LATEST points to the most recent word
-LATEST: dq dict_SHOWWORDS
+LATEST: dq dict_COMMA
   
   align 8
 
@@ -504,13 +521,14 @@ pass_msg_len equ 6
 
   section .bss
   align 8
-input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
-  align 8
+dict_space: resq 65536
 stack_base: resq 1024
 stack_top:
   
 return_stack_base: resq 512   ; Return stack (smaller than data stack)
 return_stack_top:
+
+input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
 
   section .text
   global _start
@@ -529,7 +547,7 @@ return_stack_top:
   global stack_top
   global return_stack_top
   global dict_QUIT
-  global dict_ABORT
+  global HERE
 
   ;; Import all the primitives from other files
   extern NEXT
@@ -547,6 +565,7 @@ return_stack_top:
   extern TWO_DUP
   extern TWO_DROP
   extern ADD
+  extern SUB
   extern ZEROEQ
   extern EQUAL
   extern AND
@@ -571,7 +590,9 @@ return_stack_top:
   extern STATE_word
   extern OUTPUT_word
   extern FLAGS_word
+  extern HERE_word
   extern ABORT_word
+  extern COMMA
 
   ;; ---- Main Program ----
 

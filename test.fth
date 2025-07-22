@@ -31,21 +31,39 @@ COL#
 \ Verify stack is clean after column tests
 SP@ R@ = ASSERT
 
-\ Test ADD
+\ Test +
 5 5 + 10 = ASSERT
 21 21 + 42 = ASSERT  
 0 0 + 0 = ASSERT
 -5 5 + 0 = ASSERT
 
-\ Test ADD with negative numbers
+\ Test + with negative numbers
 -10 -20 + -30 = ASSERT
 -100 50 + -50 = ASSERT
 100 -50 + 50 = ASSERT
 
-\ Test ADD identity (n + 0 = n)
+\ Test + identity (n + 0 = n)
 42 0 + 42 = ASSERT
 0 42 + 42 = ASSERT
 -42 0 + -42 = ASSERT
+
+SP@ R@ = ASSERT
+
+\ Test -
+5 5 - 0 = ASSERT
+0 0 - 0 = ASSERT
+-5 5 - -10 = ASSERT
+5 10 - -5 = ASSERT
+
+\ Test - with negative numbers
+-10 -20 - 10 = ASSERT
+-100 50 - -150 = ASSERT
+100 -50 - 150 = ASSERT
+
+\ Test - identity (n - 0 = n)
+42 0 - 42 = ASSERT
+0 42 - -42 = ASSERT
+-42 0 - -42 = ASSERT
 
 SP@ R@ = ASSERT
 
@@ -335,6 +353,11 @@ SP@ R@ = ASSERT
 100 \ Push 100 then ignore this
 200 \ Push 200 then ignore this  
 + 300 = ASSERT
+
+SP@ R@ = ASSERT
+
+\ Test , and HERE
+HERE @ DUP 565 , @ 565 = ASSERT HERE @ SWAP - 8 = ASSERT
 
 SP@ R@ = ASSERT
 
