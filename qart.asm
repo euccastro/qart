@@ -424,10 +424,16 @@ dict_HERE:
   db 4, "HERE", 0, 0, 0     ; Name
   dq HERE_word           ; Code field
 
+  ;; LATEST ( -- addr ) Push address of HERE variable
+dict_LATEST:
+  dq dict_HERE          ; Link to previous
+  db 6, "LATEST", 0
+  dq LATEST_word           ; Code field
+
   ;; QUIT ( -- ) Main interpreter loop
   align 8
 dict_QUIT:
-  dq dict_HERE           ; Link to previous
+  dq dict_LATEST           ; Link to previous
   db 4, "QUIT", 0, 0, 0   ; Name
   dq DOCOL                ; Colon definition
   .loop:
@@ -591,6 +597,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern OUTPUT_word
   extern FLAGS_word
   extern HERE_word
+  extern LATEST_word
   extern ABORT_word
   extern COMMA
 

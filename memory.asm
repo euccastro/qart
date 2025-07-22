@@ -15,6 +15,7 @@
   global OUTPUT_word
   global FLAGS_word
   global HERE_word
+  global LATEST_word
   global COMMA
 
   extern NEXT
@@ -22,6 +23,7 @@
   extern OUTPUT
   extern FLAGS
   extern HERE
+  extern LATEST
 
   ;; >R ( n -- ) (R: -- n) Move from data stack to return stack
 TO_R:
@@ -100,6 +102,12 @@ FLAGS_word:
 HERE_word:
   sub DSP, 8              ; Make room
   mov qword [DSP], HERE  ; Push address
+  jmp NEXT
+
+  ;; LATEST ( -- addr ) Push address of LATEST variable
+LATEST_word:
+  sub DSP, 8              ; Make room
+  mov qword [DSP], LATEST  ; Push address
   jmp NEXT
 
 COMMA:
