@@ -127,6 +127,40 @@ SP@ R@ = ASSERT
 -2147483648 0= 0 = ASSERT
 SP@ R@ = ASSERT
 
+\ Test ' (tick) operator
+\ Tick should parse the next word and push its execution token
+5 ' DUP EXECUTE 5 = ASSERT 5 = ASSERT
+SP@ R@ = ASSERT
+
+42 ' DROP EXECUTE
+SP@ R@ = ASSERT
+
+5 ' DOUBLE EXECUTE 10 = ASSERT
+SP@ R@ = ASSERT
+
+\ Test tick with various words
+3 4 ' + EXECUTE 7 = ASSERT
+SP@ R@ = ASSERT
+
+\ ROT not implemented yet, so test differently
+1 2 ' SWAP EXECUTE 1 = ASSERT 2 = ASSERT
+SP@ R@ = ASSERT
+
+\ Test that tick pushes dictionary pointer that EXECUTE can use
+' DUP ' DROP = 0 = ASSERT  \ Different words have different addresses
+SP@ R@ = ASSERT
+
+\ Test tick with FIND comparison
+' DUP WORD DUP FIND ASSERT = ASSERT  \ ' DUP should equal FIND result for "DUP"
+SP@ R@ = ASSERT
+
+\ Tick should work with any defined word
+100 ' DUP EXECUTE 100 = ASSERT 100 = ASSERT
+SP@ R@ = ASSERT
+
+\ Note: Testing tick with undefined words would cause ABORT
+\ so we can't test error cases in this framework
+
 \ Test OVER
 1 2 OVER 1 = ASSERT DROP
 1 2 OVER DROP DROP 1 = ASSERT DROP

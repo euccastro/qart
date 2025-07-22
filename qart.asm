@@ -320,9 +320,37 @@ dict_INTERPRET:
   dq dict_TWO_DROP
   dq dict_EXIT
 
+  ;; Error message for unknown word
+missing_word_msg: db "Expected word, got EOF."
+  missing_word_msg_len equ 23
+
+  align 8
+dict_TICK:
+  dq dict_INTERPRET
+  db 1, "'", 0, 0, 0, 0, 0, 0
+  dq DOCOL                ; Colon definition
+  dq dict_WORD            ; ( -- c-addr u )
+  dq dict_DUP
+  dq dict_ZBRANCH, BRANCH_OFFSET(.missing_word)
+  dq dict_FIND            ; ( xt -1 | c-addr u 0 )
+  dq dict_ZBRANCH, BRANCH_OFFSET(.unknown_word)
+  dq dict_EXIT
+  .missing_word:
+  dq dict_LIT, missing_word_msg
+  dq dict_LIT, missing_word_msg_len
+  dq dict_BRANCH, BRANCH_OFFSET(.print_and_abort)
+  .unknown_word:
+  dq dict_LIT, unknown_word_msg
+  dq dict_LIT, unknown_word_msg_len
+  dq dict_ERRTYPE         ; Print "Unknown word: "
+  .print_and_abort:
+  dq dict_ERRTYPE         ; Print the word itself
+  dq dict_ERRCR           ; Print newline
+  dq dict_ABORT
+
   ;; STATE ( -- addr ) Push address of STATE variable
 dict_STATE:
-  dq dict_INTERPRET       ; Link to previous
+  dq dict_TICK       ; Link to previous
   db 5, "STATE", 0, 0     ; Name
   dq STATE_word           ; Code field
 
