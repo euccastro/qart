@@ -17,6 +17,8 @@
   global HERE_word
   global LATEST_word
   global COMMA
+  global IMMED_TEST
+  global IMMED
 
   extern NEXT
   extern STATE
@@ -116,4 +118,21 @@ COMMA:
   mov rdx, [HERE]      ; get current dictionary pointer
   mov [rdx], rax       ; store value at dictionary pointer
   add qword [HERE], 8  ; advance HERE
+  jmp NEXT
+
+  ;; IMMED? ( xt -- flag ) Test if word is immediate
+IMMED_TEST:
+  mov rax, [DSP]      ; get xt (dictionary pointer)
+  movzx rax, byte [rax+8]     ; get length/flags byte
+  test rax, 0x80      ; test bit 7
+  setnz al            ; set AL to 1 if immediate
+  movzx rax, al
+  neg rax             ; convert to -1/0
+  mov [DSP], rax
+  jmp NEXT
+
+  ;; IMMED ( -- ) Make LATEST word immediate
+IMMED:
+  mov rax, [LATEST]   ; get latest word
+  or byte [rax+8], 0x80       ; set immediate bit
   jmp NEXT

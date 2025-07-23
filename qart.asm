@@ -340,6 +340,10 @@ dict_INTERPRET:
 missing_word_msg: db "Expected word, got EOF."
   missing_word_msg_len equ 23
 
+  ;; Error messages for CREATE
+wrong_word_size_msg: db "Wrong word size (must be 1-7 chars): "
+  wrong_word_size_msg_len equ 37
+
   align 8
 dict_TICK:
   dq dict_INTERPRET
@@ -537,7 +541,26 @@ dict_CREATE:
   dq dict_STORE
 
   dq dict_WORD                  ; (c-addr u)
-  ;; XXX: error handling: 0 < u < 8
+  
+  ;; Check word length is 1-7
+  dq dict_DUP                   ; (c-addr u u)
+  dq dict_DUP                   ; (c-addr u u u)
+  dq dict_ZEROEQ                ; (c-addr u u is-zero)
+  dq dict_SWAP                  ; (c-addr u is-zero u)
+  dq dict_LIT, -8               ; (c-addr u is-zero u -8)
+  dq dict_AND                   ; (c-addr u is-zero u&~7)
+  dq dict_OR                    ; (c-addr u invalid?)
+  dq dict_ZBRANCH, BRANCH_OFFSET(.size_ok)
+  
+  ;; Size error - print message and abort
+  dq dict_LIT, wrong_word_size_msg
+  dq dict_LIT, wrong_word_size_msg_len
+  dq dict_ERRTYPE
+  dq dict_ERRTYPE               ; Print the word
+  dq dict_ERRCR
+  dq dict_ABORT
+  
+  .size_ok:
   dq dict_SWAP                  ; (u c-addr)
   dq dict_FETCH
   dq dict_LIT, 8
@@ -548,9 +571,18 @@ dict_CREATE:
   dq dict_COMMA
   dq dict_EXIT
 
+dict_IMMED_TEST:
+  dq dict_CREATE
+  db 6, "IMMED?", 0
+  dq IMMED_TEST
+
+dict_IMMED:
+  dq dict_IMMED_TEST
+  db 5, "IMMED", 0, 0
+  dq IMMED
 
   ;; LATEST points to the most recent word
-LATEST: dq dict_CREATE
+LATEST: dq dict_IMMED
   
   align 8
 
@@ -640,6 +672,8 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern LATEST_word
   extern ABORT_word
   extern COMMA
+  extern IMMED_TEST
+  extern IMMED
 
   ;; ---- Main Program ----
 

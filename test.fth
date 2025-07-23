@@ -400,6 +400,23 @@ BAZ HERE @ = ASSERT  \ BAZ should push current HERE (its data field)
 
 SP@ R@ = ASSERT
 
+\ Test immediate flag
+CREATE TESTIM
+LATEST @ IMMED? 0 = ASSERT  \ Not immediate by default
+IMMED
+LATEST @ IMMED? -1 = ASSERT  \ Now it's immediate
+
+\ Test that FIND still works with immediate flag set
+WORD TESTIM FIND -1 = ASSERT IMMED? -1 = ASSERT
+
+SP@ R@ = ASSERT
+
+\ Note: Can't test CREATE error cases without causing ABORT
+\ which would terminate the test suite
+\ Manual testing shows:
+\ CREATE (empty word) -> "Wrong word size" error
+\ CREATE TOOLONGNAME -> "Wrong word size" error  
+
 R> DROP
 
 WORD Done. TYPE CR
