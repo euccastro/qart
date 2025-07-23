@@ -6,7 +6,7 @@ This document describes known limitations of the qart Forth implementation.
 - **Maximum: 7 characters**
 - Dictionary structure allocates exactly 8 bytes for length (1 byte) + name (7 bytes)
 - Words longer than 7 characters cannot be defined
-- Example: `VERYLONGWORD` would be truncated or cause issues
+- Example: `VERYLONGWORD` will abort with "Wrong word size" error
 
 ## Stack Sizes
 - **Data Stack**: 1024 items (8KB)
@@ -37,10 +37,14 @@ This document describes known limitations of the qart Forth implementation.
   - Sufficient for 64-bit integers but hardcoded
 
 ## Dictionary Limitations  
-- **Fixed entry size**: 24 bytes per word
+- **Fixed entry size**: 24 bytes per word header
   - 8 bytes link
-  - 8 bytes name (including length byte)
+  - 8 bytes name (including length byte with immediate flag in bit 7)
   - 8 bytes code field
+  - Additional space for word body (colon definitions, CREATE data)
+- **Dictionary space**: 512KB allocated in .bss
+  - New words created at runtime grow the dictionary
+  - No bounds checking on dictionary overflow
 - **Linear search**: O(n) lookup time
   - Performance degrades with dictionary size
 - **No hash tables**: Simple linked list only
@@ -59,27 +63,37 @@ This document describes known limitations of the qart Forth implementation.
   - Single line cannot exceed this size
   - Files piped to stdin cannot exceed this size (entire file read at once)
   - Test files must fit in buffer since REFILL reads all available input
-  - Buffer allocated in .bss section to keep executable small
+- **No file operations**: Cannot open, read, or write files
+- **No formatted output**: Only decimal numbers and single characters
+- **No input editing**: No backspace or line editing
 
 ## Compiler Limitations
-- **No immediate words**: Cannot mark words as immediate
-  - No compile-time execution control
-- **No compilation mode**: STATE exists but unused
-  - Cannot define new words interactively
-  - No : and ; operators
-- **No CREATE/DOES>**: Cannot define defining words
-- **No compiler security**: Can corrupt dictionary
+- **No DOES>**: Cannot define defining words with custom runtime
+- **No POSTPONE**: Cannot compile immediate words
+- **No [COMPILE]**: Cannot force compilation of immediate words
+- **No [ ]**: Cannot switch STATE during compilation
+- **No LITERAL**: Must rely on automatic number compilation
+- **No compiler security**: Can corrupt dictionary with invalid operations
+- **No recursion support**: Cannot reference word being defined
+- **No forward references**: Words must be defined before use
 
 ## General Limitations
 - **No floating point**: Integer-only system
-- **No dynamic memory**: No ALLOT, HERE, or heap
-- **Single-threaded**: No concurrency support yet
+- **No ALLOT**: Cannot reserve dictionary space
+- **No heap allocation**: Only dictionary growth supported
+- **Single-threaded**: No concurrency support
 - **Linux x86-64 only**: Not portable to other platforms
+- **No signal handling**: Ctrl-C kills process ungracefully
+- **No saved images**: Cannot save/load system state
 
 ## Typical Forth Features Not Yet Implemented
-- Variables and constants
+- Variables and constants (VARIABLE, CONSTANT words)
 - Control structures (IF/THEN, loops)
-- Defining words (CREATE, DOES>)
+- DOES> for custom runtime behavior
 - Vocabulary/wordlist support
 - File I/O
 - Exception handling
+- String literals (S", .")
+- Double-cell operations (2@, 2!)
+- Memory operations (MOVE, FILL)
+- Additional stack operations (ROT, PICK, ROLL)
