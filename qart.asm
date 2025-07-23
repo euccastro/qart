@@ -544,14 +544,8 @@ dict_CREATE:
   dq dict_LSHIFT
   dq dict_OR
   dq dict_COMMA
-  dq dict_LIT, DOCOL, dict_COMMA
-  dq dict_LIT, dict_LIT, dict_COMMA
-  dq dict_HERE, dict_FETCH      ; remember to overwrite with HERE at end
-  dq dict_LIT, 0, dict_COMMA
-  dq dict_LIT, dict_EXIT, dict_COMMA
-  dq dict_HERE
-  dq dict_SWAP
-  dq dict_STORE
+  dq dict_LIT, DOCREATE
+  dq dict_COMMA
   dq dict_EXIT
 
 
@@ -601,6 +595,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   ;; Import all the primitives from other files
   extern NEXT
   extern DOCOL
+  extern DOCREATE
   extern EXIT
   extern EXECUTE
   extern BRANCH

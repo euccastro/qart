@@ -380,6 +380,26 @@ SP@ R@ = ASSERT
 
 SP@ R@ = ASSERT
 
+\ Test CREATE
+CREATE FOO
+42 ,
+FOO @ 42 = ASSERT
+
+\ Test CREATE with multiple values
+CREATE BAR
+100 ,
+200 ,
+300 ,
+BAR @ 100 = ASSERT
+BAR 8 + @ 200 = ASSERT
+BAR 16 + @ 300 = ASSERT
+
+\ Test that CREATE'd words push their data field address
+CREATE BAZ
+BAZ HERE @ = ASSERT  \ BAZ should push current HERE (its data field)
+
+SP@ R@ = ASSERT
+
 R> DROP
 
 WORD Done. TYPE CR

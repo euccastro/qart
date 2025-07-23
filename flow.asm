@@ -7,6 +7,7 @@
 
   global NEXT
   global DOCOL
+  global DOCREATE
   global EXIT
   global EXECUTE
   global BRANCH
@@ -34,6 +35,15 @@ DOCOL:
   mov [RSTACK], IP        ; Save current IP
   lea IP, [rdx+24]        ; IP = start of body (after 16-byte header and pointer to DOCOL)
   jmp NEXT                ; Start executing the body
+
+  ;; DOCREATE - Runtime for CREATE'd words
+  ;; Expects RDX = dictionary entry address
+  ;; Pushes address of data field (right after code field)
+DOCREATE:
+  sub DSP, 8              ; Make room on data stack
+  lea rax, [rdx+24]       ; Address after link(8) + name(8) + code(8)
+  mov [DSP], rax          ; Push data field address
+  jmp NEXT
 
   ;; EXIT ( -- ) Return from colon definition
   ;; For top-level, return stack will be empty and we'll exit
