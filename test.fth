@@ -417,6 +417,25 @@ SP@ R@ = ASSERT
 \ CREATE (empty word) -> "Wrong word size" error
 \ CREATE TOOLONGNAME -> "Wrong word size" error  
 
+\ Test colon definitions
+: TRIPLE DUP DUP + + ;
+3 TRIPLE 9 = ASSERT
+7 TRIPLE 21 = ASSERT
+
+\ Test that semicolon is immediate
+' ; IMMED? -1 = ASSERT
+
+\ Test nested definitions
+: ADDONE 1 + ;
+: ADDTWO ADDONE ADDONE ;
+5 ADDTWO 7 = ASSERT
+
+\ Test compiling literals
+: ANSWER 42 ;
+ANSWER 42 = ASSERT
+
+SP@ R@ = ASSERT
+
 R> DROP
 
 WORD Done. TYPE CR

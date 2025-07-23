@@ -345,6 +345,11 @@ wrong_word_size_msg: db "Wrong word size (must be 1-7 chars): "
   wrong_word_size_msg_len equ 37
 
   align 8
+print_and_abort:
+  dq dict_ERRTYPE         ; Print the word itself
+  dq dict_ERRCR           ; Print newline
+  dq dict_ABORT
+
 dict_TICK:
   dq dict_INTERPRET
   db 1, "'", 0, 0, 0, 0, 0, 0
@@ -358,15 +363,12 @@ dict_TICK:
   .missing_word:
   dq dict_LIT, missing_word_msg
   dq dict_LIT, missing_word_msg_len
-  dq dict_BRANCH, BRANCH_OFFSET(.print_and_abort)
+  dq dict_BRANCH, BRANCH_OFFSET(print_and_abort)
   .unknown_word:
   dq dict_LIT, unknown_word_msg
   dq dict_LIT, unknown_word_msg_len
   dq dict_ERRTYPE         ; Print "Unknown word: "
-  .print_and_abort:
-  dq dict_ERRTYPE         ; Print the word itself
-  dq dict_ERRCR           ; Print newline
-  dq dict_ABORT
+  dq dict_BRANCH, BRANCH_OFFSET(print_and_abort)
 
   ;; STATE ( -- addr ) Push address of STATE variable
 dict_STATE:
@@ -581,8 +583,78 @@ dict_IMMED:
   db 5, "IMMED", 0, 0
   dq IMMED
 
+dict_COLON:
+  dq dict_IMMED
+  db 1, ":", 0, 0, 0, 0, 0, 0
+  dq DOCOL
+  dq dict_CREATE
+
+  ;; replace DOCREATE with DOCOL
+  dq dict_LIT, DOCOL
+  dq dict_HERE
+  dq dict_FETCH                 ; Get HERE value, not address
+  dq dict_LIT, 8
+  dq dict_SUB
+  dq dict_STORE
+
+  ;; set compilation mode
+  dq dict_LIT, -1
+  dq dict_STATE
+  dq dict_STORE
+
+  .loop:
+  dq dict_WORD                  ; (c-addr u)
+  dq dict_DUP                   ; (c-addr u u)
+  dq dict_ZBRANCH, BRANCH_OFFSET(.premature_end) ; (c-addr u)
+  dq dict_FIND                                   ; (xt -1 | c-addr u 0)
+  dq dict_ZBRANCH, BRANCH_OFFSET(.try_number)    ; (xt)
+  dq dict_DUP                                    ; (xt xt)
+  dq dict_IMMED_TEST                             ; (xt t/f)
+  dq dict_ZBRANCH, BRANCH_OFFSET(.compile)       ; (xt)
+  dq dict_EXECUTE               ; ()
+
+  ;; check whether we're done
+  dq dict_STATE
+  dq dict_FETCH
+  dq dict_ZEROEQ
+  dq dict_ZBRANCH, BRANCH_OFFSET(.loop)
+  dq dict_EXIT
+
+  .compile:                      ; (xt)
+  dq dict_COMMA
+  dq dict_BRANCH, BRANCH_OFFSET(.loop)
+
+  .try_number:                   ; (c-addr u)
+  dq dict_NUMBER                ; ( n -1 | c-addr u 0 )
+  dq dict_ZBRANCH, BRANCH_OFFSET(.unknown_word)
+  dq dict_LIT, dict_LIT, dict_COMMA
+  dq dict_COMMA
+  dq dict_BRANCH, BRANCH_OFFSET(.loop)
+
+  .unknown_word:
+  dq dict_LIT, unknown_word_msg
+  dq dict_LIT, unknown_word_msg_len
+  dq dict_ERRTYPE
+  ;; print actual word
+  dq dict_BRANCH, BRANCH_OFFSET(print_and_abort)
+  .premature_end:
+  dq dict_LIT, missing_word_msg
+  dq dict_LIT, missing_word_msg_len
+  dq dict_BRANCH, BRANCH_OFFSET(print_and_abort)
+
+dict_SEMICOLON:
+  dq dict_COLON
+  db 129, ";", 0, 0, 0, 0, 0, 0
+  dq DOCOL
+  dq dict_LIT, dict_EXIT, dict_COMMA
+  dq dict_LIT, 0
+  dq dict_STATE
+  dq dict_STORE
+  dq dict_EXIT
+
+
   ;; LATEST points to the most recent word
-LATEST: dq dict_IMMED
+LATEST: dq dict_SEMICOLON
   
   align 8
 

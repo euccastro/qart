@@ -108,7 +108,7 @@ Please maintain `syscall-abi.md` with information about:
 - Return stack operations (R14) with >R, R>, R@
 - Memory access: @, !, C@, C!
 - Stack primitives: DUP, DROP, SWAP, OVER, 2DUP, 2DROP, SP@
-- Arithmetic: ADD (+), = (EQUAL), 0= (ZEROEQ) using branchless SETcc technique
+- Arithmetic: ADD (+), SUB (-), = (EQUAL), 0= (ZEROEQ), AND, OR, LSHIFT
 - Control flow: BRANCH, 0BRANCH (ZBRANCH) using branchless CMOVcc optimization
 - I/O: DOT (.) for decimal output, EMIT for character output, KEY for character input, TYPE for string output
 - Testing: ASSERT for unit test support (prints line:col on failure)
@@ -127,18 +127,27 @@ Please maintain `syscall-abi.md` with information about:
 - Working colon definitions: CR, ERRTYPE, ERRCR demonstrating OUTPUT switching
 - QUIT/ABORT architecture: QUIT is the main interpreter loop, ABORT clears stacks and jumps to QUIT
 - Tick operator (') for getting execution tokens without executing
+- Line tracking: LINE# and COL# for debugging support
+- Comments: \ (BACKSLASH) for rest-of-line comments
+- **Dictionary building**: HERE @, LATEST @, , (comma) for compilation
+- **CREATE**: Creates new dictionary entries with DOCREATE runtime
+- **Immediate words**: IMMED to set immediate flag, IMMED? to test it
+- **Colon compiler**: : and ; for defining new words! 
+- **Full metacircular Forth**: Can now define new words from within Forth itself
 
 ### Immediate Next Steps
-1. **Compiler words** - CREATE, : (colon), ; (semicolon)
-   - STATE variable exists but needs compiler support
-2. **Additional stack words** - ROT, -ROT, 2SWAP, NIP, TUCK
-3. **Control flow structures** - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
+1. **Additional stack words** - ROT, -ROT, 2SWAP, NIP, TUCK
+2. **Control flow structures** - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
+3. **More arithmetic** - *, /, MOD, <, >, XOR, INVERT, NEGATE
+4. **Constants and variables** - CONSTANT, VARIABLE, ALLOT
+5. **Memory words** - MOVE, FILL, CMOVE
 
 ### Future Steps
-1. Constants and variables
-2. Memory allocation: HERE, ALLOT, COMMA
-3. Advanced features (continuations, effects, concurrency)
+1. String handling - S" for string literals, ." for printing
+2. Advanced features (continuations, effects, concurrency)
+3. Persistent data structures
 4. Low-level networking - raw socket programming for future distributed computing
+5. Host interfacing for graphical desktop applications
 
 ## Key Documentation Files
 
@@ -178,6 +187,15 @@ Please maintain `syscall-abi.md` with information about:
 - **Standard Forth true value**: All boolean operations now return -1 for true, 0 for false (EQUAL, ZEROEQ, FIND, NUMBER)
 - **Branch offset calculations**: Must account for LIT using two cells when calculating offsets
 - **0BRANCH is compile-only**: Cannot be used interactively; it reads offset from [IP] which points to interpreter code during interpretation, not user input
+- **Immediate flag in length byte**: Bit 7 of name length byte indicates immediate words; FIND must mask with 0x7F when comparing
+- **DOCREATE runtime**: CREATE'd words push their data field address (after code field), not their dictionary pointer
+- **Dictionary growth in .bss**: New words created at runtime go in dict_space (.bss), not .data section
+- **HERE management**: Points to next free dictionary space; advanced by comma (,)
+- **Immediate words and STATE**: Immediate words execute even during compilation (STATE=1); normal words are compiled
+- **Colon definition flow**: : switches DOCREATE→DOCOL, sets STATE=1; loops compiling until ; which is immediate
+- **Word name validation**: CREATE enforces 1-7 character names using (u=0)|(u&~7) test
+- **Stack notation reminder**: Forth comments show rightmost as TOS: (a b c) means c is on top
+- **CREATE usage in :**: Colon calls CREATE directly (CREATE calls WORD internally)
 
 ### Critical Things to Watch For
 1. **Register preservation**: Never clobber RBX (IP), R15 (DSP), or R14 (RSTACK) in primitives
@@ -191,17 +209,16 @@ Please maintain `syscall-abi.md` with information about:
 ### Development Approach
 **Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.
 
-### Current Status - Line Tracking Implementation
-**Working on**: Added line number tracking for better error reporting
-- Successfully implemented line tracking infrastructure:
-  - Added `line_number` (1-based) and `line_start_position` variables to qart.asm
-  - Updated PARSE_WORD to increment line_number when encountering newlines
-  - Updated BACKSLASH to track line numbers when skipping to EOL
-  - Updated REFILL to reset line tracking (line 1, position 0)
-  - Added LINE# primitive to expose current line number
-  - Created debug.asm module for debugging primitives
-- **Issue discovered**: When testing with piped files, output appears to be missing. Need to investigate why . (DOT) isn't producing output in some contexts.
-- Line tracking works correctly: LINE# returns expected values when parsing multiline input
+### Current Status - Working Forth Compiler!
+**Major milestone achieved**: Full colon compiler implementation
+- **Working compiler**: Can define new words with : and ; 
+- **Immediate word support**: ; is immediate and executes during compilation
+- **STATE-aware compilation**: Properly handles compile vs interpret modes
+- **Literal compilation**: Numbers are compiled as LIT instructions
+- **Nested definitions**: New words can call previously defined words
+- **Dictionary management**: CREATE builds proper entries, LATEST tracks newest
+- **Error handling**: Word length validation, unknown word detection
+- **Test suite**: Comprehensive tests for all primitives and compiler
 
 ### Recent Accomplishments
 - Implemented \ (BACKSLASH) for rest-of-line comments
