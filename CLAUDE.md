@@ -5,11 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 This is a hobby project exploring x86_64 assembly programming with the goal of bootstrapping a Forth-like language with advanced features including:
-- Scheme-like features and continuations
-- Structured concurrency
-- Functional effect systems (inspired by Missionary in Clojure)
+- Structured concurrency with functional effect systems (current focus)
+- Scheme-like features (continuations postponed due to GC requirements)
+- Functional effect systems inspired by Missionary in Clojure
 - Persistent data structures
 - Host interfacing for graphical desktop applications
+
+Currently preparing to implement OS-level threading (clone/futex) as the foundation for structured concurrency and Missionary-style task composition.
 
 ## Development Environment
 
@@ -136,11 +138,16 @@ Please maintain `syscall-abi.md` with information about:
 - **Full metacircular Forth**: Can now define new words from within Forth itself
 
 ### Immediate Next Steps
-1. **Additional stack words** - ROT, -ROT, 2SWAP, NIP, TUCK
-2. **Control flow structures** - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
-3. **More arithmetic** - *, /, MOD, <, >, XOR, INVERT, NEGATE
-4. **Constants and variables** - CONSTANT, VARIABLE, ALLOT
-5. **Memory words** - MOVE, FILL, CMOVE
+1. **OS-level threading** - Basic clone/futex examples working! Next: integrate into Forth
+2. **Synchronization primitives** - Futex-based mutex implemented! Next: channels, semaphores
+3. **Structured concurrency** - Missionary-style task composition on top of threads
+4. **Additional stack words** - ROT, -ROT, 2SWAP, NIP, TUCK
+5. **Control flow structures** - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
+
+### Threading Progress
+- **Working examples**: thread-simple.asm (basic clone), futex-simple.asm (wait/wake), futex-mutex.asm (mutex)
+- **Key patterns established**: Thread creation with clone, futex-based synchronization
+- **Next steps**: Create Forth words for threading (THREAD, MUTEX@, MUTEX!, etc.)
 
 ### Future Steps
 1. String handling - S" for string literals, ." for printing
@@ -148,6 +155,128 @@ Please maintain `syscall-abi.md` with information about:
 3. Persistent data structures
 4. Low-level networking - raw socket programming for future distributed computing
 5. Host interfacing for graphical desktop applications
+
+## Continuations Design (Current Focus)
+
+### CALL/CC Implementation Plan
+
+We're implementing Scheme-style call-with-current-continuation to enable advanced control flow:
+
+**Syntax**: `' MY-FN CALL/CC` (consistent with EXECUTE)
+
+**What a continuation captures**:
+- Complete data stack state at time of capture
+- Complete return stack state at time of capture  
+- Instruction pointer (pointing to instruction after CALL/CC)
+
+**How CALL/CC works**:
+1. Pop execution token from data stack
+2. Save current continuation (both stacks + IP after CALL/CC)
+3. Package as continuation object
+4. Execute the function with continuation on stack
+5. If function returns normally, continue after CALL/CC
+6. If continuation is invoked later, restore saved state and jump to saved IP
+
+**Key design decisions**:
+- **Stack-based syntax** (`' FN CALL/CC` not `CALL/CC FN`) for consistency with EXECUTE and to enable dynamic function selection
+- **IP points after CALL/CC** to exclude the capture mechanism from the continuation (avoiding infinite loops)
+- **Function boundary via EXIT** - when called function returns, we know it's done (natural Forth mechanism)
+- **Full stack capture** - Unlike delimited continuations, we capture entire stack states (simpler to implement)
+
+**Example usage**:
+```forth
+: EXAMPLE
+  10 20
+  ' MY-FN CALL/CC  
+  30 + * ;         ( if normal return: 10 * (20 + 5 + 30) = 550 )
+                   ( if K invoked with 99: 10 * (20 + 99 + 30) = 1490 )
+
+: MY-FN ( cont -- n )
+  GLOBAL-K !       ( save continuation )
+  5 ;              ( return 5 normally )
+```
+
+**Why call/cc pattern**: Prevents self-referential infinite loops - the continuation represents "everything after CALL/CC" but excludes the capture itself.
+
+**Future**: After CALL/CC works, we'll explore delimited continuations (reset/shift) for more composable control flow needed for effect systems.
+
+### Continuation Object Structure
+
+Continuations are packaged as executable objects with the following memory layout:
+
+```
+Offset  Contents
++0:     Code pointer (to RESTORE-CONT primitive)
++8:     Data stack depth (in cells)
++16:    Return stack depth (in cells)
++24:    Saved IP (instruction pointer)
++32:    Data stack contents (variable size)
++?:     Return stack contents (variable size)
+```
+
+This structure makes continuations directly executable - calling EXECUTE on a continuation jumps to RESTORE-CONT, which knows how to unpack and restore the saved state.
+
+**Memory allocation**: Continuations are allocated in a dedicated heap (likely in .bss section) separate from the dictionary, using a simple bump allocator. Manual memory management is expected (typical for Forth).
+
+### Continuations - Status: DESIGNED (Implementation Postponed)
+
+**Revised Design - Caller-Managed Memory**:
+We've solved the GC requirement with a caller-managed approach:
+
+```forth
+CC-SIZE ( -- n )                    \ Returns bytes needed for continuation
+CALL/CC ( cont-addr xt -- cont-addr )  \ Captures into user-provided buffer
+```
+
+**Usage example**:
+```forth
+: EXAMPLE
+  HERE CC-SIZE ALLOT        ( cont-addr )
+  ' MY-FN CALL/CC           ( cont-addr )
+  DUP GLOBAL-K ! DROP ;     ( save for later use )
+
+: MY-FN ( cont -- n )       
+  K2 !                      ( handler saves continuation )
+  5 ;                       ( return normally )
+```
+
+**Key insights**:
+- User allocates memory (stack, dictionary, or custom heap)
+- cont-addr IS the continuation (directly executable)
+- No hidden allocations or GC needed
+- Very Forth-like explicit memory management
+
+**Why still postponed**: Threading provides more immediate value for exploring concurrency patterns, and our design will be here when we need it.
+
+## Structured Concurrency Design (Next Focus)
+
+Moving toward Missionary-style functional effects with structured concurrency:
+
+**Task Contract** (inspired by Missionary):
+```forth
+\ Task signature: ( success-xt failure-xt -- cancel-xt )
+\ - Takes success and failure callbacks
+\ - Returns a cancellation thunk
+\ - Does nothing until callbacks are provided (lazy)
+```
+
+**Execution Model - Trampoline**:
+- Tasks return "what to do next" rather than doing it directly
+- Avoids need for continuations or stack switching
+- Natural composition through callback chaining
+
+**Key Design Decisions**:
+1. **Top-level parking only** - Can only yield between tasks, not within
+2. **Stack-neutral steps** - Each async step must leave stacks balanced
+3. **Thread values through callbacks** - Not through Forth stacks
+4. **OS threads first** - Build on clone/futex before green threads
+
+**Implementation Path**:
+1. Implement OS-level threading (clone/futex)
+2. Add synchronization (channels/mutexes)
+3. Build trampoline executor
+4. Create task combinators (BIND-THEN, RACE, etc.)
+5. Add syntax sugar (M/SP, M/?) to hide callback complexity
 
 ## Key Documentation Files
 
@@ -196,6 +325,30 @@ Please maintain `syscall-abi.md` with information about:
 - **Word name validation**: CREATE enforces 1-7 character names using (u=0)|(u&~7) test
 - **Stack notation reminder**: Forth comments show rightmost as TOS: (a b c) means c is on top
 - **CREATE usage in :**: Colon calls CREATE directly (CREATE calls WORD internally)
+- **Threading with clone()**: Use CLONE_VM flag to share memory between threads; avoid CLONE_THREAD for simpler exit behavior
+- **Futex alignment critical**: Futex variables must be 4-byte aligned with `align 4` directive
+- **LOCK is reserved word**: Cannot use 'lock' as a label in NASM - it's an instruction prefix for atomic operations
+- **Debugging threading**: Start with simple examples (basic clone, then futex wait/wake, then mutex)
+- **Stack allocation for threads**: Each thread needs its own stack, typically 8KB allocated with mmap
+- **XCHG is atomic**: The `xchg` instruction is always atomic, useful for simple spinlocks
+- **Futex mutex pattern**: Try atomic exchange, if failed wait on futex, wake and retry after release
+- **Print statements essential**: Add debug prints to verify threads are actually running before complex synchronization
+- **Busy-wait timing**: Keep iteration counts low (<10K) for debugging to avoid long hangs
+- **Clone return value**: Returns 0 in child, PID in parent - test with `test rax, rax; jz child_code`
+
+### Recent Session Insights
+- **Continuations require GC**: First-class continuations effectively require garbage collection since captured continuations can escape and be stored indefinitely. This led us to postpone their implementation.
+- **Forth offers unique opportunities**: The return stack provides power that most languages lack, potentially allowing "deep parking" in async code, though we're choosing explicit parking points for clarity.
+- **Graphics/UI options analyzed**: 
+  - X11 requires networking (it's a network protocol)
+  - Framebuffer/DRM/input would take over the whole screen
+  - OpenGL/Vulkan need C library linkage (no pure network protocol)
+  - Terminal UI (ANSI escapes) offers immediate visual feedback with zero dependencies
+- **Threading as foundation**: OS-level threading (clone/futex) chosen as the starting point for async work because it:
+  - Provides real parallelism
+  - Forces us to solve synchronization properly
+  - Stays in pure computation land (no external dependencies)
+  - Sets patterns for later cooperative concurrency
 
 ### Critical Things to Watch For
 1. **Register preservation**: Never clobber RBX (IP), R15 (DSP), or R14 (RSTACK) in primitives
