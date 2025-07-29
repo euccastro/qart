@@ -1,31 +1,39 @@
 # Makefile for qart - x86_64 Forth implementation
 
 AS = nasm
-ASFLAGS = -f elf64
+ASFLAGS = -f elf64 -I../src/core/
 LD = ld
 LDFLAGS = 
 
+# Source directory
+SRCDIR = ../src/core
+OUTDIR = ../out
+
 # All source files
 SRCS = qart.asm flow.asm stack.asm arithmetic.asm memory.asm io.asm dictionary.asm input.asm word.asm debug.asm
-OBJS = $(SRCS:.asm=.o)
+OBJS = $(addprefix $(OUTDIR)/,$(SRCS:.asm=.o))
 
 # Default target
-all: qart
+all: $(OUTDIR)/qart
+
+# Create output directory
+$(OUTDIR):
+	mkdir -p $(OUTDIR)
 
 # Build qart
-qart: $(OBJS)
+$(OUTDIR)/qart: $(OBJS) | $(OUTDIR)
 	$(LD) $(LDFLAGS) $^ -o $@
 
 # Pattern rule for assembly files
-%.o: %.asm
+$(OUTDIR)/%.o: $(SRCDIR)/%.asm | $(OUTDIR)
 	$(AS) $(ASFLAGS) $< -o $@
 
 # Clean build artifacts
 clean:
-	rm -f *.o qart
+	rm -f $(OUTDIR)/*.o $(OUTDIR)/qart
 
 # Run qart
-run: qart
-	./qart
+run: $(OUTDIR)/qart
+	$(OUTDIR)/qart
 
 .PHONY: all clean run

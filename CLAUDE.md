@@ -24,6 +24,7 @@ Currently preparing to implement OS-level threading (clone/futex) as the foundat
 ## Build Commands
 
 ```bash
+cd dev
 make          # Build all targets
 make clean    # Remove build artifacts
 make run      # Build and run the current program
@@ -31,20 +32,40 @@ make run      # Build and run the current program
 
 ## Project Structure
 
-- `qart.asm` - Main file with data section and entry point
-- `flow.asm` - Control flow primitives (NEXT, DOCOL, EXIT)
-- `stack.asm` - Stack manipulation (LIT, DUP, DROP)
-- `arithmetic.asm` - Arithmetic operations (ADD)
-- `memory.asm` - Memory access (TO_R, R_FROM, R_FETCH, FETCH, STORE, C_FETCH, C_STORE, STATE_word, OUTPUT_word)
-- `io.asm` - I/O operations (DOT, NUMBER, EMIT, KEY, TYPE)
-- `test.asm` - Testing primitives (ASSERT)
-- `dictionary.asm` - Dictionary lookup (FIND)
-- `input.asm` - Input buffer management (REFILL)
-- `word.asm` - Word parsing (PARSE_WORD/WORD)
-- `forth.inc` - Common definitions (register assignments, constants)
-- `Makefile` - Build configuration
-- `test.fth` - Regression test suite (run with `./qart < test.fth`)
-- Object files and executables are built in the root directory
+The project is organized to separate source code, development tools, documentation, and build artifacts:
+
+- **Source code** in `src/` - Split between stable core interpreter and experimental features
+- **Development tools** in `dev/` - Build system, tests, and utility scripts
+- **Documentation** in `doc/` - Reference materials kept separate from code
+- **Build outputs** in `out/` - All compiled binaries go here, keeping source directories clean
+
+### Directory Details
+
+- `src/core/` - Core Forth interpreter implementation
+  - `qart.asm` - Main file with data section and entry point
+  - `flow.asm` - Control flow primitives (NEXT, DOCOL, EXIT)
+  - `stack.asm` - Stack manipulation (LIT, DUP, DROP)
+  - `arithmetic.asm` - Arithmetic operations (ADD)
+  - `memory.asm` - Memory access (TO_R, R_FROM, R_FETCH, FETCH, STORE, C_FETCH, C_STORE, STATE_word, OUTPUT_word)
+  - `io.asm` - I/O operations (DOT, NUMBER, EMIT, KEY, TYPE)
+  - `debug.asm` - Testing primitives (ASSERT)
+  - `dictionary.asm` - Dictionary lookup (FIND)
+  - `input.asm` - Input buffer management (REFILL)
+  - `word.asm` - Word parsing (PARSE_WORD/WORD)
+  - `forth.inc` - Common definitions (register assignments, constants)
+- `src/thread/` - Threading experiments and implementations
+- `dev/` - Development tools and tests
+  - `Makefile` - Build configuration
+  - `test.fth` - Regression test suite (run with `dev/test.sh`)
+  - `test.sh` - Test runner script
+  - `test-verbose.sh` - Verbose test runner
+  - `build-threads.sh` - Script to build threading examples
+- `doc/` - Documentation
+  - `register-cheatsheet.md` - Register usage reference
+  - `syscall-abi.md` - System call documentation
+  - `clone-flags.md` - Clone flags reference
+- `out/` - Build output directory (object files and executables)
+- `var/` - Variable runtime data (test output, temporary files)
 
 ## Assembly Conventions
 
@@ -191,7 +212,7 @@ thread_func:
 5. **Control flow structures** - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
 
 ### Threading Progress
-- **Working examples**: thread-simple.asm (basic clone), futex-simple.asm (wait/wake), futex-mutex.asm (mutex)
+- **Working examples**: src/thread/thread-simple.asm (basic clone), src/thread/futex-simple.asm (wait/wake), src/thread/futex-mutex.asm (mutex)
 - **Key patterns established**: Thread creation with clone, futex-based synchronization
 - **Next steps**: Create Forth words for threading (THREAD, MUTEX@, MUTEX!, etc.)
 
@@ -354,7 +375,7 @@ Moving toward Missionary-style functional effects with structured concurrency:
 - **DOCOL receives dictionary pointer in RDX**: Both from NEXT and EXECUTE, enabling uniform handling
 - **NUMBER returns proper flag**: (n -1) on success, (c-addr u 0) on failure - can distinguish zero from error
 - **OUTPUT variable controls streams**: Colon definitions like ERRTYPE save/restore OUTPUT for stderr output
-- **Test suite**: `test.fth` contains regression tests; run with `./test.sh` or `./test-verbose.sh` for detailed output
+- **Test suite**: `dev/test.fth` contains regression tests; run with `dev/test.sh` or `dev/test-verbose.sh` for detailed output
 - **FLAGS variable for debugging**: Bit 0 controls verbose ASSERT output (pass/fail messages to stderr)
 - **SP@ for memory testing**: Returns stack pointer, useful for getting valid addresses in tests
 - **Input buffer size matters**: Increased from 256 bytes to 1MB to handle large test files
@@ -447,10 +468,10 @@ Moving toward Missionary-style functional effects with structured concurrency:
 - Fixed ZBRANCH understanding: it consumes the flag it tests
 
 ### Test Organization
-- test.sh runs all test files with headers showing which file is running
-- test-verbose.sh takes a filename argument for debugging specific tests with PASS/FAIL output
-- Merged store-test.fth into main test.fth to avoid test fragmentation
-- All tests in test.fth now have descriptive comments
+- dev/test.sh runs all test files with headers showing which file is running
+- dev/test-verbose.sh runs tests with PASS/FAIL output for debugging
+- Merged store-test.fth into main dev/test.fth to avoid test fragmentation
+- All tests in dev/test.fth now have descriptive comments
 
 ### Next Actions
 1. Implement:

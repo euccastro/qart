@@ -1,14 +1,22 @@
 #!/bin/bash
 # Build threading examples
 
-echo "Building thread-example..."
-nasm -f elf64 thread-example.asm -o thread-example.o
-ld thread-example.o -o thread-example
+DIR="$(dirname "$0")"
+SRCDIR="$DIR/../src/thread"
+OUTDIR="$DIR/../out"
 
-echo "Building thread-minimal..."
-nasm -f elf64 thread-minimal.asm -o thread-minimal.o
-ld thread-minimal.o -o thread-minimal
+# Create output directory if it doesn't exist
+mkdir -p "$OUTDIR"
 
-echo "Done. Run with:"
-echo "  ./thread-example"
-echo "  ./thread-minimal"
+# Build all thread examples
+for asm_file in "$SRCDIR"/*.asm; do
+    if [ -f "$asm_file" ]; then
+        base=$(basename "$asm_file" .asm)
+        echo "Building $base..."
+        nasm -f elf64 "$asm_file" -o "$OUTDIR/$base.o"
+        ld "$OUTDIR/$base.o" -o "$OUTDIR/$base"
+        rm "$OUTDIR/$base.o"  # Clean up object file
+    fi
+done
+
+echo "Done. Thread examples built in $OUTDIR/"
