@@ -88,18 +88,18 @@ ZBRANCH:
 
   ;; ABORT ( -- ) Clear stacks and jump to QUIT
 ABORT_word:
-  ; Clear data stack
+  ;; Clear data stack
   mov DSP, stack_top       ; stack_top is a label, not a variable
   
-  ; Clear return stack and add sentinel
+  ;; Clear return stack and add sentinel
   mov RSTACK, return_stack_top  ; return_stack_top is a label, not a variable
   sub RSTACK, 8
   mov qword [RSTACK], 0    ; Sentinel for EXIT
   
-  ; Set STATE = 0 (interpreter mode)
+  ;; Set STATE = 0 (interpreter mode)
   mov qword [STATE], 0
   
-  ; Jump into QUIT colon definition
+  ;; Jump into QUIT colon definition
   mov rdx, dict_QUIT       ; DOCOL expects dictionary pointer in RDX
   lea IP, [dict_QUIT + 24] ; Point IP to first word after header
   jmp NEXT                 ; Start executing QUIT
