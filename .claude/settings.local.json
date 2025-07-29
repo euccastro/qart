@@ -28,7 +28,8 @@
       "Bash(gdb:*)",
       "Bash(grep:*)",
       "Bash(./test-verbose.sh:*)",
-      "Bash(./test.sh:*)"
+      "Bash(./test.sh:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

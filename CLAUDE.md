@@ -88,7 +88,7 @@ make run      # Build and run the current program
 
 ## Register Usage
 
-Please maintain `register-cheatsheet.md` as we use more registers. When implementing new functionality:
+Please maintain `doc/register-cheatsheet.md` as we use more registers. When implementing new functionality:
 1. Check the cheatsheet before choosing registers
 2. Update the "Our Usage" column when dedicating a register
 3. Add new registers to the "Used in Our Forth Implementation" section
@@ -96,11 +96,57 @@ Please maintain `register-cheatsheet.md` as we use more registers. When implemen
 
 ## System Call Documentation
 
-Please maintain `syscall-abi.md` with information about:
+Please maintain `doc/syscall-abi.md` with information about:
 1. New system calls as we use them
 2. Any surprising behavior or gotchas discovered
 3. Register preservation/clobbering rules
 4. Error handling patterns
+
+See also `doc/clone-flags.md` for detailed information about clone() system call flags.
+
+## Assembly Code Formatting
+
+Please follow these emacs-style assembly formatting conventions for consistency:
+
+### Comment Styles
+- **3 semicolons (;;;)**: File headers and major section dividers (rarely used)
+- **2 semicolons (;;)**: Comments about the next function/label or describing a group of code
+- **1 semicolon (;)**: Inline comments on the same line as code
+
+### Indentation
+- **Global labels**: Start at column 0 (no indentation)
+- **Local labels**: Indent 2 spaces (e.g., `.loop:`)
+- **Instructions**: Indent to align with longest mnemonic (typically 8-10 spaces)
+- **Directives**: Same indentation as instructions
+
+### Spacing
+- **Label colons**: Attach directly to label name (e.g., `NEXT:` not `NEXT :`)
+- **Inline comments**: Align to a consistent column (typically 40-50)
+- **Operands**: Single space after instruction mnemonic
+- **Section directives**: Blank line before `section` declarations
+
+### Example
+```asm
+  ;; flow.asm - Control flow for the Forth interpreter
+  ;; Contains NEXT, DOCOL, EXIT and other flow control primitives
+
+  section .text
+
+  ;; NEXT - The inner interpreter
+  ;; Dictionary-based execution: IP points to dictionary entry addresses
+NEXT:
+  mov rdx, [IP]           ; Get dictionary entry address
+  add IP, 8               ; Advance IP
+  mov rax, [rdx+16]       ; Get code field from dict entry
+  jmp rax                 ; Execute the code
+
+thread_func:
+  ;; Print message 3 times with delays
+  mov r12, 3
+.loop:
+  mov rax, SYS_write
+  mov rdi, 1              ; stdout
+```
 
 ## Implementation Roadmap
 
@@ -280,8 +326,9 @@ Moving toward Missionary-style functional effects with structured concurrency:
 
 ## Key Documentation Files
 
-- `register-cheatsheet.md` - x86_64 register reference and our usage
-- `syscall-abi.md` - Linux system call conventions and preservation rules
+- `doc/register-cheatsheet.md` - x86_64 register reference and our usage
+- `doc/syscall-abi.md` - Linux system call conventions and preservation rules
+- `doc/clone-flags.md` - Detailed reference for clone() system call flags
 
 ## Implementation Notes
 
@@ -358,6 +405,7 @@ Moving toward Missionary-style functional effects with structured concurrency:
 5. **Transient strings**: WORD results are only valid until next REFILL
 6. **Forth stack notation**: (2 1) means 1 is TOS (top of stack), not that 2 is on top! This is the opposite of visual/pictorial representations. Be very careful when writing tests.
 7. **Dictionary name field syntax**: Must use commas between all elements! `db 1, "'", 0, 0, 0, 0, 0, 0` not `db 1 "'", 0, 0, 0, 0, 0, 0`. Missing commas cause incorrect assembly and dictionary misalignment.
+8. **Data alignment**: Multi-word structures (timespec, futex vars, etc.) should be explicitly aligned with `align 8` or `align 4`. x86-64 tolerates misalignment but it hurts performance and isn't portable.
 
 ### Development Approach
 **Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.
