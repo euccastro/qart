@@ -1,3 +1,2 @@
-*.o
-qart
 test-errors.txt
+out/

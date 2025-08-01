@@ -205,9 +205,9 @@ thread_func:
 - **Full metacircular Forth**: Can now define new words from within Forth itself
 
 ### Immediate Next Steps
-1. **OS-level threading** - Basic clone/futex examples working! Next: integrate into Forth
-2. **Synchronization primitives** - Futex-based mutex implemented! Next: channels, semaphores
-3. **Structured concurrency** - Missionary-style task composition on top of threads
+1. **Implement threading primitives** - THREAD, WAIT, WAKE based on our minimal API design
+2. **Test threading integration** - Verify threads can share Forth dictionary and stacks work correctly
+3. **Build synchronization library** - Mutexes, semaphores, channels as Forth words using WAIT/WAKE
 4. **Additional stack words** - ROT, -ROT, 2SWAP, NIP, TUCK
 5. **Control flow structures** - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
 
@@ -215,6 +215,43 @@ thread_func:
 - **Working examples**: src/thread/thread-simple.asm (basic clone), src/thread/futex-simple.asm (wait/wake), src/thread/futex-mutex.asm (mutex)
 - **Key patterns established**: Thread creation with clone, futex-based synchronization
 - **Next steps**: Create Forth words for threading (THREAD, MUTEX@, MUTEX!, etc.)
+
+### Threading API Design
+
+After analyzing Forth philosophy and our Linux primitives, we've designed a minimal threading API:
+
+**Core primitives** (assembly implementations):
+```forth
+THREAD ( xt -- error )      \ Execute xt in new thread, 0 on success
+WAIT ( addr expected -- )   \ Atomic check-and-wait (futex wait)
+WAKE ( addr n -- n' )       \ Wake n waiters, return number woken
+```
+
+**Key design decisions**:
+1. **Minimal primitive set** - Only 3 words provide complete threading capability
+2. **Automatic cleanup** - Threads clean up their stacks when the xt returns (no THREAD-EXIT needed)
+3. **Resource passing** - Thread receives mmap base on data stack: `( mmap-base -- )`
+4. **Memory barriers hidden** - WAIT/WAKE implementations handle all necessary fences/barriers internally
+5. **No built-in mutex** - Mutexes are a Forth library pattern, not a primitive
+6. **Composition over features** - Complex synchronization built from simple parts
+
+**Example mutex implementation** (pure Forth):
+```forth
+: MUTEX@ ( addr -- )          \ Acquire mutex
+  BEGIN
+    DUP @ 0= IF               \ Is it free?
+      1 OVER !                \ Try to take it
+      EXIT
+    THEN
+    DUP 1 WAIT                \ Wait if value is 1
+  AGAIN ;
+
+: MUTEX! ( addr -- )          \ Release mutex
+  0 OVER !                    \ Release (WAKE ensures visibility)
+  1 WAKE DROP ;               \ Wake one waiter
+```
+
+**Philosophy**: Following Forth tradition, we provide the minimal set of primitives that can't be written in Forth itself. All memory ordering complexities (mfence, etc.) are encapsulated in the primitive implementations, never exposed to Forth code. This keeps the language simple while ensuring correctness on all architectures.
 
 ### Future Steps
 1. String handling - S" for string literals, ." for printing
