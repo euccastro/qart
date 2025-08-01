@@ -24,7 +24,6 @@ Currently preparing to implement OS-level threading (clone/futex) as the foundat
 ## Build Commands
 
 ```bash
-cd dev
 make          # Build all targets
 make clean    # Remove build artifacts
 make run      # Build and run the current program
@@ -34,14 +33,15 @@ make run      # Build and run the current program
 
 The project is organized to separate source code, development tools, documentation, and build artifacts:
 
-- **Source code** in `src/` - Split between stable core interpreter and experimental features
-- **Development tools** in `dev/` - Build system, tests, and utility scripts
+- **Source code** in `src/` - All Forth interpreter assembly files including threading
+- **Development tools** in `dev/` - Tests and utility scripts
 - **Documentation** in `doc/` - Reference materials kept separate from code
 - **Build outputs** in `out/` - All compiled binaries go here, keeping source directories clean
+- **Build system** - Makefile at project root
 
 ### Directory Details
 
-- `src/core/` - Core Forth interpreter implementation
+- `src/` - Forth interpreter implementation
   - `qart.asm` - Main file with data section and entry point
   - `flow.asm` - Control flow primitives (NEXT, DOCOL, EXIT)
   - `stack.asm` - Stack manipulation (LIT, DUP, DROP)
@@ -52,14 +52,12 @@ The project is organized to separate source code, development tools, documentati
   - `dictionary.asm` - Dictionary lookup (FIND)
   - `input.asm` - Input buffer management (REFILL)
   - `word.asm` - Word parsing (PARSE_WORD/WORD)
+  - `thread.asm` - Threading primitives (THREAD, WAIT, WAKE)
   - `forth.inc` - Common definitions (register assignments, constants)
-- `src/thread/` - Threading experiments and implementations
 - `dev/` - Development tools and tests
-  - `Makefile` - Build configuration
   - `test.fth` - Regression test suite (run with `dev/test.sh`)
   - `test.sh` - Test runner script
   - `test-verbose.sh` - Verbose test runner
-  - `build-threads.sh` - Script to build threading examples
 - `doc/` - Documentation
   - `register-cheatsheet.md` - Register usage reference
   - `syscall-abi.md` - System call documentation
