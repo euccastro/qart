@@ -652,9 +652,24 @@ dict_SEMICOLON:
   dq dict_STORE
   dq dict_EXIT
 
+dict_THREAD:
+  dq dict_SEMICOLON
+  db 6, "THREAD", 0
+  dq THREAD
+
+dict_WAIT:
+  dq dict_THREAD
+  db 4, "WAIT", 0, 0, 0
+  dq WAIT
+
+dict_WAKE:
+  dq dict_WAIT
+  db 4, "WAKE", 0, 0, 0
+  dq WAKE
+
 
   ;; LATEST points to the most recent word
-LATEST: dq dict_SEMICOLON
+LATEST: dq dict_WAKE
   
   align 8
 
@@ -746,6 +761,9 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern COMMA
   extern IMMED_TEST
   extern IMMED
+  extern THREAD
+  extern WAIT
+  extern WAKE
 
   ;; ---- Main Program ----
 

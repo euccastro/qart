@@ -150,3 +150,27 @@ WAIT:
     ; All cases just continue execution
     
     jmp NEXT
+
+;; WAKE ( addr n -- n' )
+;; Wake up to n threads waiting on addr
+;; Returns number of threads actually woken
+global WAKE
+WAKE:
+    mov rdx, [DSP]          ; Number to wake
+    mov rdi, [DSP+8]        ; futex address
+    add DSP, 8              ; Pop address, leave n on stack for return
+    
+    ; futex(addr, FUTEX_WAKE, n, NULL, NULL, 0)
+    mov rax, SYS_futex
+    mov rsi, FUTEX_WAKE
+    ; rdx already has number to wake
+    xor r10, r10
+    xor r8, r8
+    xor r9, r9
+    syscall
+    
+    ; Return value is number actually woken
+    ; Replace n with actual count
+    mov [DSP], rax
+    
+    jmp NEXT
