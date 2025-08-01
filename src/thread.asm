@@ -35,6 +35,14 @@ THREAD:
     ; Save execution token
     mov r12, [DSP]          ; Get xt from stack (don't pop yet)
     
+    ; Basic validation - execution tokens must be 8-byte aligned
+    test r12, 7             ; Check low 3 bits
+    jnz .invalid_xt         ; Not aligned = invalid
+    
+    ; Check if address is in kernel space (negative when viewed as signed)
+    test r12, r12
+    js .invalid_xt          ; Negative = kernel space = invalid
+    
     ; Allocate 8KB for child's stacks
     mov rax, SYS_mmap
     xor rdi, rdi            ; NULL - let kernel choose address
@@ -85,6 +93,10 @@ THREAD:
     syscall
     pop rax                 ; Restore error code
     mov [DSP], rax          ; Replace xt with error code
+    jmp NEXT
+    
+.invalid_xt:
+    mov qword [DSP], -22    ; -EINVAL  
     jmp NEXT
     
 .child:
