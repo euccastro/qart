@@ -71,3 +71,14 @@ OR:
   add DSP, 8
   or [DSP], rax           ; OR with first operand
   jmp NEXT
+
+  ;; < ( n1 n2 -- flag ) flag := -1 if n1 < n2, 0 otherwise
+LESS_THAN:
+  mov rax, [DSP]          ; Get n2
+  add DSP, 8              ; Drop it
+  cmp [DSP], rax          ; Compare n1 with n2
+  setl al                 ; Set AL to 1 if n1 < n2 (signed)
+  movzx rax, al           ; Zero-extend to 64 bits
+  neg rax                 ; Convert 1 to -1, 0 stays 0
+  mov [DSP], rax          ; Store result
+  jmp NEXT

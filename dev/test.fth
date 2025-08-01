@@ -438,6 +438,12 @@ SP@ R@ = ASSERT
 
 R> DROP
 
+\ Test ROT ( a b c -- b c a )
+\ With 1 2 3: a=1 b=2 c=3, result should be b c a = 2 3 1
+\ Top of stack after ROT is 'a' = 1
+1 2 3 ROT 1 = ASSERT 3 = ASSERT 2 = ASSERT
+10 20 30 ROT 10 = ASSERT 30 = ASSERT 20 = ASSERT
+
 \ Test basic threading (minimal - see test-thread.fth for more)
 ' EXIT THREAD 0= ASSERT    \ Thread creation should succeed
 

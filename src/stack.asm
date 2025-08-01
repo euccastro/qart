@@ -9,6 +9,7 @@ global DUP
 global DROP
 global OVER
 global SWAP
+global ROT
 global TWO_DUP
 global TWO_DROP
 global SP_FETCH
@@ -48,6 +49,16 @@ SWAP:
     mov rsi, [DSP+8]
     mov [DSP+8], rax
     mov [DSP], rsi
+    jmp NEXT
+
+; ROT ( a b c -- b c a ) Rotate third item to top
+ROT:
+    mov rax, [DSP]          ; c
+    mov rdx, [DSP+8]        ; b  
+    mov rcx, [DSP+16]       ; a
+    mov [DSP+16], rdx       ; b
+    mov [DSP+8], rax        ; c
+    mov [DSP], rcx          ; a
     jmp NEXT
 
 ; 2DUP ( x1 x2 -- x1 x2 x1 x2 ) Duplicate top two cells

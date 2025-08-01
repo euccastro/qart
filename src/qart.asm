@@ -134,8 +134,13 @@ dict_OR:
   db 2, "OR", 0, 0, 0, 0, 0
   dq OR
 
-dict_DROP:
+dict_LESS_THAN:
   dq dict_OR
+  db 1, "<", 0, 0, 0, 0, 0, 0
+  dq LESS_THAN
+
+dict_DROP:
+  dq dict_LESS_THAN
   db 4, "DROP", 0, 0, 0
   dq DROP
 
@@ -144,8 +149,13 @@ dict_SWAP:
   db 4, "SWAP", 0, 0, 0
   dq SWAP
 
-dict_TWO_DUP:
+dict_ROT:
   dq dict_SWAP
+  db 3, "ROT", 0, 0, 0, 0
+  dq ROT
+
+dict_TWO_DUP:
+  dq dict_ROT
   db 4, "2DUP", 0, 0, 0
   dq TWO_DUP
 
@@ -724,6 +734,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern DROP
   extern OVER
   extern SWAP
+  extern ROT
   extern SP_FETCH
   extern TWO_DUP
   extern TWO_DROP
@@ -734,6 +745,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern AND
   extern LSHIFT
   extern OR
+  extern LESS_THAN
   extern TO_R
   extern R_FROM
   extern R_FETCH
