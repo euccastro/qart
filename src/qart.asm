@@ -677,9 +677,14 @@ dict_WAKE:
   db 4, "WAKE", 0, 0, 0
   dq WAKE
 
+dict_CLOCK_FETCH:
+  dq dict_WAKE
+  db 6, "CLOCK@", 0
+  dq CLOCK_FETCH
+
 
   ;; LATEST points to the most recent word
-LATEST: dq dict_WAKE
+LATEST: dq dict_CLOCK_FETCH
   
   align 8
 
@@ -776,6 +781,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern THREAD
   extern FWAIT
   extern WAKE
+  extern CLOCK_FETCH
 
   ;; ---- Main Program ----
 

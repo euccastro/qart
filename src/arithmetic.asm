@@ -11,6 +11,7 @@
   global SUB
   global LSHIFT
   global OR
+  global LESS_THAN
 
   extern NEXT
 
