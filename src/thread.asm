@@ -1,7 +1,9 @@
 ;; thread.asm - Threading primitives for Forth
-;; Provides THREAD, WAIT, WAKE
+;; Provides THREAD, FWAIT, WAKE
 
 %include "forth.inc"
+
+extern NEXT
 
 %define SYS_mmap        9
 %define SYS_munmap      11
@@ -125,11 +127,11 @@ THREAD_CLEANUP:
     xor rdi, rdi            ; Exit code 0
     syscall
 
-;; WAIT ( addr expected -- )
+;; FWAIT ( addr expected -- )
 ;; Atomically check if *addr == expected, and if so, sleep
 ;; Uses futex FUTEX_WAIT operation
-global WAIT
-WAIT:
+global FWAIT
+FWAIT:
     mov rdx, [DSP]          ; expected value
     mov rdi, [DSP+8]        ; futex address
     add DSP, 16             ; Pop both args

@@ -29,7 +29,11 @@
       "Bash(grep:*)",
       "Bash(./test-verbose.sh:*)",
       "Bash(./test.sh:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(chmod:*)",
+      "Bash(dev/test.sh:*)",
+      "Bash(dev/test-thread.sh:*)",
+      "Bash(dev/test-verbose.sh:*)"
     ],
     "deny": []
   }

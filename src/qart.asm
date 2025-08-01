@@ -660,7 +660,7 @@ dict_THREAD:
 dict_WAIT:
   dq dict_THREAD
   db 4, "WAIT", 0, 0, 0
-  dq WAIT
+  dq FWAIT
 
 dict_WAKE:
   dq dict_WAIT
@@ -762,7 +762,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern IMMED_TEST
   extern IMMED
   extern THREAD
-  extern WAIT
+  extern FWAIT
   extern WAKE
 
   ;; ---- Main Program ----

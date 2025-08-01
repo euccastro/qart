@@ -431,6 +431,7 @@ Moving toward Missionary-style functional effects with structured concurrency:
 - **Threading with clone()**: Use CLONE_VM flag to share memory between threads; avoid CLONE_THREAD for simpler exit behavior
 - **Futex alignment critical**: Futex variables must be 4-byte aligned with `align 4` directive
 - **LOCK is reserved word**: Cannot use 'lock' as a label in NASM - it's an instruction prefix for atomic operations
+- **WAIT is reserved word**: Cannot use 'wait' as a label in NASM - it's the FWAIT instruction. Our WAIT primitive is implemented as FWAIT internally
 - **Debugging threading**: Start with simple examples (basic clone, then futex wait/wake, then mutex)
 - **Stack allocation for threads**: Each thread needs its own stack, typically 8KB allocated with mmap
 - **XCHG is atomic**: The `xchg` instruction is always atomic, useful for simple spinlocks

@@ -438,4 +438,7 @@ SP@ R@ = ASSERT
 
 R> DROP
 
+\ Test basic threading (minimal - see test-thread.fth for more)
+' EXIT THREAD 0= ASSERT    \ Thread creation should succeed
+
 WORD Done. TYPE CR
