@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a hobby project exploring x86_64 assembly programming with the goal of bootstrapping a Forth-like language with advanced features including:
 - Structured concurrency with functional effect systems (current focus)
-- Scheme-like features (continuations postponed due to GC requirements)
+- Scheme-like features (continuations designed with caller-managed memory)
 - Functional effect systems inspired by Missionary in Clojure
 - Persistent data structures
 - Host interfacing for graphical desktop applications
@@ -201,18 +201,17 @@ thread_func:
 - **Immediate words**: IMMED to set immediate flag, IMMED? to test it
 - **Colon compiler**: : and ; for defining new words! 
 - **Full metacircular Forth**: Can now define new words from within Forth itself
+- **Threading primitives**: THREAD, WAIT (FWAIT), WAKE with automatic cleanup and thread-local R13 state
+- **ROT**: Stack rotation primitive
+- **< (LESS_THAN)**: Comparison operator for numbers
+- **CLOCK@**: High-resolution monotonic time
+- **SLEEP**: Nanosecond-precision sleep
+- **Thread-local state accessors**: STATE@/!, OUTPUT@/!, DEBUG@/!
 
 ### Immediate Next Steps
-1. **Implement threading primitives** - THREAD, WAIT, WAKE based on our minimal API design
-2. **Test threading integration** - Verify threads can share Forth dictionary and stacks work correctly
+1. **Additional stack words** - -ROT, 2SWAP, NIP, TUCK
+2. **Control flow structures** - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
 3. **Build synchronization library** - Mutexes, semaphores, channels as Forth words using WAIT/WAKE
-4. **Additional stack words** - ROT, -ROT, 2SWAP, NIP, TUCK
-5. **Control flow structures** - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
-
-### Threading Progress
-- **Working examples**: src/thread/thread-simple.asm (basic clone), src/thread/futex-simple.asm (wait/wake), src/thread/futex-mutex.asm (mutex)
-- **Key patterns established**: Thread creation with clone, futex-based synchronization
-- **Next steps**: Create Forth words for threading (THREAD, MUTEX@, MUTEX!, etc.)
 
 ### Threading API Design
 
@@ -258,7 +257,7 @@ WAKE ( addr n -- n' )       \ Wake n waiters, return number woken
 4. Low-level networking - raw socket programming for future distributed computing
 5. Host interfacing for graphical desktop applications
 
-## Continuations Design (Current Focus)
+## Continuations Design (Complete, Implementation Postponed)
 
 ### CALL/CC Implementation Plan
 
@@ -270,6 +269,7 @@ We're implementing Scheme-style call-with-current-continuation to enable advance
 - Complete data stack state at time of capture
 - Complete return stack state at time of capture  
 - Instruction pointer (pointing to instruction after CALL/CC)
+- Note: Does NOT capture R13 (STATE/OUTPUT/DEBUG) - these remain as current environment
 
 **How CALL/CC works**:
 1. Pop execution token from data stack
@@ -316,14 +316,12 @@ Offset  Contents
 +?:     Return stack contents (variable size)
 ```
 
-This structure makes continuations directly executable - calling EXECUTE on a continuation jumps to RESTORE-CONT, which knows how to unpack and restore the saved state.
+This structure makes continuations directly executable - calling EXECUTE on a continuation jumps to RESTORE-CONT, which knows how to unpack and restore the saved state. Importantly, continuations capture only control state, not environmental state (R13 flags stay current).
 
-**Memory allocation**: Continuations are allocated in a dedicated heap (likely in .bss section) separate from the dictionary, using a simple bump allocator. Manual memory management is expected (typical for Forth).
+### Continuation Memory Management
 
-### Continuations - Status: DESIGNED (Implementation Postponed)
-
-**Revised Design - Caller-Managed Memory**:
-We've solved the GC requirement with a caller-managed approach:
+**Caller-Managed Approach**:
+We avoid GC requirements with explicit memory management:
 
 ```forth
 CC-SIZE ( -- n )                    \ Returns bytes needed for continuation
@@ -348,9 +346,9 @@ CALL/CC ( cont-addr xt -- cont-addr )  \ Captures into user-provided buffer
 - No hidden allocations or GC needed
 - Very Forth-like explicit memory management
 
-**Why still postponed**: Threading provides more immediate value for exploring concurrency patterns, and our design will be here when we need it.
+**Implementation status**: Design complete, implementation postponed to focus on higher-level concurrency abstractions first.
 
-## Structured Concurrency Design (Next Focus)
+## Structured Concurrency Design (Current Focus)
 
 Moving toward Missionary-style functional effects with structured concurrency:
 
@@ -374,8 +372,8 @@ Moving toward Missionary-style functional effects with structured concurrency:
 4. **OS threads first** - Build on clone/futex before green threads
 
 **Implementation Path**:
-1. Implement OS-level threading (clone/futex)
-2. Add synchronization (channels/mutexes)
+1. ~~Implement OS-level threading (clone/futex)~~ ✓ Complete
+2. Add synchronization (channels/mutexes) - In Progress
 3. Build trampoline executor
 4. Create task combinators (BIND-THEN, RACE, etc.)
 5. Add syntax sugar (M/SP, M/?) to hide callback complexity
@@ -388,60 +386,42 @@ Moving toward Missionary-style functional effects with structured concurrency:
 
 ## Implementation Notes
 
-### Session Learnings
-- EXECUTE implementation: Primitives must handle their own `jmp NEXT` after execution
-- Stack ordering for EXECUTE: execution token should be on top of stack
-- Character I/O uses a temporary buffer for syscalls (can't pass stack directly)
-- KEY returns -1 for EOF, following Unix convention
-- Test programs can be built incrementally in the data section using dictionary references
-- **Register preservation is critical**: Accidentally clobbering RBX (IP) causes crashes. Always preserve IP, DSP, RSTACK
-- **NASM reserved words**: WORD is reserved, had to rename to PARSE_WORD internally
-- **Direct pointers are more efficient**: WORD returns pointers into input_buffer rather than copying
-- **Constants in forth.inc**: Shared constants like INPUT_BUFFER_SIZE should go in forth.inc to avoid duplication
-- **sys_read behavior**: Always includes newline when user presses Enter; REFILL strips it for cleaner parsing
-- **Primitive structure**: Assembly primitives don't use code pointer indirection like colon definitions
-- **Dictionary name field alignment**: Names need exactly 8 bytes total (1 length byte + up to 7 name chars). Tick (') has `db 1, "'", 0, 0, 0, 0, 0, 0` - that's 1 + 1 + 6 = 8 bytes
-- **LIT behavior in threaded code**: `dq dict_LIT, value` creates TWO cells; must account for this when calculating branch offsets
-- **MOV doesn't set flags**: Must use explicit TEST or CMP before conditional jumps; this caught us with ZBRANCH
-- **Branchless optimizations**: CMOVcc for conditional data movement (ZBRANCH), SETcc for flag-to-value conversion (ZEROEQ)
-- **Forth architecture constraint**: Primitives shouldn't call other words; use colon definitions for that (this is why INTERPRET should be a colon word)
-- **NASM syntax**: Multiple values on one line need commas: `dq dict_LIT, 42` not `dq dict_LIT 42`
+### Key Implementation Learnings
+
+#### Core Architecture
 - **Execution tokens are dictionary pointers**: Not CFAs! This unifies threaded code and EXECUTE semantics
 - **DOCOL receives dictionary pointer in RDX**: Both from NEXT and EXECUTE, enabling uniform handling
-- **NUMBER returns proper flag**: (n -1) on success, (c-addr u 0) on failure - can distinguish zero from error
-- **OUTPUT variable controls streams**: Colon definitions like ERRTYPE save/restore OUTPUT for stderr output
-- **Test suite**: `dev/test.fth` contains regression tests; run with `dev/test.sh` or `dev/test-verbose.sh` for detailed output
-- **FLAGS variable for debugging**: Bit 0 controls verbose ASSERT output (pass/fail messages to stderr)
-- **SP@ for memory testing**: Returns stack pointer, useful for getting valid addresses in tests
-- **Input buffer size matters**: Increased from 256 bytes to 1MB to handle large test files
-- **.bss section for large buffers**: Keeps executable size small while allowing large runtime buffers
-- **FIND return values**: When found returns (xt -1), when not found returns (c-addr u 0)
-- **Standard Forth true value**: All boolean operations now return -1 for true, 0 for false (EQUAL, ZEROEQ, FIND, NUMBER)
-- **Branch offset calculations**: Must account for LIT using two cells when calculating offsets
-- **0BRANCH is compile-only**: Cannot be used interactively; it reads offset from [IP] which points to interpreter code during interpretation, not user input
-- **Immediate flag in length byte**: Bit 7 of name length byte indicates immediate words; FIND must mask with 0x7F when comparing
-- **DOCREATE runtime**: CREATE'd words push their data field address (after code field), not their dictionary pointer
-- **Dictionary growth in .bss**: New words created at runtime go in dict_space (.bss), not .data section
-- **HERE management**: Points to next free dictionary space; advanced by comma (,)
-- **Immediate words and STATE**: Immediate words execute even during compilation (STATE=1); normal words are compiled
-- **Colon definition flow**: : switches DOCREATE→DOCOL, sets STATE=1; loops compiling until ; which is immediate
-- **Word name validation**: CREATE enforces 1-7 character names using (u=0)|(u&~7) test
-- **Stack notation reminder**: Forth comments show rightmost as TOS: (a b c) means c is on top
-- **CREATE usage in :**: Colon calls CREATE directly (CREATE calls WORD internally)
-- **Threading with clone()**: Use CLONE_VM flag to share memory between threads; avoid CLONE_THREAD for simpler exit behavior
-- **Futex alignment critical**: Futex variables must be 4-byte aligned with `align 4` directive
-- **LOCK is reserved word**: Cannot use 'lock' as a label in NASM - it's an instruction prefix for atomic operations
-- **WAIT is reserved word**: Cannot use 'wait' as a label in NASM - it's the FWAIT instruction. Our WAIT primitive is implemented as FWAIT internally
-- **Debugging threading**: Start with simple examples (basic clone, then futex wait/wake, then mutex)
-- **Stack allocation for threads**: Each thread needs its own stack, typically 8KB allocated with mmap
-- **XCHG is atomic**: The `xchg` instruction is always atomic, useful for simple spinlocks
-- **Futex mutex pattern**: Try atomic exchange, if failed wait on futex, wake and retry after release
-- **Print statements essential**: Add debug prints to verify threads are actually running before complex synchronization
-- **Busy-wait timing**: Keep iteration counts low (<10K) for debugging to avoid long hangs
-- **Clone return value**: Returns 0 in child, PID in parent - test with `test rax, rax; jz child_code`
+- **Primitives must handle their own `jmp NEXT`**: Unlike colon definitions
+- **Dictionary name field**: Exactly 8 bytes (1 length + up to 7 name chars)
+- **Immediate flag in bit 7**: FIND masks with 0x7F when comparing names
+
+#### Stack and Memory
+- **Stack notation**: (a b c) means c is TOS - rightmost is top!
+- **LIT uses TWO cells**: `dq dict_LIT, value` - account for this in branch offsets
+- **.bss for large buffers**: Keeps executable small (1MB input buffer)
+- **Direct pointers**: WORD returns pointers into input_buffer, no copying
+
+#### Boolean and Control Flow  
+- **Standard true is -1**: All comparisons return -1/0 (EQUAL, ZEROEQ, FIND, NUMBER)
+- **MOV doesn't set flags**: Use TEST/CMP before conditional jumps
+- **0BRANCH is compile-only**: Can't use interactively
+- **Branchless optimizations**: CMOVcc (ZBRANCH), SETcc (ZEROEQ)
+
+#### Threading and Concurrency
+- **CLONE_VM for thread creation**: Share memory, avoid CLONE_THREAD
+- **Clone returns 0 in child, PID in parent**: Test with `test rax, rax`
+- **Each thread needs 8KB mmap**: 3KB return, 4KB data, 1KB system stack
+- **Futex needs 4-byte alignment**: Use `align 4` directive
+- **Reserved words**: 'lock' (prefix), 'wait' (FWAIT) - our WAIT is FWAIT
+- **XCHG is always atomic**: Useful for simple locks
+
+#### I/O and Testing
+- **KEY returns -1 for EOF**: Unix convention
+- **sys_read includes newline**: REFILL strips it
+- **Test with `dev/test.sh`**: Or `dev/test-verbose.sh` for PASS/FAIL output
 
 ### Recent Session Insights
-- **Continuations require GC**: First-class continuations effectively require garbage collection since captured continuations can escape and be stored indefinitely. This led us to postpone their implementation.
+- **Continuations don't require GC**: Our caller-managed design avoids GC by having users explicitly allocate continuation storage.
 - **Forth offers unique opportunities**: The return stack provides power that most languages lack, potentially allowing "deep parking" in async code, though we're choosing explicit parking points for clarity.
 - **Graphics/UI options analyzed**: 
   - X11 requires networking (it's a network protocol)
@@ -463,7 +443,9 @@ Moving toward Missionary-style functional effects with structured concurrency:
 6. **Forth stack notation**: (2 1) means 1 is TOS (top of stack), not that 2 is on top! This is the opposite of visual/pictorial representations. Be very careful when writing tests.
 7. **Dictionary name field syntax**: Must use commas between all elements! `db 1, "'", 0, 0, 0, 0, 0, 0` not `db 1 "'", 0, 0, 0, 0, 0, 0`. Missing commas cause incorrect assembly and dictionary misalignment.
 8. **Data alignment**: Multi-word structures (timespec, futex vars, etc.) should be explicitly aligned with `align 8` or `align 4`. x86-64 tolerates misalignment but it hurts performance and isn't portable.
-9. **sys_clone clobbers caller-saved registers**: We discovered that clone() can modify caller-saved registers (R8-R11) in the child process. Always use callee-saved registers (R12-R15) for values that must survive across clone(). This bit us when using R11 for the mmap base address - switching to R13 fixed thread crashes.
+9. **sys_clone behavior with stacks**: The child gets a NEW stack pointer (passed in RSI), so push/pop around sys_clone only affects parent. Child must calculate its own values from its stack pointer.
+10. **Callee-saved registers inherit across clone**: R12-R15, RBX, RBP all preserve their values in the child. RBP ideal for passing mmap base (though we push/pop defensively for C interop).
+11. **Thread-local state via R13**: Using bit fields in R13 gives automatic thread-local STATE/OUTPUT/DEBUG without any memory access or synchronization overhead.
 
 ### Development Approach
 **Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.
@@ -518,7 +500,8 @@ Moving toward Missionary-style functional effects with structured concurrency:
   - Top 1KB: System stack
 - **Execution model**: Thread executes mini-program `[user_xt, dict_THREAD_CLEANUP]`
 - **Automatic cleanup**: THREAD_CLEANUP unmaps memory when thread exits
-- **Key fix**: Must use callee-saved registers (we use R13) for values surviving clone()
+- **Thread-local flags via R13**: Each thread has its own STATE/OUTPUT/DEBUG in R13 bit fields
+- **Clean register usage**: Uses RBP (callee-saved) for mmap base, with defensive push/pop for C interop safety
 
 ### Timing and Synchronization Primitives
 - **CLOCK@ ( -- seconds nanoseconds )**: Returns monotonic time via clock_gettime(CLOCK_MONOTONIC)
@@ -530,20 +513,16 @@ Moving toward Missionary-style functional effects with structured concurrency:
   - Essential for thread coordination without burning CPU
 - **< (LESS_THAN)**: Added for time comparisons in tests
 
-### Current Focus - Thread-Local State
-**Problem**: Threads share global STATE, OUTPUT, FLAGS causing interference
-**Solution in progress**: Pack these into R13 as bit fields:
+### Thread-Local State - COMPLETE!
+**Solution implemented**: STATE, OUTPUT, and FLAGS are now packed into R13 as bit fields:
 - Bit 0: STATE (compile/interpret)
 - Bits 1-2: OUTPUT (stdin/stdout/stderr)  
 - Bit 3: DEBUG (verbose ASSERT)
 - Bits 4-63: Reserved
 
-This gives automatic thread-local behavior since each thread has its own R13.
+This gives automatic thread-local behavior since each thread has its own R13. Accessor words (STATE@/STATE!/OUTPUT@/OUTPUT!/DEBUG@/DEBUG!) provide clean interface.
 
 ### Next Actions
-1. Implement thread-local state in R13:
-   - Replace STATE/OUTPUT/FLAGS variables with bit fields in R13
-   - Add STATE@/STATE!/OUTPUT@/OUTPUT!/DEBUG@/DEBUG! words
-   - Update THREAD to save/restore R13 around its use for mmap base
-2. Additional stack words - ROT (done), -ROT, 2SWAP, NIP, TUCK
-3. Control flow - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
+1. Additional stack words - ROT (done), -ROT, 2SWAP, NIP, TUCK
+2. Control flow - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
+3. Build synchronization library - Mutexes, semaphores, channels as Forth words using WAIT/WAKE
