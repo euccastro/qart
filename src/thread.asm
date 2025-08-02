@@ -57,8 +57,9 @@ THREAD:
     test rax, rax
     js .mmap_error          ; Negative means error
     
-    ; Use RBP for mmap base (it's callee-saved, no need to protect it)
-    mov rbp, rax            ; RBP = base address
+    ; Save RBP for C interop safety (in case C code calls THREAD)
+    push rbp
+    mov rbp, rax            ; RBP = base address for child
     
     ; Create thread
     mov rax, SYS_clone
@@ -73,7 +74,8 @@ THREAD:
     jz .child               ; rax=0 means we're the child
     js .clone_error         ; Negative means error
     
-    ; Parent: success - return 0
+    ; Parent: success - restore RBP and return 0
+    pop rbp                 ; Restore caller's RBP
     mov qword [DSP], 0      ; Replace xt with 0 (success)
     jmp NEXT
     
@@ -84,13 +86,14 @@ THREAD:
     
 .clone_error:
     ; clone failed - need to unmap memory first
-    ; rbp has mmap base (callee-saved, still valid)
+    ; rbp still has mmap base
     push rax                ; Save error code
     mov rdi, rbp            ; Base address to unmap
     mov rsi, 8192
     mov rax, SYS_munmap
     syscall
     pop rax                 ; Restore error code
+    pop rbp                 ; Restore caller's RBP
     mov [DSP], rax          ; Replace xt with error code
     jmp NEXT
     

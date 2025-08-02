@@ -37,18 +37,19 @@ R8-R15 are new registers added in x86_64 with no historical baggage.
 | RBX | • Callee-saved<br>• General purpose | • Forth instruction pointer (IP) | Arbitrary - needs to be preserved |
 | R15 | • Callee-saved<br>• No special meaning | • Forth data stack pointer (DSP) | Better than RBP for C interop |
 | R14 | • Callee-saved<br>• No special meaning | • Forth return stack pointer | Callee-saved, no conflicts |
+| R13 | • Callee-saved<br>• No special meaning | • Thread-local flags (STATE/OUTPUT/DEBUG)<br>• Bit 0: STATE<br>• Bits 1-2: OUTPUT<br>• Bit 3: DEBUG | Thread-local state without memory access |
 | RDI | • Syscall arg 1<br>• Function arg 1<br>• String destination | • Syscall parameter 1<br>• String operations | Required for syscalls |
 | RSI | • Syscall arg 2<br>• Function arg 2<br>• String source | • Syscall parameter 2 | Required for syscalls |
 | RDX | • Syscall arg 3<br>• Function arg 3<br>• Division dividend (high)<br>• Multiplication result (high) | • Syscall parameter 3<br>• Division operations<br>• Dictionary entry for DOCOL | Required for syscalls and div |
 | RCX | • Syscall arg 4 (not used in Linux)<br>• Function arg 4<br>• Loop counter<br>• REP count | • Divisor in conversions | Arbitrary choice |
+| RBP | • Traditional frame pointer<br>• Callee-saved | • Temporary in THREAD (mmap base)<br>• Preserved for C interop safety | Callee-saved, survives sys_clone<br>Push/pop in parent for defensive programming |
 
 ### Reserved for Future Use
 
 | Register | Special Features | Planned Usage |
 |----------|-----------------|---------------|
 | RSP | • Hardware stack pointer | System stack (must not change) |
-| RBP | • Traditional frame pointer<br>• Callee-saved | Available - good for C interop |
-| R12-R13 | • Callee-saved | TBD - Good for Forth VM registers |
+| R12 | • Callee-saved | • Temporary in THREAD (execution token) |
 | R8-R11 | • Caller-saved<br>• Function args 5-6 (R8-R9) | TBD - Temporary values |
 
 ## Register Categories
