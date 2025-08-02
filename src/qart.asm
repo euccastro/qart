@@ -718,9 +718,14 @@ dict_DEBUG_STORE:
   db 6, "DEBUG!", 0
   dq DEBUG_STORE
 
+dict_CC_SIZE:
+  dq dict_DEBUG_STORE
+  db 7, "CC-SIZE"
+  dq CC_SIZE
+
 
   ;; LATEST points to the most recent word
-LATEST: dq dict_DEBUG_STORE
+LATEST: dq dict_CC_SIZE
   
   align 8
 
@@ -770,6 +775,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern EXECUTE
   extern BRANCH
   extern ZBRANCH
+  extern CC_SIZE
   extern LIT
   extern DUP
   extern DROP

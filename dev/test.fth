@@ -447,4 +447,31 @@ R> DROP
 \ Test basic threading (minimal - see test-thread.fth for more)
 ' EXIT THREAD 0= ASSERT    \ Thread creation should succeed
 
+\ Test CC-SIZE with various stack configurations
+\ Test 1: Baseline (2 return addresses on return stack)
+CC-SIZE 48 = ASSERT
+\ 32 (header) + 16 (2 return addresses: abort_program+8 and QUIT's call to INTERPRET)
+\ abort_program+8 points to dict_SYSEXIT, saved when DOCOL entered QUIT
+
+\ Test 2: One item on data stack
+42 CC-SIZE 56 = ASSERT DROP
+\ 48 (baseline) + 8 (one data item)
+
+\ Test 3: Multiple items on data stack  
+1 2 3 CC-SIZE 72 = ASSERT 
+2DROP DROP
+\ 48 (baseline) + 24 (three data items)
+
+\ Test 4: With return stack usage in colon definition
+: TEST-R
+  >R CC-SIZE 64 = ASSERT R> DROP ;
+5 TEST-R
+\ 48 (baseline) + 8 (saved value) + 8 (TEST-R's return address)
+
+\ Test 5: Many data stack items
+10 20 30 40 50   \ 5 items on data stack
+CC-SIZE 88 = ASSERT
+\ 48 (baseline) + 40 (five data items)
+2DROP 2DROP DROP
+
 WORD Done. TYPE CR

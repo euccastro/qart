@@ -3,6 +3,22 @@
 
   %include "forth.inc"
 
+  section .data
+
+  ;; Anonymous dictionary entry for SYSEXIT
+  ;; Used by ABORT to terminate the program
+dict_SYSEXIT:
+  dq 0                    ; No link - internal use only
+  db 0                    ; Name length 0 (anonymous)
+  times 7 db 0            ; Padding to 8 bytes
+  dq SYSEXIT              ; Code field
+
+  ;; Main program executed by ABORT: QUIT followed by SYSEXIT
+  extern dict_QUIT
+abort_program:
+  dq dict_QUIT            ; Call QUIT
+  dq dict_SYSEXIT         ; Call SYSEXIT (exits program)
+
   section .text
 
   global NEXT
@@ -13,11 +29,12 @@
   global BRANCH
   global ZBRANCH
   global ABORT_word
+  global CC_SIZE
+  global dict_SYSEXIT
 
   extern stack_top
   extern return_stack_top
   extern STATE
-  extern dict_QUIT
 
   ;; NEXT - The inner interpreter
   ;; Dictionary-based execution: IP points to dictionary entry addresses
@@ -46,16 +63,15 @@ DOCREATE:
   jmp NEXT
 
   ;; EXIT ( -- ) Return from colon definition
-  ;; For top-level, return stack will be empty and we'll exit
 EXIT:
   mov rax, [RSTACK]       ; Get saved IP
-  test rax, rax           ; Was it 0 (top-level)?
-  jz .exit_program
   add RSTACK, 8           ; Drop from return stack
   mov IP, rax             ; Restore IP
   jmp NEXT                ; Continue in caller
-  
-  .exit_program:
+
+  ;; SYSEXIT ( -- ) Exit the program
+  ;; This is placed on the return stack by ABORT as the "bottom" return address
+SYSEXIT:
   mov rax, 60             ; sys_exit
   xor rdi, rdi
   syscall
@@ -86,22 +102,46 @@ ZBRANCH:
   lea IP, [IP + rcx*8]
   jmp NEXT
 
-  ;; ABORT ( -- ) Clear stacks and jump to QUIT
+  ;; ABORT ( -- ) Clear stacks and execute RUN
 ABORT_word:
   ;; Clear data stack
   mov DSP, stack_top       ; stack_top is a label, not a variable
   
-  ;; Clear return stack and add sentinel
+  ;; Clear return stack (completely empty)
   mov RSTACK, return_stack_top  ; return_stack_top is a label, not a variable
-  sub RSTACK, 8
-  mov qword [RSTACK], 0    ; Sentinel for EXIT
   
   ;; Initialize R13 with default flags:
   ;; Bit 0 = 0 (STATE = interpret)
   ;; Bits 1-2 = 01 (OUTPUT = stdout)
-  ;; Bit 3 = 0 (DEBUG = off)
+  ;; Bit 3 = 0 (DEBUG = off)  
   mov r13, 2               ; Binary: 0010 = stdout in bits 1-2
   
-  ;; Jump into QUIT colon definition
-  lea IP, [dict_QUIT + 24] ; Point IP to first word after header
-  jmp NEXT                 ; Start executing QUIT
+  ;; Point IP to abort_program and let NEXT execute it
+  mov IP, abort_program    ; IP points to QUIT/SYSEXIT program
+  jmp NEXT                 ; NEXT will execute QUIT then SYSEXIT
+
+  ;; CC-SIZE - Calculate size needed for a continuation
+  ;; ( -- n )
+  ;; Returns bytes needed to capture current continuation state
+CC_SIZE:
+  ;; Fixed header size: 32 bytes
+  ;; +0:  Code pointer (8 bytes)
+  ;; +8:  Data stack depth in cells (8 bytes)
+  ;; +16: Return stack depth in cells (8 bytes)
+  ;; +24: Saved IP (8 bytes)
+  mov rax, 32               ; Start with header size
+
+  ;; Calculate data stack depth
+  mov rdx, stack_top
+  sub rdx, DSP              ; Distance from base to current
+  add rax, rdx              ; Add data stack bytes
+
+  ;; Calculate return stack depth
+  mov rdx, return_stack_top
+  sub rdx, RSTACK           ; Distance from base to current
+  add rax, rdx              ; Add return stack bytes
+
+  ;; Push total size to data stack
+  sub DSP, 8
+  mov [DSP], rax
+  jmp NEXT
