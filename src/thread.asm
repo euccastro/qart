@@ -33,14 +33,14 @@ section .text
 global THREAD
 THREAD:
     ; Save execution token
-    mov r12, [DSP]          ; Get xt from stack (don't pop yet)
+    mov rbx, [DSP]          ; Get xt from stack (don't pop yet)
     
     ; Basic validation - execution tokens must be 8-byte aligned
-    test r12, 7             ; Check low 3 bits
+    test rbx, 7             ; Check low 3 bits
     jnz .invalid_xt         ; Not aligned = invalid
     
     ; Check if address is in kernel space (negative when viewed as signed)
-    test r12, r12
+    test rbx, rbx
     js .invalid_xt          ; Negative = kernel space = invalid
     
     ; Allocate 8KB for child's stacks
@@ -105,31 +105,41 @@ THREAD:
     ; Child thread initialization
     ; RSP points to top of mmap region (set by clone)
     ; rbp = mmap base (inherited from parent - it's callee-saved!)
-    ; r12 = execution token to run
-    ; r13 = parent's flags, inherited
+    ; rbx = execution token to run
+    ; TLS = parent's descriptor pointer (will be replaced)
     
-    ; Set up stacks with proper separation:
-    ; Bottom 3KB: Return stack (grows down from +3072)
-    ; Middle 4KB: Data stack (grows down from +7168)  
-    ; Top 1KB: System stack (grows down from +8192, set by clone)
-    lea RSTACK, [rbp + 3072]    ; 3KB mark
-    lea DSP, [rbp + 7168]       ; 7KB mark (leaving 1KB for system stack)
+    ; Create thread descriptor at start of mmap region
+    ; We'll use offsets 0-23 for the descriptor
+    mov rax, [TLS+TLS_FLAGS]    ; Copy parent's flags
+    mov [rbp+TLS_FLAGS], rax     ; Store in child descriptor
+    
+    ; Calculate and store stack bases
+    lea rax, [rbp + 7168]        ; Data stack base (grows down from +7168)
+    mov [rbp+TLS_DATA_BASE], rax
+    lea rax, [rbp + 3072]        ; Return stack base (grows down from +3072)
+    mov [rbp+TLS_RETURN_BASE], rax
+    
+    ; Point TLS to our new descriptor
+    mov TLS, rbp
+    
+    ; Set up stacks
+    mov RSTACK, [TLS+TLS_RETURN_BASE]
+    mov DSP, [TLS+TLS_DATA_BASE]
     
     ; Push mmap base address onto data stack
     sub DSP, 8
     mov [DSP], rbp
     
-    ; Build a mini "program" at the start of our allocated memory:
+    ; Build mini "program" after the descriptor (at offset 32):
     ; - User's xt
     ; - THREAD_CLEANUP
-    ; We'll point IP at this and jump to NEXT
-    
-    mov [rbp], r12          ; User's xt at offset 0
-    mov rax, dict_THREAD_CLEANUP
-    mov [rbp+8], rax        ; Cleanup word at offset 8
+    lea rax, [rbp+32]       ; Program starts after descriptor
+    mov [rax], rbx          ; User's xt
+    mov rdx, dict_THREAD_CLEANUP
+    mov [rax+8], rdx        ; Cleanup word
     
     ; Point IP at our program
-    mov IP, rbp
+    lea IP, [rbp+32]
     
     ; Start execution via NEXT
     jmp NEXT

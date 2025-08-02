@@ -34,10 +34,10 @@ R8-R15 are new registers added in x86_64 with no historical baggage.
 | Register | Special Features | Our Usage | Why This Choice? |
 |----------|-----------------|-----------|------------------|
 | RAX | • Syscall number & return<br>• Division dividend (low)<br>• Multiplication result<br>• Shorter encodings | • Syscall numbers<br>• Math operations<br>• General computation | Required for syscalls and div/mul |
-| RBX | • Callee-saved<br>• General purpose | • Forth instruction pointer (IP) | Arbitrary - needs to be preserved |
-| R15 | • Callee-saved<br>• No special meaning | • Forth data stack pointer (DSP) | Better than RBP for C interop |
-| R14 | • Callee-saved<br>• No special meaning | • Forth return stack pointer | Callee-saved, no conflicts |
-| R13 | • Callee-saved<br>• No special meaning | • Thread-local flags (STATE/OUTPUT/DEBUG)<br>• Bit 0: STATE<br>• Bits 1-2: OUTPUT<br>• Bit 3: DEBUG | Thread-local state without memory access |
+| R12 | • Callee-saved<br>• No special meaning | • Forth instruction pointer (IP) | Arbitrary - part of R12-R15 "system" block |
+| R13 | • Callee-saved<br>• No special meaning | • Thread Local Storage (TLS) pointer<br>• Points to thread descriptor | Clean thread-local storage |
+| R14 | • Callee-saved<br>• No special meaning | • Forth return stack pointer (RSTACK) | Part of R12-R15 "system" block |
+| R15 | • Callee-saved<br>• No special meaning | • Forth data stack pointer (DSP) | Part of R12-R15 "system" block |
 | RDI | • Syscall arg 1<br>• Function arg 1<br>• String destination | • Syscall parameter 1<br>• String operations | Required for syscalls |
 | RSI | • Syscall arg 2<br>• Function arg 2<br>• String source | • Syscall parameter 2 | Required for syscalls |
 | RDX | • Syscall arg 3<br>• Function arg 3<br>• Division dividend (high)<br>• Multiplication result (high) | • Syscall parameter 3<br>• Division operations<br>• Dictionary entry for DOCOL | Required for syscalls and div |
@@ -49,7 +49,7 @@ R8-R15 are new registers added in x86_64 with no historical baggage.
 | Register | Special Features | Planned Usage |
 |----------|-----------------|---------------|
 | RSP | • Hardware stack pointer | System stack (must not change) |
-| R12 | • Callee-saved | • Temporary in THREAD (execution token) |
+| RBX | • Callee-saved | Available for future use |
 | R8-R11 | • Caller-saved<br>• Function args 5-6 (R8-R9) | TBD - Temporary values |
 
 ## Register Categories

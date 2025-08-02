@@ -15,9 +15,9 @@
   extern minus_sign
   extern space
 
-  ;; Helper macro to load output FD from R13 bits 1-2 into RDI
+  ;; Helper macro to load output FD from TLS->flags bits 1-2 into RDI
 %macro LOAD_OUTPUT_FD_RDI 0
-  mov rdi, r13
+  mov rdi, [TLS+TLS_FLAGS] ; Get flags from descriptor
   shr rdi, 1              ; Get bits 1-2
   and rdi, 3              ; Isolate 2 bits (0=stdin, 1=stdout, 2=stderr)
 %endmacro

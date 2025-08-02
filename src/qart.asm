@@ -8,6 +8,15 @@
   %define BRANCH_OFFSET(target) (((target - $) // 8) - 2)
 
   section .data
+
+  ;; Main thread descriptor
+  ;; This is what TLS (R13) points to for the main thread
+  align 8
+main_thread_descriptor:
+  dq 2                      ; +0: flags (STATE=0, OUTPUT=1 (stdout), DEBUG=0)
+  dq data_stack_base        ; +8: data stack base address
+  dq return_stack_base      ; +16: return stack base address
+  ; +24: reserved for future use (thread ID, etc.)
   align 8
 buffer: times 20 db 0
 newline: db NEWLINE
@@ -740,11 +749,11 @@ pass_msg_len equ 6
   section .bss
   align 8
 dict_space: resq 65536
-stack_base: resq 1024
-stack_top:
+data_stack: resq 1024
+data_stack_base:          ; Base of data stack (high address, grows down)
   
-return_stack_base: resq 512   ; Return stack (smaller than data stack)
-return_stack_top:
+return_stack: resq 512    ; Return stack (smaller than data stack)
+return_stack_base:        ; Base of return stack (high address, grows down)
 
 input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
 
@@ -762,8 +771,9 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   global STATE
   global OUTPUT
   global FLAGS
-  global stack_top
-  global return_stack_top
+  global data_stack_base
+  global return_stack_base
+  global main_thread_descriptor
   global dict_QUIT
   global HERE
 

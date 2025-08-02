@@ -437,7 +437,7 @@ Moving toward Missionary-style functional effects with structured concurrency:
   - Sets patterns for later cooperative concurrency
 
 ### Critical Things to Watch For
-1. **Register preservation**: Never clobber RBX (IP), R15 (DSP), or R14 (RSTACK) in primitives
+1. **Register preservation**: Never clobber R12-R15 (IP, TLS, RSTACK, DSP) in primitives
 2. **Stack direction**: Data stack grows downward (sub DSP, 8 to push)
 3. **NASM reserved words**: Check if a word name conflicts before using it
 4. **Buffer bounds**: Always validate positions against buffer length

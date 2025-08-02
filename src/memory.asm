@@ -151,62 +151,68 @@ IMMED:
   ;; Bits 4-63: Reserved
 
   ;; STATE@ ( -- n )
-  ;; Get current STATE (bit 0 of R13)
+  ;; Get current STATE (bit 0 of TLS->flags)
 STATE_FETCH:
   sub DSP, 8              ; Make room
-  mov rax, r13            ; Get R13
+  mov rax, [TLS+TLS_FLAGS] ; Get flags from descriptor
   and rax, 1              ; Isolate bit 0
   mov [DSP], rax          ; Push result
   jmp NEXT
 
   ;; STATE! ( n -- )
-  ;; Set STATE (bit 0 of R13)
+  ;; Set STATE (bit 0 of TLS->flags)
 STATE_STORE:
   mov rax, [DSP]          ; Get new state
   add DSP, 8              ; Pop it
   and rax, 1              ; Ensure only bit 0
-  and r13, ~1             ; Clear bit 0
-  or r13, rax             ; Set new bit 0
+  mov rdx, [TLS+TLS_FLAGS] ; Get current flags
+  and rdx, ~1             ; Clear bit 0
+  or rdx, rax             ; Set new bit 0
+  mov [TLS+TLS_FLAGS], rdx ; Store back
   jmp NEXT
 
   ;; OUTPUT@ ( -- n )
   ;; Get current OUTPUT (bits 1-2 of R13)
 OUTPUT_FETCH:
   sub DSP, 8              ; Make room
-  mov rax, r13            ; Get R13
+  mov rax, [TLS+TLS_FLAGS] ; Get flags from descriptor
   shr rax, 1              ; Shift right to get bits 1-2
   and rax, 3              ; Isolate 2 bits
   mov [DSP], rax          ; Push result
   jmp NEXT
 
   ;; OUTPUT! ( n -- )
-  ;; Set OUTPUT (bits 1-2 of R13)
+  ;; Set OUTPUT (bits 1-2 of TLS->flags)
 OUTPUT_STORE:
   mov rax, [DSP]          ; Get new output
   add DSP, 8              ; Pop it
   and rax, 3              ; Ensure only 2 bits
   shl rax, 1              ; Shift to bits 1-2 position
-  and r13, ~6             ; Clear bits 1-2 (6 = 110b)
-  or r13, rax             ; Set new bits 1-2
+  mov rdx, [TLS+TLS_FLAGS] ; Get current flags
+  and rdx, ~6             ; Clear bits 1-2 (6 = 110b)
+  or rdx, rax             ; Set new bits 1-2
+  mov [TLS+TLS_FLAGS], rdx ; Store back
   jmp NEXT
 
   ;; DEBUG@ ( -- n )
-  ;; Get DEBUG flag (bit 3 of R13)
+  ;; Get DEBUG flag (bit 3 of TLS->flags)
 DEBUG_FETCH:
   sub DSP, 8              ; Make room
-  mov rax, r13            ; Get R13
+  mov rax, [TLS+TLS_FLAGS] ; Get flags from descriptor
   shr rax, 3              ; Shift right to get bit 3
   and rax, 1              ; Isolate 1 bit
   mov [DSP], rax          ; Push result
   jmp NEXT
 
   ;; DEBUG! ( n -- )
-  ;; Set DEBUG flag (bit 3 of R13)
+  ;; Set DEBUG flag (bit 3 of TLS->flags)
 DEBUG_STORE:
   mov rax, [DSP]          ; Get new debug flag
   add DSP, 8              ; Pop it
   and rax, 1              ; Ensure only 1 bit
   shl rax, 3              ; Shift to bit 3 position
-  and r13, ~8             ; Clear bit 3 (8 = 1000b)
-  or r13, rax             ; Set new bit 3
+  mov rdx, [TLS+TLS_FLAGS] ; Get current flags
+  and rdx, ~8             ; Clear bit 3 (8 = 1000b)
+  or rdx, rax             ; Set new bit 3
+  mov [TLS+TLS_FLAGS], rdx ; Store back
   jmp NEXT
