@@ -1,1 +1,5 @@
 * stack
+** which flags does each thread need?
+STATE
+FLAGS
+OUTPUT

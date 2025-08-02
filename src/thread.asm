@@ -57,16 +57,13 @@ THREAD:
     test rax, rax
     js .mmap_error          ; Negative means error
     
-    ; Set up stack layout:
-    ; Bottom 4KB: Return stack (grows down from +4096)
-    ; Top 4KB: Data stack (grows down from +8192)
-    lea r13, [rax + 8192]   ; Top of allocated space (for clone)
-    mov r11, rax            ; Save base address for child
+    ; Save base address in callee-saved register
+    mov r13, rax            ; R13 = base address (preserved across syscalls)
     
     ; Create thread
     mov rax, SYS_clone
     mov rdi, CLONE_VM       ; Share memory space only
-    mov rsi, r13            ; Stack pointer for child
+    lea rsi, [r13 + 8192]   ; Stack pointer for child (top of allocation)
     xor rdx, rdx            ; No parent tid pointer
     xor r10, r10            ; No child tid pointer
     xor r8, r8              ; No tls
@@ -76,18 +73,19 @@ THREAD:
     jz .child               ; rax=0 means we're the child
     js .clone_error         ; Negative means error
     
-    ; Parent: success - set rax to 0 and fall through
-    xor rax, rax
+    ; Parent: success - return 0
+    mov qword [DSP], 0      ; Replace xt with 0 (success)
+    jmp NEXT
     
 .mmap_error:
-    ; Store result (0 on success, error code on failure)
-    mov [DSP], rax          ; Replace xt with result
+    ; mmap failed - return error code
+    mov [DSP], rax          ; Replace xt with error code
     jmp NEXT
     
 .clone_error:
     ; clone failed - need to unmap memory first
     push rax                ; Save error code
-    mov rdi, r11            ; Base address to unmap
+    mov rdi, r13            ; Base address to unmap (now in r13)
     mov rsi, 8192
     mov rax, SYS_munmap
     syscall
@@ -101,27 +99,34 @@ THREAD:
     
 .child:
     ; Child thread initialization
-    ; r11 = base of our allocated memory
+    ; r13 = base of our allocated memory (callee-saved, preserved from parent)
     ; r12 = execution token to run
     
-    ; Set up return stack (bottom 4KB)
-    lea RSTACK, [r11 + 4096]
-    
-    ; Set up data stack (top 4KB) 
-    lea DSP, [r11 + 8192]
-    
-    ; Push cleanup dictionary entry onto return stack
-    sub RSTACK, 8
-    mov qword [RSTACK], dict_THREAD_CLEANUP
+    ; Set up stacks with proper separation:
+    ; Bottom 3KB: Return stack (grows down from +3072)
+    ; Middle 4KB: Data stack (grows down from +7168)  
+    ; Top 1KB: System stack (grows down from +8192, set by clone)
+    lea RSTACK, [r13 + 3072]    ; 3KB mark
+    lea DSP, [r13 + 7168]       ; 7KB mark (leaving 1KB for system stack)
     
     ; Push mmap base address onto data stack
     sub DSP, 8
-    mov [DSP], r11
+    mov [DSP], r13
     
-    ; Execute the provided xt
-    mov rdx, r12            ; xt into rdx for EXECUTE semantics
-    mov rax, [rdx + 16]     ; Get code field
-    jmp rax                 ; Jump to code
+    ; Build a mini "program" at the start of our allocated memory:
+    ; - User's xt
+    ; - THREAD_CLEANUP
+    ; We'll point IP at this and jump to NEXT
+    
+    mov [r13], r12          ; User's xt at offset 0
+    mov rax, dict_THREAD_CLEANUP
+    mov [r13+8], rax        ; Cleanup word at offset 8
+    
+    ; Point IP at our program
+    mov IP, r13
+    
+    ; Start execution via NEXT
+    jmp NEXT
 
 ;; THREAD_CLEANUP - Internal cleanup routine for threads
 ;; ( mmap-base -- )

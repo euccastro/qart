@@ -100,6 +100,5 @@ ABORT_word:
   mov qword [STATE], 0
   
   ;; Jump into QUIT colon definition
-  mov rdx, dict_QUIT       ; DOCOL expects dictionary pointer in RDX
   lea IP, [dict_QUIT + 24] ; Point IP to first word after header
   jmp NEXT                 ; Start executing QUIT
