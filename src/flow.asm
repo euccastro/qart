@@ -13,11 +13,19 @@ dict_SYSEXIT:
   times 7 db 0            ; Padding to 8 bytes
   dq SYSEXIT              ; Code field
 
-  ;; Main program executed by ABORT: QUIT followed by SYSEXIT
+  ;; Anonymous dictionary entry for THREAD-EXIT
+  ;; Calls the thread-local cleanup function
+dict_THREAD_EXIT:
+  dq 0                    ; No link - internal use only
+  db 0                    ; Name length 0 (anonymous)
+  times 7 db 0            ; Padding to 8 bytes
+  dq THREAD_EXIT          ; Code field
+
+  ;; Main program executed by ABORT: QUIT followed by thread-local cleanup
   extern dict_QUIT
 abort_program:
   dq dict_QUIT            ; Call QUIT
-  dq dict_SYSEXIT         ; Call SYSEXIT (exits program)
+  dq dict_THREAD_EXIT     ; Call thread-local cleanup
 
   section .text
 
@@ -31,6 +39,7 @@ abort_program:
   global ABORT_word
   global CC_SIZE
   global dict_SYSEXIT
+  global dict_THREAD_EXIT
   global RESTORE_CONT
 
   extern data_stack_base
@@ -70,12 +79,18 @@ EXIT:
   mov IP, rax             ; Restore IP
   jmp NEXT                ; Continue in caller
 
-  ;; SYSEXIT ( -- ) Exit the program
-  ;; This is placed on the return stack by ABORT as the "bottom" return address
+  ;; SYSEXIT ( -- ) Exit the entire process
+  ;; Used as cleanup for main thread
 SYSEXIT:
   mov rax, 60             ; sys_exit
   xor rdi, rdi
   syscall
+
+  ;; THREAD_EXIT ( -- ) Call thread-local cleanup
+  ;; Loads cleanup function from TLS and executes via NEXT
+THREAD_EXIT:
+  lea IP, [TLS+TLS_CLEANUP] ; Point IP to cleanup field in descriptor
+  jmp NEXT                  ; NEXT will load and execute it
 
   ;; EXECUTE ( xt -- ) Execute word given execution token
   ;; Execution token is a dictionary pointer

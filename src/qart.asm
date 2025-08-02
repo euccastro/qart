@@ -16,7 +16,8 @@ main_thread_descriptor:
   dq 2                      ; +0: flags (STATE=0, OUTPUT=1 (stdout), DEBUG=0)
   dq data_stack_base        ; +8: data stack base address
   dq return_stack_base      ; +16: return stack base address
-  ; +24: reserved for future use (thread ID, etc.)
+  extern dict_SYSEXIT
+  dq dict_SYSEXIT           ; +24: cleanup function (exits entire process)
   align 8
 buffer: times 20 db 0
 newline: db NEWLINE

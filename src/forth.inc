@@ -10,6 +10,7 @@
 %define TLS_FLAGS 0         ; Offset to flags field
 %define TLS_DATA_BASE 8     ; Offset to data stack base
 %define TLS_RETURN_BASE 16  ; Offset to return stack base
+%define TLS_CLEANUP 24      ; Offset to cleanup function pointer
 
 ; Constants
 INPUT_BUFFER_SIZE equ 1048576  ; Size of input line buffer (1MB)

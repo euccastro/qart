@@ -109,7 +109,7 @@ THREAD:
     ; TLS = parent's descriptor pointer (will be replaced)
     
     ; Create thread descriptor at start of mmap region
-    ; We'll use offsets 0-23 for the descriptor
+    ; We'll use offsets 0-31 for the descriptor
     mov rax, [TLS+TLS_FLAGS]    ; Copy parent's flags
     mov [rbp+TLS_FLAGS], rax     ; Store in child descriptor
     
@@ -118,6 +118,10 @@ THREAD:
     mov [rbp+TLS_DATA_BASE], rax
     lea rax, [rbp + 3072]        ; Return stack base (grows down from +3072)
     mov [rbp+TLS_RETURN_BASE], rax
+    
+    ; Set cleanup function for this thread
+    mov rax, dict_THREAD_CLEANUP
+    mov [rbp+TLS_CLEANUP], rax   ; Store cleanup function
     
     ; Point TLS to our new descriptor
     mov TLS, rbp
@@ -132,11 +136,12 @@ THREAD:
     
     ; Build mini "program" after the descriptor (at offset 32):
     ; - User's xt
-    ; - THREAD_CLEANUP
+    ; - THREAD_EXIT (which will call TLS_CLEANUP)
+    extern dict_THREAD_EXIT
     lea rax, [rbp+32]       ; Program starts after descriptor
     mov [rax], rbx          ; User's xt
-    mov rdx, dict_THREAD_CLEANUP
-    mov [rax+8], rdx        ; Cleanup word
+    mov rdx, dict_THREAD_EXIT
+    mov [rax+8], rdx        ; Thread exit (calls cleanup from TLS)
     
     ; Point IP at our program
     lea IP, [rbp+32]
