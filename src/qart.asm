@@ -682,9 +682,14 @@ dict_CLOCK_FETCH:
   db 6, "CLOCK@", 0
   dq CLOCK_FETCH
 
+dict_SLEEP:
+  dq dict_CLOCK_FETCH
+  db 5, "SLEEP", 0, 0
+  dq SLEEP
+
 
   ;; LATEST points to the most recent word
-LATEST: dq dict_CLOCK_FETCH
+LATEST: dq dict_SLEEP
   
   align 8
 
@@ -782,18 +787,11 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern FWAIT
   extern WAKE
   extern CLOCK_FETCH
+  extern SLEEP
 
   ;; ---- Main Program ----
 
 _start:
-  ;; Initialize stacks
-  mov DSP, stack_top          ; Data stack grows down
-  mov RSTACK, return_stack_top ; Return stack grows down
-  
-  ;; Push 0 to return stack to mark top-level
-  sub RSTACK, 8
-  mov qword [RSTACK], 0
-  
   ;; Call ABORT to start the system
   ;; ABORT will clear stacks and jump to QUIT
   jmp ABORT_word

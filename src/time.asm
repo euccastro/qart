@@ -6,6 +6,7 @@
 extern NEXT
 
 %define SYS_clock_gettime   228
+%define SYS_nanosleep       35
 %define CLOCK_MONOTONIC     1
 
 section .bss
@@ -47,4 +48,32 @@ CLOCK_FETCH:
     sub DSP, 16
     mov qword [DSP+8], 0
     mov qword [DSP], 0
+    jmp NEXT
+
+;; SLEEP ( nanoseconds -- )
+;; Sleep for specified nanoseconds
+;; Handles values > 1 second by converting to seconds + nanoseconds
+;; Note: actual precision depends on system timer (typically ~1ms minimum)
+global SLEEP
+SLEEP:
+    ; Get nanoseconds from stack
+    mov rax, [DSP]
+    add DSP, 8                          ; pop stack
+    
+    ; Divide by 1 billion to get seconds and remainder
+    mov rdx, 0                          ; clear high part for division
+    mov rcx, 1000000000                 ; 1 billion
+    div rcx                             ; rax = seconds, rdx = nanoseconds
+    
+    ; Store in timespec buffer
+    mov [timespec_buffer], rax          ; seconds
+    mov [timespec_buffer + 8], rdx      ; nanoseconds (remainder)
+    
+    ; nanosleep(&timespec, NULL)
+    mov rax, SYS_nanosleep
+    lea rdi, [timespec_buffer]
+    xor rsi, rsi                        ; no remainder buffer
+    syscall
+    
+    ; Ignore return value (0 on success, -EINTR if interrupted)
     jmp NEXT

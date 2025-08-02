@@ -76,6 +76,10 @@ This document describes known limitations of the qart Forth implementation.
 - **No compiler security**: Can corrupt dictionary with invalid operations
 - **No recursion support**: Cannot reference word being defined
 - **No forward references**: Words must be defined before use
+- **No comments in definitions**: Comments cannot be used inside colon definitions
+  - The \ (backslash) comment word consumes the rest of the line during parsing
+  - This happens before compilation, so comments inside : ; definitions break the compilation
+  - Parenthetical comments ( ) are not implemented at all
 
 ## General Limitations
 - **No floating point**: Integer-only system
