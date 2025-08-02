@@ -463,6 +463,7 @@ Moving toward Missionary-style functional effects with structured concurrency:
 6. **Forth stack notation**: (2 1) means 1 is TOS (top of stack), not that 2 is on top! This is the opposite of visual/pictorial representations. Be very careful when writing tests.
 7. **Dictionary name field syntax**: Must use commas between all elements! `db 1, "'", 0, 0, 0, 0, 0, 0` not `db 1 "'", 0, 0, 0, 0, 0, 0`. Missing commas cause incorrect assembly and dictionary misalignment.
 8. **Data alignment**: Multi-word structures (timespec, futex vars, etc.) should be explicitly aligned with `align 8` or `align 4`. x86-64 tolerates misalignment but it hurts performance and isn't portable.
+9. **sys_clone clobbers caller-saved registers**: We discovered that clone() can modify caller-saved registers (R8-R11) in the child process. Always use callee-saved registers (R12-R15) for values that must survive across clone(). This bit us when using R11 for the mmap base address - switching to R13 fixed thread crashes.
 
 ### Development Approach
 **Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.
@@ -509,8 +510,40 @@ Moving toward Missionary-style functional effects with structured concurrency:
 - Merged store-test.fth into main dev/test.fth to avoid test fragmentation
 - All tests in dev/test.fth now have descriptive comments
 
+### Threading Implementation - COMPLETE!
+- **THREAD primitive working**: Creates OS threads with clone() that share memory via CLONE_VM
+- **Stack layout per thread** (8KB total):
+  - Bottom 3KB: Return stack
+  - Middle 4KB: Data stack  
+  - Top 1KB: System stack
+- **Execution model**: Thread executes mini-program `[user_xt, dict_THREAD_CLEANUP]`
+- **Automatic cleanup**: THREAD_CLEANUP unmaps memory when thread exits
+- **Key fix**: Must use callee-saved registers (we use R13) for values surviving clone()
+
+### Timing and Synchronization Primitives
+- **CLOCK@ ( -- seconds nanoseconds )**: Returns monotonic time via clock_gettime(CLOCK_MONOTONIC)
+  - Used for timing measurements
+  - Nanosecond precision (though actual resolution depends on hardware)
+- **SLEEP ( nanoseconds -- )**: Sleep for specified nanoseconds via nanosleep()
+  - Handles durations > 1 second by dividing into seconds/nanoseconds
+  - Yields to scheduler (not busy-waiting)
+  - Essential for thread coordination without burning CPU
+- **< (LESS_THAN)**: Added for time comparisons in tests
+
+### Current Focus - Thread-Local State
+**Problem**: Threads share global STATE, OUTPUT, FLAGS causing interference
+**Solution in progress**: Pack these into R13 as bit fields:
+- Bit 0: STATE (compile/interpret)
+- Bits 1-2: OUTPUT (stdin/stdout/stderr)  
+- Bit 3: DEBUG (verbose ASSERT)
+- Bits 4-63: Reserved
+
+This gives automatic thread-local behavior since each thread has its own R13.
+
 ### Next Actions
-1. Implement:
-   - **Compiler words** - CREATE, : (colon), ; (semicolon) with STATE support
-   - **Additional stack words** - ROT, -ROT, 2SWAP, NIP, TUCK
-   - **Control flow** - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
+1. Implement thread-local state in R13:
+   - Replace STATE/OUTPUT/FLAGS variables with bit fields in R13
+   - Add STATE@/STATE!/OUTPUT@/OUTPUT!/DEBUG@/DEBUG! words
+   - Update THREAD to save/restore R13 around its use for mmap base
+2. Additional stack words - ROT (done), -ROT, 2SWAP, NIP, TUCK
+3. Control flow - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
