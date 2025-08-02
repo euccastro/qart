@@ -14,7 +14,13 @@
   extern buffer
   extern minus_sign
   extern space
-  extern OUTPUT
+
+  ;; Helper macro to load output FD from R13 bits 1-2 into RDI
+%macro LOAD_OUTPUT_FD_RDI 0
+  mov rdi, r13
+  shr rdi, 1              ; Get bits 1-2
+  and rdi, 3              ; Isolate 2 bits (0=stdin, 1=stdout, 2=stderr)
+%endmacro
 
   ;; DOT ( n -- ) Pop and print number with trailing space
 DOT:
@@ -29,7 +35,7 @@ DOT:
   
   ;; Print minus sign
   mov rax, 1              ; sys_write
-  mov rdi, [OUTPUT]       ; Use OUTPUT variable
+  LOAD_OUTPUT_FD_RDI
   mov rsi, minus_sign
   mov rdx, 1
   syscall
@@ -52,15 +58,15 @@ DOT:
   
   ;; Print the number
   mov rax, 1              ; sys_write
-  mov rsi, rdi
+  mov rsi, rdi            ; Move buffer pointer to rsi
   mov rdx, buffer + 19
   sub rdx, rdi
-  mov rdi, [OUTPUT]       ; Use OUTPUT variable
+  LOAD_OUTPUT_FD_RDI
   syscall
   
   ;; Print space (Forth convention)
   mov rax, 1
-  mov rdi, [OUTPUT]       ; Use OUTPUT variable
+  LOAD_OUTPUT_FD_RDI
   mov rsi, space
   mov rdx, 1
   syscall
@@ -71,7 +77,7 @@ DOT:
 EMIT:
   ;; Write directly from stack (low byte contains the character)
   mov rax, 1              ; sys_write
-  mov rdi, [OUTPUT]       ; Use OUTPUT variable
+  LOAD_OUTPUT_FD_RDI
   mov rsi, DSP            ; Address of character on stack
   mov rdx, 1              ; One byte (just the low byte)
   syscall
@@ -82,7 +88,7 @@ EMIT:
   ;; TYPE ( c-addr u -- ) Output string
 TYPE:
   mov rax, 1              ; sys_write
-  mov rdi, [OUTPUT]       ; Use OUTPUT variable
+  LOAD_OUTPUT_FD_RDI
   mov rsi, [DSP+8]        ; String address
   mov rdx, [DSP]          ; Length
   syscall

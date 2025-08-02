@@ -273,12 +273,12 @@ SP@ R@ = ASSERT
 1 1 = ASSERT  \ Simple sanity check
 SP@ R@ = ASSERT
 
-\ Test OUTPUT variable (stdout/stderr control)
-OUTPUT @ 1 = ASSERT
-2 OUTPUT !
-OUTPUT @ 2 = ASSERT
-1 OUTPUT !
-OUTPUT @ 1 = ASSERT
+\ Test OUTPUT variable (stdout/stderr control using new accessors)
+OUTPUT@ 1 = ASSERT
+2 OUTPUT!
+OUTPUT@ 2 = ASSERT
+1 OUTPUT!
+OUTPUT@ 1 = ASSERT
 SP@ R@ = ASSERT
 
 \ Test TYPE with empty string

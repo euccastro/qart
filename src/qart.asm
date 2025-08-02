@@ -394,10 +394,7 @@ dict_ASSERT:
   ;; Check if assertion failed
   dq dict_ZBRANCH, BRANCH_OFFSET(.fail)
   ;; Passed - check if verbose mode
-  dq dict_FLAGS           ; ( FLAGS )
-  dq dict_FETCH           ; ( flags-value )
-  dq dict_LIT, 1          ; ( flags-value 1 )
-  dq dict_AND             ; ( flags&1 )
+  dq dict_DEBUG_FETCH     ; ( debug-flag )
   dq dict_ZBRANCH, BRANCH_OFFSET(.done)
   ;; Verbose mode - push PASS message
   dq dict_LIT, pass_msg   ; ( pass_msg )
@@ -608,9 +605,8 @@ dict_COLON:
   dq dict_STORE
 
   ;; set compilation mode
-  dq dict_LIT, -1
-  dq dict_STATE
-  dq dict_STORE
+  dq dict_LIT, 1
+  dq dict_STATE_STORE
 
   .loop:
   dq dict_WORD                  ; (c-addr u)
@@ -658,8 +654,7 @@ dict_SEMICOLON:
   dq DOCOL
   dq dict_LIT, dict_EXIT, dict_COMMA
   dq dict_LIT, 0
-  dq dict_STATE
-  dq dict_STORE
+  dq dict_STATE_STORE
   dq dict_EXIT
 
 dict_THREAD:
@@ -687,9 +682,45 @@ dict_SLEEP:
   db 5, "SLEEP", 0, 0
   dq SLEEP
 
+  ;; STATE@ ( -- n ) Get compile/interpret state
+dict_STATE_FETCH:
+  dq dict_SLEEP
+  db 6, "STATE@", 0
+  dq STATE_FETCH
+
+  ;; STATE! ( n -- ) Set compile/interpret state  
+dict_STATE_STORE:
+  dq dict_STATE_FETCH
+  db 6, "STATE!", 0
+  dq STATE_STORE
+
+  ;; OUTPUT@ ( -- n ) Get output stream
+dict_OUTPUT_FETCH:
+  dq dict_STATE_STORE
+  db 7, "OUTPUT@"
+  dq OUTPUT_FETCH
+
+  ;; OUTPUT! ( n -- ) Set output stream
+dict_OUTPUT_STORE:
+  dq dict_OUTPUT_FETCH
+  db 7, "OUTPUT!"
+  dq OUTPUT_STORE
+
+  ;; DEBUG@ ( -- n ) Get debug flag
+dict_DEBUG_FETCH:
+  dq dict_OUTPUT_STORE
+  db 6, "DEBUG@", 0
+  dq DEBUG_FETCH
+
+  ;; DEBUG! ( n -- ) Set debug flag
+dict_DEBUG_STORE:
+  dq dict_DEBUG_FETCH
+  db 6, "DEBUG!", 0
+  dq DEBUG_STORE
+
 
   ;; LATEST points to the most recent word
-LATEST: dq dict_SLEEP
+LATEST: dq dict_DEBUG_STORE
   
   align 8
 
@@ -783,6 +814,12 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern COMMA
   extern IMMED_TEST
   extern IMMED
+  extern STATE_FETCH
+  extern STATE_STORE
+  extern OUTPUT_FETCH
+  extern OUTPUT_STORE
+  extern DEBUG_FETCH
+  extern DEBUG_STORE
   extern THREAD
   extern FWAIT
   extern WAKE

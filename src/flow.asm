@@ -96,8 +96,11 @@ ABORT_word:
   sub RSTACK, 8
   mov qword [RSTACK], 0    ; Sentinel for EXIT
   
-  ;; Set STATE = 0 (interpreter mode)
-  mov qword [STATE], 0
+  ;; Initialize R13 with default flags:
+  ;; Bit 0 = 0 (STATE = interpret)
+  ;; Bits 1-2 = 01 (OUTPUT = stdout)
+  ;; Bit 3 = 0 (DEBUG = off)
+  mov r13, 2               ; Binary: 0010 = stdout in bits 1-2
   
   ;; Jump into QUIT colon definition
   lea IP, [dict_QUIT + 24] ; Point IP to first word after header

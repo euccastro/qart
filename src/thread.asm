@@ -57,13 +57,13 @@ THREAD:
     test rax, rax
     js .mmap_error          ; Negative means error
     
-    ; Save base address in callee-saved register
-    mov r13, rax            ; R13 = base address (preserved across syscalls)
+    ; Use RBP for mmap base (it's callee-saved, no need to protect it)
+    mov rbp, rax            ; RBP = base address
     
     ; Create thread
     mov rax, SYS_clone
     mov rdi, CLONE_VM       ; Share memory space only
-    lea rsi, [r13 + 8192]   ; Stack pointer for child (top of allocation)
+    lea rsi, [rbp + 8192]   ; Stack pointer for child (top of allocation)
     xor rdx, rdx            ; No parent tid pointer
     xor r10, r10            ; No child tid pointer
     xor r8, r8              ; No tls
@@ -84,8 +84,9 @@ THREAD:
     
 .clone_error:
     ; clone failed - need to unmap memory first
+    ; rbp has mmap base (callee-saved, still valid)
     push rax                ; Save error code
-    mov rdi, r13            ; Base address to unmap (now in r13)
+    mov rdi, rbp            ; Base address to unmap
     mov rsi, 8192
     mov rax, SYS_munmap
     syscall
@@ -99,31 +100,33 @@ THREAD:
     
 .child:
     ; Child thread initialization
-    ; r13 = base of our allocated memory (callee-saved, preserved from parent)
+    ; RSP points to top of mmap region (set by clone)
+    ; rbp = mmap base (inherited from parent - it's callee-saved!)
     ; r12 = execution token to run
+    ; r13 = parent's flags, inherited
     
     ; Set up stacks with proper separation:
     ; Bottom 3KB: Return stack (grows down from +3072)
     ; Middle 4KB: Data stack (grows down from +7168)  
     ; Top 1KB: System stack (grows down from +8192, set by clone)
-    lea RSTACK, [r13 + 3072]    ; 3KB mark
-    lea DSP, [r13 + 7168]       ; 7KB mark (leaving 1KB for system stack)
+    lea RSTACK, [rbp + 3072]    ; 3KB mark
+    lea DSP, [rbp + 7168]       ; 7KB mark (leaving 1KB for system stack)
     
     ; Push mmap base address onto data stack
     sub DSP, 8
-    mov [DSP], r13
+    mov [DSP], rbp
     
     ; Build a mini "program" at the start of our allocated memory:
     ; - User's xt
     ; - THREAD_CLEANUP
     ; We'll point IP at this and jump to NEXT
     
-    mov [r13], r12          ; User's xt at offset 0
+    mov [rbp], r12          ; User's xt at offset 0
     mov rax, dict_THREAD_CLEANUP
-    mov [r13+8], rax        ; Cleanup word at offset 8
+    mov [rbp+8], rax        ; Cleanup word at offset 8
     
     ; Point IP at our program
-    mov IP, r13
+    mov IP, rbp
     
     ; Start execution via NEXT
     jmp NEXT

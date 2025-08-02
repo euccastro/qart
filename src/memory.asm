@@ -19,6 +19,12 @@
   global COMMA
   global IMMED_TEST
   global IMMED
+  global STATE_FETCH
+  global STATE_STORE
+  global OUTPUT_FETCH
+  global OUTPUT_STORE
+  global DEBUG_FETCH
+  global DEBUG_STORE
 
   extern NEXT
   extern STATE
@@ -135,4 +141,72 @@ IMMED_TEST:
 IMMED:
   mov rax, [LATEST]   ; get latest word
   or byte [rax+8], 0x80       ; set immediate bit
+  jmp NEXT
+
+  ;; Thread-local flags using R13
+  ;; R13 bit layout:
+  ;; Bit 0: STATE (0 = interpret, 1 = compile)
+  ;; Bits 1-2: OUTPUT (0 = stdin, 1 = stdout, 2 = stderr)
+  ;; Bit 3: DEBUG (verbose ASSERT output)
+  ;; Bits 4-63: Reserved
+
+  ;; STATE@ ( -- n )
+  ;; Get current STATE (bit 0 of R13)
+STATE_FETCH:
+  sub DSP, 8              ; Make room
+  mov rax, r13            ; Get R13
+  and rax, 1              ; Isolate bit 0
+  mov [DSP], rax          ; Push result
+  jmp NEXT
+
+  ;; STATE! ( n -- )
+  ;; Set STATE (bit 0 of R13)
+STATE_STORE:
+  mov rax, [DSP]          ; Get new state
+  add DSP, 8              ; Pop it
+  and rax, 1              ; Ensure only bit 0
+  and r13, ~1             ; Clear bit 0
+  or r13, rax             ; Set new bit 0
+  jmp NEXT
+
+  ;; OUTPUT@ ( -- n )
+  ;; Get current OUTPUT (bits 1-2 of R13)
+OUTPUT_FETCH:
+  sub DSP, 8              ; Make room
+  mov rax, r13            ; Get R13
+  shr rax, 1              ; Shift right to get bits 1-2
+  and rax, 3              ; Isolate 2 bits
+  mov [DSP], rax          ; Push result
+  jmp NEXT
+
+  ;; OUTPUT! ( n -- )
+  ;; Set OUTPUT (bits 1-2 of R13)
+OUTPUT_STORE:
+  mov rax, [DSP]          ; Get new output
+  add DSP, 8              ; Pop it
+  and rax, 3              ; Ensure only 2 bits
+  shl rax, 1              ; Shift to bits 1-2 position
+  and r13, ~6             ; Clear bits 1-2 (6 = 110b)
+  or r13, rax             ; Set new bits 1-2
+  jmp NEXT
+
+  ;; DEBUG@ ( -- n )
+  ;; Get DEBUG flag (bit 3 of R13)
+DEBUG_FETCH:
+  sub DSP, 8              ; Make room
+  mov rax, r13            ; Get R13
+  shr rax, 3              ; Shift right to get bit 3
+  and rax, 1              ; Isolate 1 bit
+  mov [DSP], rax          ; Push result
+  jmp NEXT
+
+  ;; DEBUG! ( n -- )
+  ;; Set DEBUG flag (bit 3 of R13)
+DEBUG_STORE:
+  mov rax, [DSP]          ; Get new debug flag
+  add DSP, 8              ; Pop it
+  and rax, 1              ; Ensure only 1 bit
+  shl rax, 3              ; Shift to bit 3 position
+  and r13, ~8             ; Clear bit 3 (8 = 1000b)
+  or r13, rax             ; Set new bit 3
   jmp NEXT
