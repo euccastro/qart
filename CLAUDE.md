@@ -489,6 +489,15 @@ Moving toward Missionary-style functional effects with structured concurrency:
   - Forces us to solve synchronization properly
   - Stays in pure computation land (no external dependencies)
   - Sets patterns for later cooperative concurrency
+- **Interactive mode refinements**: 
+  - Consolidated interactive flag into bit 4 of thread-local FLAGS (no separate INTERACTIVE variable)
+  - Added IACR word to conditionally output newline only in interactive mode
+  - Global FLAGS/STATE/OUTPUT variables are just legacy aliases for main thread's thread-local values
+- **Comment handling in compilation**: 
+  - Comments (\ and parenthetical) must be immediate words to execute during compilation
+  - Backslash (\) made immediate by setting bit 7 in dictionary entry
+  - Parenthetical comments made immediate using IMMED in stdlib.fth
+- **File concatenation in dev/qi**: Spaces inserted between concatenated files to prevent word joining
 
 ### Critical Things to Watch For
 1. **Register preservation**: Never clobber R12-R15 (IP, TLS, RSTACK, DSP) in primitives
@@ -593,9 +602,11 @@ The system supports both interactive and non-interactive execution:
 
 - **Interactive mode**: Enabled by the `INTERAC` word, which sets bit 4 of the thread-local FLAGS
 - **Prompts and messages**: The `PROMPT` and `BYE_MSG` words check the interactive flag and only display when in interactive mode
+- **IACR word**: Outputs newline only in interactive mode, avoiding spurious newlines in batch mode
 - **dev/qi usage**: 
   - `dev/qi` (no arguments) - Interactive mode with stdlib preloaded
   - `dev/qi file1.fth file2.fth ...` - Run files non-interactively with stdlib
+  - Files are concatenated with spaces between them to prevent word joining
   - **Note**: Piping input to dev/qi is not supported - use `out/qart` directly for piped input
 
 ## Memories

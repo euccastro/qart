@@ -56,9 +56,8 @@ This document describes known limitations of the qart Forth implementation.
   - Binary operations need 2 items
 
 ## I/O Limitations
-- **No string literals**: Cannot type strings in source code
-  - Must use character codes with EMIT
-  - No S" or ." operators
+- **No S" string literals**: Cannot define string constants
+  - Must use character codes with EMIT or the ." operator for output
 - **Input buffer size**: 1MB (1048576 bytes)
   - Single line cannot exceed this size
   - Files piped to stdin cannot exceed this size (entire file read at once)
@@ -76,16 +75,10 @@ This document describes known limitations of the qart Forth implementation.
 - **No compiler security**: Can corrupt dictionary with invalid operations
 - **No recursion support**: Cannot reference word being defined
 - **No forward references**: Words must be defined before use
-- **No comments in definitions**: Comments cannot be used inside colon definitions
-  - The \ (backslash) comment word consumes the rest of the line during parsing
-  - This happens before compilation, so comments inside : ; definitions break the compilation
-  - Parenthetical comments ( ) are not implemented at all
 
 ## General Limitations
 - **No floating point**: Integer-only system
-- **No ALLOT**: Cannot reserve dictionary space
 - **No heap allocation**: Only dictionary growth supported
-- **Single-threaded**: No concurrency support
 - **Linux x86-64 only**: Not portable to other platforms
 - **No signal handling**: Ctrl-C kills process ungracefully
 - **No saved images**: Cannot save/load system state
@@ -97,7 +90,7 @@ This document describes known limitations of the qart Forth implementation.
 - Vocabulary/wordlist support
 - File I/O
 - Exception handling
-- String literals (S", .")
+- String literals (S" not implemented)
 - Double-cell operations (2@, 2!)
 - Memory operations (MOVE, FILL)
-- Additional stack operations (ROT, PICK, ROLL)
+- Additional stack operations (PICK, ROLL)
