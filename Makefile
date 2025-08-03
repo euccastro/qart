@@ -10,7 +10,7 @@ SRCDIR = src
 OUTDIR = out
 
 # All source files
-SRCS = qart.asm flow.asm stack.asm arithmetic.asm memory.asm io.asm dictionary.asm input.asm word.asm debug.asm thread.asm time.asm
+SRCS = qart.asm flow.asm stack.asm arithmetic.asm memory.asm io.asm dictionary.asm input_buffer.asm debug.asm thread.asm time.asm
 OBJS = $(addprefix $(OUTDIR)/,$(SRCS:.asm=.o))
 
 # Default target

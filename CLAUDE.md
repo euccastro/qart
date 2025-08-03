@@ -50,8 +50,7 @@ The project is organized to separate source code, development tools, documentati
   - `io.asm` - I/O operations (DOT, NUMBER, EMIT, KEY, TYPE)
   - `debug.asm` - Testing primitives (ASSERT)
   - `dictionary.asm` - Dictionary lookup (FIND)
-  - `input.asm` - Input buffer management (REFILL)
-  - `word.asm` - Word parsing (PARSE_WORD/WORD)
+  - `input_buffer.asm` - Input buffer management and word parsing (REFILL, BACKSLASH, PARSE_WORD/WORD)
   - `thread.asm` - Threading primitives (THREAD, WAIT, WAKE)
   - `forth.inc` - Common definitions (register assignments, constants)
 - `dev/` - Development tools and tests
