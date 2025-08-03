@@ -20,6 +20,7 @@ Currently building on our OS-level threading (clone/futex) foundation with full 
 - **Linker**: GNU ld
 - **Debugger**: GDB
 - **Build System**: Make
+- **Interactive helper**: `dev/qi` - runs qart with stdlib.fth loaded
 
 ## Build Commands
 
@@ -27,6 +28,8 @@ Currently building on our OS-level threading (clone/futex) foundation with full 
 make          # Build all targets
 make clean    # Remove build artifacts
 make run      # Build and run the current program
+dev/qi        # Run interactively with stdlib loaded
+dev/qi file.fth  # Run file(s) with stdlib loaded
 ```
 
 ## Project Structure
@@ -209,9 +212,24 @@ thread_func:
 - **Thread-local state accessors**: STATE@/!, OUTPUT@/!, DEBUG@/!
 - **CC-SIZE**: Calculate memory needed for continuations
 - **CALL/CC**: Scheme-style call-with-current-continuation (fully implemented!)
+- **ALLOT**: Allocate dictionary space by advancing HERE
+- **SCANC**: Search for character in input buffer and skip to it
+- **SOURCE@**: Get current position address in input buffer
+
+### Standard Library (stdlib.fth)
+
+A standard library is now available that defines common Forth words:
+- **Stack words**: NIP, TUCK, -ROT (and more coming)
+- **Arithmetic**: 1+, 1-, 2+, 2-, 2TIMES, NEGATE
+- **Boolean**: TRUE, FALSE, NOT
+- **Comparison**: <>, >, <=, >=, 0<, 0>, 0<>
+- **Memory**: +!, CELL+, CELL-
+- **I/O**: SPACE, BL, ." (dot-quote for string output), ( for comments
+
+**Usage**: Use `dev/qi` script or `cat stdlib.fth - | out/qart` for interactive sessions with stdlib loaded.
 
 ### Immediate Next Steps
-1. **Additional stack words** - -ROT, 2SWAP, NIP, TUCK
+1. **Additional stack words** - 2SWAP
 2. **Control flow structures** - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
 3. **Build synchronization library** - Mutexes, semaphores, channels as Forth words using WAIT/WAKE
 4. **Test continuation support** - Write tests for CC-SIZE, CALL/CC, and continuation execution
