@@ -1,0 +1,7 @@
+#!/bin/bash
+# Interactive qart with stdlib preloaded
+# This version uses a named pipe to allow true interactive use
+
+HERE=$(dirname $0)
+
+cat $HERE/../src/stdlib.fth $@ $([ $# -eq 0 ] && echo "-") | $HERE/../out/qart
