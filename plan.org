@@ -1,5 +1,2 @@
 * stack
-** which flags does each thread need?
-STATE
-FLAGS
-OUTPUT
+** mais tests para CALL/CC
