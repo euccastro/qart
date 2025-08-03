@@ -1,6 +1,6 @@
 \ stdlib.fth - Standard library for qart Forth
 
-: ( 41 SCANC DROP ; ( Now we have paren comments!)
+: ( 41 SCANC DROP ; IMMED ( Now we have paren comments!)
 
 \ Stack manipulation words
 : NIP SWAP DROP ;

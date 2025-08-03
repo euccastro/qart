@@ -234,7 +234,7 @@ dict_WORD:
 
 dict_BACKSLASH:
   dq dict_WORD            ; Link to previous
-  db 1, 92, 0, 0, 0, 0, 0, 0 ; Name (ASCII code not to confuse emacs)
+  db 129, 92, 0, 0, 0, 0, 0, 0 ; Name (ASCII code not to confuse emacs) - IMMEDIATE (bit 7 set)
   dq BACKSLASH            ; Code field
 
 dict_SCANC:
