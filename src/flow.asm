@@ -159,3 +159,67 @@ CC_SIZE:
   sub DSP, 8
   mov [DSP], rax
   jmp NEXT
+
+  ;; RESTORE-CONT - Restore a continuation
+  ;; This is called when a continuation is executed
+  ;; IP points to the continuation object when this runs
+  ;; Continuation layout:
+  ;;   [IP+CONT_CODE]:        Code pointer to RESTORE-CONT (this code)
+  ;;   [IP+CONT_DATA_SIZE]:   Data stack depth in bytes
+  ;;   [IP+CONT_RETURN_SIZE]: Return stack depth in bytes
+  ;;   [IP+CONT_SAVED_IP]:    Saved IP
+  ;;   [IP+CONT_HEADER_SIZE]: Data stack contents
+  ;;   [IP+CONT_HEADER_SIZE+data_bytes]: Return stack contents
+RESTORE_CONT:
+  ;; IP points to the continuation object
+  ;; We'll preserve IP and use it as our base pointer
+  
+  ;; Load data stack depth (already in bytes)
+  mov rdx, [IP+CONT_DATA_SIZE]   ; RDX = data stack size in bytes
+  
+  ;; Restore data stack (always has at least cont-addr)
+  mov DSP, [TLS+TLS_DATA_BASE] ; Get base from descriptor
+  sub DSP, rdx              ; Make room on data stack
+  
+  ;; Copy data stack contents
+  mov rdi, DSP              ; Destination
+  lea rsi, [IP+CONT_HEADER_SIZE] ; Source (skip header)
+  ;; rdx already has byte count
+  call memcpy_forward       ; Copy the data
+  
+.restore_return_stack:
+  ;; Load return stack depth and restore
+  mov rdx, [IP+CONT_RETURN_SIZE] ; RDX = return stack size in bytes
+  mov RSTACK, [TLS+TLS_RETURN_BASE] ; Get base from descriptor
+  test rdx, rdx             ; Any return data to restore?
+  jz .restore_ip
+  
+  ;; Adjust RSTACK (rdx already has size in bytes)
+  sub RSTACK, rdx           ; Make room on return stack
+  
+  ;; Calculate source offset (header + data stack bytes)
+  mov rax, [IP+CONT_DATA_SIZE]   ; Data stack size in bytes
+  add rax, CONT_HEADER_SIZE      ; Add header size
+  
+  ;; Copy return stack contents
+  mov rdi, RSTACK           ; Destination
+  lea rsi, [IP+rax]         ; Source (IP + offset in rax)
+  ;; rdx already has byte count
+  call memcpy_forward       ; Copy the data
+  
+.restore_ip:
+  ;; Restore IP and continue
+  mov IP, [IP+CONT_SAVED_IP]     ; Load saved IP from continuation
+  jmp NEXT                  ; Continue execution
+
+  ;; Simple forward memcpy (used by RESTORE_CONT)
+  ;; RDI = dest, RSI = source, RDX = count
+  ;; Modifies: RCX, RDI, RSI (rep movsq increments RDI/RSI)
+memcpy_forward:
+  test rdx, rdx
+  jz .done
+  mov rcx, rdx
+  shr rcx, 3                ; Count of qwords
+  rep movsq                 ; Copy qwords
+.done:
+  ret
