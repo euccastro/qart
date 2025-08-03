@@ -138,12 +138,12 @@ ABORT_word:
   ;; ( -- n )
   ;; Returns bytes needed to capture current continuation state
 CC_SIZE:
-  ;; Fixed header size: 32 bytes
-  ;; +0:  Code pointer (8 bytes)
-  ;; +8:  Data stack depth in bytes (8 bytes)
-  ;; +16: Return stack depth in bytes (8 bytes)
-  ;; +24: Saved IP (8 bytes)
-  mov rax, 32               ; Start with header size
+  ;; Fixed header size: CONT_HEADER_SIZE bytes
+  ;; +CONT_CODE:        Code pointer (8 bytes)
+  ;; +CONT_DATA_SIZE:   Data stack depth in bytes (8 bytes)
+  ;; +CONT_RETURN_SIZE: Return stack depth in bytes (8 bytes)
+  ;; +CONT_SAVED_IP:    Saved IP (8 bytes)
+  mov rax, CONT_HEADER_SIZE      ; Start with header size
 
   ;; Calculate data stack depth
   mov rdx, [TLS+TLS_DATA_BASE]   ; Get data stack base from descriptor
