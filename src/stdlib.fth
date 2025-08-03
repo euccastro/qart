@@ -42,7 +42,3 @@
 \ XXX: error handling
 \ Skip single space after ."; print any spaces after that.
 : ." SOURCE@ 1+ 34 SCANC 1- TYPE ;
-
-\ Simple greeting to show stdlib loaded
-
-." Standard library loaded. Welcome to qart!" CR

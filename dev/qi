@@ -4,4 +4,10 @@
 
 HERE=$(dirname $0)
 
-cat $HERE/../src/stdlib.fth $@ $([ $# -eq 0 ] && echo "-") | $HERE/../out/qart
+if [ $# -eq 0 ]; then
+    # Interactive mode: load stdlib, enable prompts, then read from TTY
+    { cat $HERE/../src/stdlib.fth; echo " INTERAC "; cat -; } | $HERE/../out/qart
+else
+    # File mode: just load stdlib and files, no interaction
+    cat $HERE/../src/stdlib.fth "$@" | $HERE/../out/qart
+fi

@@ -36,4 +36,8 @@ clean:
 run: $(OUTDIR)/qart
 	$(OUTDIR)/qart
 
-.PHONY: all clean run
+# Run tests
+test: $(OUTDIR)/qart
+	dev/test.sh
+
+.PHONY: all clean run test

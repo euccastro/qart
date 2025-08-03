@@ -207,15 +207,16 @@ SCAN_CHAR:
     jmp .search_loop
     
 .found:
-    ; Calculate distance (found position - original position)
-    ; Note: distance is to the character, not past it
-    sub rsi, rdx
-    sub DSP, 8              ; Make room on stack
-    mov [DSP], rsi          ; Return distance
-
     ; Update input_position to AFTER found character
     inc rsi                 ; Move past the found character
     mov [input_position], rsi
+    
+    ; Calculate distance (found position - original position)
+    ; Note: distance is to the character, not past it
+    sub rsi, rdx
+    dec rsi                 ; Adjust since we incremented past
+    sub DSP, 8              ; Make room on stack
+    mov [DSP], rsi          ; Return distance
     jmp NEXT
     
 .not_found:

@@ -37,9 +37,11 @@ STATE: dq 0                                  ; 0 = interpret, non-zero = compile
   align 8
 OUTPUT: dq 1                                 ; 1 = stdout, 2 = stderr
 
-  ;; Debug and behavior flags (bit 0 = verbose ASSERT)
+  ;; Legacy FLAGS variable - for backwards compatibility only
+  ;; This is effectively the main thread's TLS->flags
+  ;; See memory.asm for the bit layout (same as thread-local flags)
   align 8
-FLAGS: dq 0                                  ; Bit flags for various behaviors
+FLAGS: dq 0                                  ; Legacy - use thread-local flags instead
 HERE:  dq dict_space
   
   
@@ -473,28 +475,35 @@ dict_LATEST:
   db 6, "LATEST", 0
   dq LATEST_word           ; Code field
 
+  ;; PROMPT ( -- ) Show prompt if interactive
+  align 8
+dict_PROMPT:
+  dq dict_LATEST
+  db 6, "PROMPT", 0
+  dq PROMPT
+
+  ;; BYE_MSG ( -- ) Show bye message if interactive  
+  align 8
+dict_BYE_MSG:
+  dq dict_PROMPT
+  db 7, "BYE-MSG"
+  dq BYE_MSG
+
   ;; QUIT ( -- ) Main interpreter loop
   align 8
 dict_QUIT:
-  dq dict_LATEST           ; Link to previous
+  dq dict_BYE_MSG           ; Link to previous
   db 4, "QUIT", 0, 0, 0   ; Name
   dq DOCOL                ; Colon definition
   .loop:
-  dq dict_LIT, '>'
-  dq dict_EMIT
-  dq dict_LIT, ' '
-  dq dict_EMIT
+  dq dict_PROMPT          ; Show prompt if interactive
   dq dict_REFILL
   dq dict_ZBRANCH, BRANCH_OFFSET(.bye)
   dq dict_INTERPRET
   dq dict_CR
   dq dict_BRANCH, BRANCH_OFFSET(.loop)
   .bye:
-  dq dict_CR
-  dq dict_LIT, bye_msg
-  dq dict_LIT, bye_msg_len
-  dq dict_TYPE
-  dq dict_CR
+  dq dict_BYE_MSG         ; Show bye message if interactive
   dq dict_EXIT
 
   ;; ABORT ( -- ) Clear stacks and jump to QUIT
@@ -754,9 +763,15 @@ dict_CALL_CC:
   db 7, "CALL/CC"
   dq CALL_CC
 
+  ;; INTERACT ( -- ) Enable interactive mode (prompts and bye message)
+dict_INTERACT:
+  dq dict_CALL_CC
+  db 7, "INTERAC"
+  dq INTERACT
+
 
   ;; LATEST points to the most recent word
-LATEST: dq dict_CALL_CC
+LATEST: dq dict_INTERACT
   
   align 8
 
@@ -850,6 +865,9 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern FLAGS_word
   extern HERE_word
   extern LATEST_word
+  extern INTERACT
+  extern PROMPT
+  extern BYE_MSG
   extern ABORT_word
   extern COMMA
   extern ALLOT

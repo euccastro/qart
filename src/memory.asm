@@ -156,7 +156,8 @@ IMMED:
   ;; Bit 0: STATE (0 = interpret, 1 = compile)
   ;; Bits 1-2: OUTPUT (0 = stdin, 1 = stdout, 2 = stderr)
   ;; Bit 3: DEBUG (verbose ASSERT output)
-  ;; Bits 4-63: Reserved
+  ;; Bit 4: INTERACTIVE (prompts and bye message)
+  ;; Bits 5-63: Reserved
 
   ;; STATE@ ( -- n )
   ;; Get current STATE (bit 0 of TLS->flags)
@@ -224,3 +225,41 @@ DEBUG_STORE:
   or rdx, rax             ; Set new bit 3
   mov [TLS+TLS_FLAGS], rdx ; Store back
   jmp NEXT
+
+  ;; INTERACT ( -- ) Enable interactive mode (bit 4 of TLS->flags)
+  global INTERACT
+INTERACT:
+  or qword [TLS+TLS_FLAGS], 16  ; Set bit 4 (16 = 10000b)
+  jmp NEXT
+
+  ;; PROMPT ( -- ) Show prompt if interactive (bit 4 of TLS->flags)
+  global PROMPT
+PROMPT:
+  test qword [TLS+TLS_FLAGS], 16  ; Test bit 4 (interactive mode)
+  jz .skip                         ; Skip if not interactive
+  ; Print "> " to stdout
+  mov rax, 1              ; sys_write
+  mov rdi, 1              ; stdout
+  mov rsi, prompt_text
+  mov rdx, 2              ; length
+  syscall
+.skip:
+  jmp NEXT
+
+prompt_text: db "> "
+
+  ;; BYE_MSG ( -- ) Show bye message if interactive (bit 4 of TLS->flags)
+  global BYE_MSG
+BYE_MSG:
+  test qword [TLS+TLS_FLAGS], 16  ; Test bit 4 (interactive mode)
+  jz .skip                         ; Skip if not interactive
+  ; Print "\nbye.\n" to stdout
+  mov rax, 1              ; sys_write
+  mov rdi, 1              ; stdout
+  mov rsi, bye_text
+  mov rdx, 6              ; length
+  syscall
+.skip:
+  jmp NEXT
+
+bye_text: db 10, "bye.", 10  ; newline, "bye.", newline

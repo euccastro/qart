@@ -182,8 +182,8 @@ thread_func:
 - Control flow: BRANCH, 0BRANCH (ZBRANCH) using branchless CMOVcc optimization
 - I/O: DOT (.) for decimal output, EMIT for character output, KEY for character input, TYPE for string output
 - Testing: ASSERT for unit test support (prints line:col on failure)
-- Output control: OUTPUT variable for stdout/stderr switching
-- Debug control: FLAGS variable (bit 0 = verbose ASSERT)
+- Output control: OUTPUT variable for stdout/stderr switching (now thread-local)
+- Debug control: Thread-local flags (bit 3 = verbose ASSERT)
 - EXECUTE for dynamic execution of words
 - Dictionary structure with 7-char names
 - FIND for dictionary lookups (returns dictionary pointer as execution token)
@@ -575,15 +575,32 @@ Moving toward Missionary-style functional effects with structured concurrency:
 - Bit 0: STATE (compile/interpret)
 - Bits 1-2: OUTPUT (stdin/stdout/stderr)  
 - Bit 3: DEBUG (verbose ASSERT)
-- Bits 4-63: Reserved
+- Bit 4: INTERACTIVE (prompts and bye message)
+- Bits 5-63: Reserved
 
 Each thread has its own descriptor (pointed to by TLS/R13), giving automatic thread-local behavior. Accessor words (STATE@/STATE!/OUTPUT@/OUTPUT!/DEBUG@/DEBUG!) provide clean interface.
+
+**Note**: The global FLAGS, STATE, and OUTPUT variables in qart.asm are legacy - they're effectively just the main thread's thread-local values. For the main thread, the thread descriptor is statically allocated at `main_thread_descriptor`. All flag operations should use the thread-local accessors or direct TLS+TLS_FLAGS access.
 
 ### Next Actions
 1. Additional stack words - ROT (done), -ROT, 2SWAP, NIP, TUCK
 2. Control flow - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
 3. Build synchronization library - Mutexes, semaphores, channels as Forth words using WAIT/WAKE
 
+## Interactive Mode
+
+The system supports both interactive and non-interactive execution:
+
+- **Interactive mode**: Enabled by the `INTERAC` word, which sets bit 4 of the thread-local FLAGS
+- **Prompts and messages**: The `PROMPT` and `BYE_MSG` words check the interactive flag and only display when in interactive mode
+- **dev/qi usage**: 
+  - `dev/qi` (no arguments) - Interactive mode with stdlib preloaded
+  - `dev/qi file1.fth file2.fth ...` - Run files non-interactively with stdlib
+  - **Note**: Piping input to dev/qi is not supported - use `out/qart` directly for piped input
+
 ## Memories
 
-- Never use `out/qart < somefile.fth` for redirecting input in tests.  It doesn't work, for some reason. Use `cat somefile.th | out/qart` instead.
+- Never use `out/qart < somefile.fth` for redirecting input in tests.  It doesn't work, for some reason. Use `cat somefile.fth | out/qart` instead.
+- The global FLAGS, STATE, and OUTPUT variables are legacy - they're just the main thread's thread-local values
+- Thread-local flags are accessed via TLS (R13) pointer to the thread descriptor
+- INTERAC word enables interactive mode by setting bit 4 of thread-local FLAGS
