@@ -187,14 +187,11 @@ RESTORE_CONT:
   ;; rdx already has byte count
   call memcpy_forward       ; Copy the data
   
-.restore_return_stack:
   ;; Load return stack depth and restore
   mov rdx, [IP+CONT_RETURN_SIZE] ; RDX = return stack size in bytes
   mov RSTACK, [TLS+TLS_RETURN_BASE] ; Get base from descriptor
-  test rdx, rdx             ; Any return data to restore?
-  jz .restore_ip
   
-  ;; Adjust RSTACK (rdx already has size in bytes)
+  ;; Adjust RSTACK (rdx has size in bytes, always non-zero)
   sub RSTACK, rdx           ; Make room on return stack
   
   ;; Calculate source offset (header + data stack bytes)
@@ -207,7 +204,6 @@ RESTORE_CONT:
   ;; rdx already has byte count
   call memcpy_forward       ; Copy the data
   
-.restore_ip:
   ;; Restore IP and continue
   mov IP, [IP+CONT_SAVED_IP]     ; Load saved IP from continuation
   jmp NEXT                  ; Continue execution
