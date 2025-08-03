@@ -473,5 +473,3 @@ CC-SIZE 48 = ASSERT
 CC-SIZE 88 = ASSERT
 \ 48 (baseline) + 40 (five data items)
 2DROP 2DROP DROP
-
-WORD Done. TYPE CR
