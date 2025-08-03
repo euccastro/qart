@@ -130,9 +130,7 @@ THREAD:
     mov RSTACK, [TLS+TLS_RETURN_BASE]
     mov DSP, [TLS+TLS_DATA_BASE]
     
-    ; Push mmap base address onto data stack
-    sub DSP, 8
-    mov [DSP], rbp
+    ; No need to push mmap base - TLS points to it!
     
     ; Build mini "program" after the descriptor (at offset 32):
     ; - User's xt
@@ -150,12 +148,12 @@ THREAD:
     jmp NEXT
 
 ;; THREAD_CLEANUP - Internal cleanup routine for threads
-;; ( mmap-base -- )
+;; ( -- )
 ;; Unmaps thread stacks and exits thread
 THREAD_CLEANUP:
     ; When thread's word returns, we end up here
-    ; Data stack has mmap base address
-    mov rdi, [DSP]          ; Get base address
+    ; TLS points to our descriptor which IS at the mmap base
+    mov rdi, TLS            ; TLS is the mmap base address
     mov rsi, 8192           ; Size we allocated
     mov rax, SYS_munmap
     syscall
