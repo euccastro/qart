@@ -188,19 +188,16 @@ CALL_CC:
   ;; Store IP (pointing to instruction AFTER CALL/CC)
   mov [rdi+CONT_SAVED_IP], IP     ; Save where to continue
   
-  ;; Copy data stack (if any, excluding cont-addr and xt)
+  ;; Copy data stack (excluding cont-addr and xt)
   mov rcx, [rdi+CONT_DATA_SIZE]
-  test rcx, rcx
-  jz .copy_return_stack
-  
-  ;; Copy data stack contents
   lea rsi, [DSP+16]                ; Source: skip cont-addr and xt
-  lea rdx, [rdi+CONT_HEADER_SIZE]  ; Destination in continuation
-  shr rcx, 3                        ; Convert bytes to qwords
-  rep movsq                         ; Copy the data
+  push rdi                          ; Save continuation pointer
+  lea rdi, [rdi+CONT_HEADER_SIZE]  ; Destination in continuation
+  shr rcx, 3                        ; Convert bytes to qwords (0 if empty)
+  rep movsq                         ; Copy the data (no-op if RCX=0)
   
-.copy_return_stack:
   ;; Copy return stack (always has something - at least cleanup)
+  pop rdi                           ; Restore continuation pointer
   mov rcx, [rdi+CONT_RETURN_SIZE]
   mov rsi, RSTACK                   ; Source
   lea rdx, [rdi+CONT_HEADER_SIZE]  ; Start of data area
@@ -228,9 +225,9 @@ CALL_CC:
   ;;   [IP+CONT_HEADER_SIZE]: Data stack contents
   ;;   [IP+CONT_HEADER_SIZE+data_bytes]: Return stack contents
 RESTORE_CONT:
-  ;; IP points to the continuation object
-  ;; Stack has value to pass to continuation
-  ;; We'll preserve IP and use it as our base pointer
+  ;; This IS the continuation - directly executable like any word
+  ;; IP points to our continuation object structure
+  ;; Stack has value to pass (user error if empty, like . on empty stack)
   
   ;; Save the value to pass to the continuation
   mov rbx, [DSP]          ; RBX = value to pass
@@ -242,15 +239,13 @@ RESTORE_CONT:
   mov DSP, [TLS+TLS_DATA_BASE] ; Get base from descriptor
   sub DSP, rdx              ; Make room on data stack
   
-  ;; Copy data stack contents (if any)
-  test rdx, rdx
-  jz .push_value
+  ;; Copy data stack contents
+  mov rcx, rdx              ; RCX = byte count
   mov rdi, DSP              ; Destination
   lea rsi, [IP+CONT_HEADER_SIZE] ; Source (skip header)
-  ;; rdx already has byte count
-  call memcpy_forward       ; Copy the data
+  shr rcx, 3                ; Convert to qwords (0 if empty)
+  rep movsq                 ; Copy the data (no-op if RCX=0)
   
-.push_value:
   ;; Push the passed value onto restored stack
   sub DSP, 8
   mov [DSP], rbx          ; Push the value
@@ -267,23 +262,12 @@ RESTORE_CONT:
   add rax, CONT_HEADER_SIZE      ; Add header size
   
   ;; Copy return stack contents
+  mov rcx, rdx              ; RCX = byte count
   mov rdi, RSTACK           ; Destination
   lea rsi, [IP+rax]         ; Source (IP + offset in rax)
-  ;; rdx already has byte count
-  call memcpy_forward       ; Copy the data
+  shr rcx, 3                ; Convert to qwords
+  rep movsq                 ; Copy the data
   
   ;; Restore IP and continue
   mov IP, [IP+CONT_SAVED_IP]     ; Load saved IP from continuation
   jmp NEXT                  ; Continue execution
-
-  ;; Simple forward memcpy (used by RESTORE_CONT)
-  ;; RDI = dest, RSI = source, RDX = count
-  ;; Modifies: RCX, RDI, RSI (rep movsq increments RDI/RSI)
-memcpy_forward:
-  test rdx, rdx
-  jz .done
-  mov rcx, rdx
-  shr rcx, 3                ; Count of qwords
-  rep movsq                 ; Copy qwords
-.done:
-  ret
