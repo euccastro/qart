@@ -263,3 +263,19 @@ BYE_MSG:
   jmp NEXT
 
 bye_text: db 10, "bye.", 10  ; newline, "bye.", newline
+
+  ;; IACR ( -- ) Output CR only if interactive (bit 4 of TLS->flags)
+  global IACR
+IACR:
+  test qword [TLS+TLS_FLAGS], 16  ; Test bit 4 (interactive mode)
+  jz .skip                         ; Skip if not interactive
+  ; Print newline to stdout
+  mov rax, 1              ; sys_write
+  mov rdi, 1              ; stdout
+  mov rsi, iacr_newline
+  mov rdx, 1              ; length
+  syscall
+.skip:
+  jmp NEXT
+
+iacr_newline: db 10      ; just a newline

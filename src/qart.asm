@@ -489,10 +489,17 @@ dict_BYE_MSG:
   db 7, "BYE-MSG"
   dq BYE_MSG
 
+  ;; IACR ( -- ) Output CR only if interactive
+  align 8  
+dict_IACR:
+  dq dict_BYE_MSG
+  db 4, "IACR", 0, 0, 0
+  dq IACR
+
   ;; QUIT ( -- ) Main interpreter loop
   align 8
 dict_QUIT:
-  dq dict_BYE_MSG           ; Link to previous
+  dq dict_IACR           ; Link to previous
   db 4, "QUIT", 0, 0, 0   ; Name
   dq DOCOL                ; Colon definition
   .loop:
@@ -500,7 +507,7 @@ dict_QUIT:
   dq dict_REFILL
   dq dict_ZBRANCH, BRANCH_OFFSET(.bye)
   dq dict_INTERPRET
-  dq dict_CR
+  dq dict_IACR                  ; CR if interactive
   dq dict_BRANCH, BRANCH_OFFSET(.loop)
   .bye:
   dq dict_BYE_MSG         ; Show bye message if interactive
@@ -868,6 +875,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern INTERACT
   extern PROMPT
   extern BYE_MSG
+  extern IACR
   extern ABORT_word
   extern COMMA
   extern ALLOT
