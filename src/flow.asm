@@ -208,11 +208,8 @@ CALL_CC:
   
   ;; Now execute the function with cont-addr on stack
   ;; Stack currently has: cont-addr xt
-  ;; We want: cont-addr (and execute xt)
-  add DSP, 8              ; Drop xt, leave cont-addr
-  mov rdx, rbx            ; RDX = dictionary pointer (xt)
-  mov rax, [rdx+16]       ; Get code field from dict entry
-  jmp rax                 ; Execute the function
+  ;; EXECUTE will pop xt and execute it, leaving cont-addr
+  jmp EXECUTE
 
   ;; RESTORE-CONT - Restore a continuation
   ;; This is called when a continuation is executed

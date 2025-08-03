@@ -11,7 +11,7 @@ This is a hobby project exploring x86_64 assembly programming with the goal of b
 - Persistent data structures
 - Host interfacing for graphical desktop applications
 
-Currently preparing to implement OS-level threading (clone/futex) as the foundation for structured concurrency and Missionary-style task composition.
+Currently building on our OS-level threading (clone/futex) foundation with full continuation support (CALL/CC) for structured concurrency and Missionary-style task composition.
 
 ## Development Environment
 
@@ -78,7 +78,7 @@ The project is organized to separate source code, development tools, documentati
   - Dictionary-based NEXT inner interpreter (ITC model)
   - Data stack with DSP in R15
   - Return stack with RSTACK in R14
-  - Instruction pointer (IP) in RBX
+  - Instruction pointer (IP) in R12
   - Dictionary structure with linked list
   - DOCOL runtime for colon definitions
   - Core primitives: LIT, DUP, DROP, ADD, >R, R>, R@, @, !, C@, C!, DOT (.), EXIT, EXECUTE, FIND, NUMBER, REFILL, WORD, SP@ (stack pointer fetch)
@@ -107,11 +107,12 @@ The project is organized to separate source code, development tools, documentati
 
 ## Register Usage
 
-Please maintain `doc/register-cheatsheet.md` as we use more registers. When implementing new functionality:
-1. Check the cheatsheet before choosing registers
-2. Update the "Our Usage" column when dedicating a register
-3. Add new registers to the "Used in Our Forth Implementation" section
-4. Document why each register choice was made (required vs arbitrary)
+- **R12 (IP)**: Instruction Pointer - points to next word to execute
+- **R13 (TLS)**: Thread Local Storage - points to thread descriptor
+- **R14 (RSTACK)**: Return Stack Pointer
+- **R15 (DSP)**: Data Stack Pointer
+
+Please maintain `doc/register-cheatsheet.md` as we use more registers.
 
 ## System Call Documentation
 
@@ -207,12 +208,14 @@ thread_func:
 - **CLOCK@**: High-resolution monotonic time
 - **SLEEP**: Nanosecond-precision sleep
 - **Thread-local state accessors**: STATE@/!, OUTPUT@/!, DEBUG@/!
-- **CC-SIZE**: Calculate memory needed for continuations (preparation for CALL/CC)
+- **CC-SIZE**: Calculate memory needed for continuations
+- **CALL/CC**: Scheme-style call-with-current-continuation (fully implemented!)
 
 ### Immediate Next Steps
 1. **Additional stack words** - -ROT, 2SWAP, NIP, TUCK
 2. **Control flow structures** - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
 3. **Build synchronization library** - Mutexes, semaphores, channels as Forth words using WAIT/WAKE
+4. **Test continuation support** - Write tests for CC-SIZE, CALL/CC, and continuation execution
 
 ### Threading API Design
 
@@ -258,7 +261,7 @@ WAKE ( addr n -- n' )       \ Wake n waiters, return number woken
 4. Low-level networking - raw socket programming for future distributed computing
 5. Host interfacing for graphical desktop applications
 
-## Continuations Design (Complete, Implementation Postponed)
+## Continuations Design (Implemented!)
 
 ### CALL/CC Implementation Plan
 
@@ -347,7 +350,36 @@ CALL/CC ( cont-addr xt -- cont-addr )  \ Captures into user-provided buffer
 - No hidden allocations or GC needed
 - Very Forth-like explicit memory management
 
-**Implementation status**: Design complete, implementation postponed to focus on higher-level concurrency abstractions first.
+**Implementation status**: Fully implemented! Both CC-SIZE and CALL/CC are working.
+
+### Key Implementation Details
+
+**Thread Local Storage (TLS) Architecture**:
+- All threads now use a thread descriptor pointed to by R13 (TLS)
+- Descriptor contains: flags, data stack base, return stack base, cleanup function
+- This makes continuations portable across threads
+
+**Continuation as Executable Words**:
+- Continuations are directly executable - just like normal Forth words
+- A continuation captures the state and can be invoked with a value: `77 K`
+- No need for EXECUTE - continuations have RESTORE_CONT as their code field
+
+**Memory Layout**:
+```
+Thread Descriptor (32 bytes):
+  +0:  FLAGS (STATE, OUTPUT, DEBUG packed as bits)
+  +8:  Data stack base address
+  +16: Return stack base address  
+  +24: Cleanup function pointer
+
+Continuation Object:
+  +0:  Code pointer (to RESTORE_CONT)
+  +8:  Data stack size in bytes
+  +16: Return stack size in bytes
+  +24: Saved IP
+  +32: Data stack contents
+  +?:  Return stack contents
+```
 
 ## Structured Concurrency Design (Current Focus)
 
@@ -388,6 +420,11 @@ Moving toward Missionary-style functional effects with structured concurrency:
 ## Implementation Notes
 
 ### Key Implementation Learnings
+
+#### Thread Local Storage
+- **TLS via R13**: All threads use R13 to point to their thread descriptor
+- **Portable continuations**: Stack bases from descriptor enable cross-thread continuations
+- **Unified cleanup**: All threads (main and child) have cleanup functions in descriptor
 
 #### Core Architecture
 - **Execution tokens are dictionary pointers**: Not CFAs! This unifies threaded code and EXECUTE semantics
@@ -446,8 +483,8 @@ Moving toward Missionary-style functional effects with structured concurrency:
 7. **Dictionary name field syntax**: Must use commas between all elements! `db 1, "'", 0, 0, 0, 0, 0, 0` not `db 1 "'", 0, 0, 0, 0, 0, 0`. Missing commas cause incorrect assembly and dictionary misalignment.
 8. **Data alignment**: Multi-word structures (timespec, futex vars, etc.) should be explicitly aligned with `align 8` or `align 4`. x86-64 tolerates misalignment but it hurts performance and isn't portable.
 9. **sys_clone behavior with stacks**: The child gets a NEW stack pointer (passed in RSI), so push/pop around sys_clone only affects parent. Child must calculate its own values from its stack pointer.
-10. **Callee-saved registers inherit across clone**: R12-R15, RBX, RBP all preserve their values in the child. RBP ideal for passing mmap base (though we push/pop defensively for C interop).
-11. **Thread-local state via R13**: Using bit fields in R13 gives automatic thread-local STATE/OUTPUT/DEBUG without any memory access or synchronization overhead.
+10. **Callee-saved registers inherit across clone**: R12-R15, RBX, RBP all preserve their values in the child. We use RBP to pass mmap base to child thread.
+11. **Thread-local state via TLS**: R13 points to thread descriptor containing FLAGS field with STATE/OUTPUT/DEBUG as bit fields.
 
 ### Development Approach
 **Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.
@@ -497,13 +534,14 @@ Moving toward Missionary-style functional effects with structured concurrency:
 ### Threading Implementation - COMPLETE!
 - **THREAD primitive working**: Creates OS threads with clone() that share memory via CLONE_VM
 - **Stack layout per thread** (8KB total):
-  - Bottom 3KB: Return stack
-  - Middle 4KB: Data stack  
-  - Top 1KB: System stack
-- **Execution model**: Thread executes mini-program `[user_xt, dict_THREAD_CLEANUP]`
-- **Automatic cleanup**: THREAD_CLEANUP unmaps memory when thread exits
-- **Thread-local flags via R13**: Each thread has its own STATE/OUTPUT/DEBUG in R13 bit fields
-- **Clean register usage**: Uses RBP (callee-saved) for mmap base, with defensive push/pop for C interop safety
+  - First 32 bytes: Thread descriptor
+  - Next 3KB: Return stack (grows down from +3072)
+  - Next 4KB: Data stack (grows down from +7168)
+  - Remaining: System stack
+- **Execution model**: Thread executes mini-program `[user_xt, dict_THREAD_EXIT]`
+- **Automatic cleanup**: THREAD_EXIT calls thread-local cleanup function from descriptor
+- **Thread-local state**: Each thread has its own descriptor with FLAGS field
+- **TLS architecture**: R13 points to thread descriptor for all flag/stack access
 
 ### Timing and Synchronization Primitives
 - **CLOCK@ ( -- seconds nanoseconds )**: Returns monotonic time via clock_gettime(CLOCK_MONOTONIC)
@@ -516,13 +554,13 @@ Moving toward Missionary-style functional effects with structured concurrency:
 - **< (LESS_THAN)**: Added for time comparisons in tests
 
 ### Thread-Local State - COMPLETE!
-**Solution implemented**: STATE, OUTPUT, and FLAGS are now packed into R13 as bit fields:
+**Solution implemented**: STATE, OUTPUT, and FLAGS are now stored in the thread descriptor's FLAGS field:
 - Bit 0: STATE (compile/interpret)
 - Bits 1-2: OUTPUT (stdin/stdout/stderr)  
 - Bit 3: DEBUG (verbose ASSERT)
 - Bits 4-63: Reserved
 
-This gives automatic thread-local behavior since each thread has its own R13. Accessor words (STATE@/STATE!/OUTPUT@/OUTPUT!/DEBUG@/DEBUG!) provide clean interface.
+Each thread has its own descriptor (pointed to by TLS/R13), giving automatic thread-local behavior. Accessor words (STATE@/STATE!/OUTPUT@/OUTPUT!/DEBUG@/DEBUG!) provide clean interface.
 
 ### Next Actions
 1. Additional stack words - ROT (done), -ROT, 2SWAP, NIP, TUCK
