@@ -17,6 +17,7 @@
   global HERE_word
   global LATEST_word
   global COMMA
+  global ALLOT
   global IMMED_TEST
   global IMMED
   global STATE_FETCH
@@ -124,6 +125,13 @@ COMMA:
   mov rdx, [HERE]      ; get current dictionary pointer
   mov [rdx], rax       ; store value at dictionary pointer
   add qword [HERE], 8  ; advance HERE
+  jmp NEXT
+
+  ;; ALLOT ( n -- ) Allocate n bytes in dictionary
+ALLOT:
+  mov rax, [DSP]          ; Get number of bytes to allocate
+  add DSP, 8              ; Drop it
+  add [HERE], rax         ; Advance HERE by n bytes
   jmp NEXT
 
   ;; IMMED? ( xt -- flag ) Test if word is immediate

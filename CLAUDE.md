@@ -197,7 +197,7 @@ thread_func:
 - Tick operator (') for getting execution tokens without executing
 - Line tracking: LINE# and COL# for debugging support
 - Comments: \ (BACKSLASH) for rest-of-line comments
-- **Dictionary building**: HERE @, LATEST @, , (comma) for compilation
+- **Dictionary building**: HERE @, LATEST @, , (comma) for compilation, ALLOT for space allocation
 - **CREATE**: Creates new dictionary entries with DOCREATE runtime
 - **Immediate words**: IMMED to set immediate flag, IMMED? to test it
 - **Colon compiler**: : and ; for defining new words! 
@@ -566,3 +566,7 @@ Each thread has its own descriptor (pointed to by TLS/R13), giving automatic thr
 1. Additional stack words - ROT (done), -ROT, 2SWAP, NIP, TUCK
 2. Control flow - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
 3. Build synchronization library - Mutexes, semaphores, channels as Forth words using WAIT/WAKE
+
+## Memories
+
+- Never use `out/qart < somefile.fth` for redirecting input in tests.  It doesn't work, for some reason. Use `cat somefile.th | out/qart` instead.

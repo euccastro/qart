@@ -545,8 +545,13 @@ dict_COMMA:
   db 1, ",", 0, 0, 0, 0, 0, 0
   dq COMMA
 
-dict_CREATE:
+dict_ALLOT:
   dq dict_COMMA
+  db 5, "ALLOT", 0, 0
+  dq ALLOT
+
+dict_CREATE:
+  dq dict_ALLOT
   db 6, "CREATE", 0
   dq DOCOL
 
@@ -835,6 +840,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern LATEST_word
   extern ABORT_word
   extern COMMA
+  extern ALLOT
   extern IMMED_TEST
   extern IMMED
   extern STATE_FETCH
