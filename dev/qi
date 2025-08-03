@@ -8,6 +8,12 @@ if [ $# -eq 0 ]; then
     # Interactive mode: load stdlib, enable prompts, then read from TTY
     { cat $HERE/../src/stdlib.fth; echo " INTERAC "; cat -; } | $HERE/../out/qart
 else
-    # File mode: just load stdlib and files, no interaction
-    cat $HERE/../src/stdlib.fth "$@" | $HERE/../out/qart
+    # File mode: load stdlib and files with spaces between to prevent word joining
+    {
+        cat $HERE/../src/stdlib.fth
+        for file in "$@"; do
+            echo " "  # Add space separator between files
+            cat "$file"
+        done
+    } | $HERE/../out/qart
 fi
