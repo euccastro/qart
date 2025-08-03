@@ -1,5 +1,7 @@
 \ stdlib.fth - Standard library for qart Forth
 
+: ( 41 SCANC DROP ; ( Now we have paren comments!)
+
 \ Stack manipulation words
 : NIP SWAP DROP ;
 : TUCK SWAP OVER ;
@@ -37,8 +39,10 @@
 : SPACE 32 EMIT ;
 : BL 32 ;
 
+\ XXX: error handling
+\ Skip single space after ."; print any spaces after that.
+: ." SOURCE@ 1+ 34 SCANC 1- TYPE ;
+
 \ Simple greeting to show stdlib loaded
-CR 
-115 EMIT 116 EMIT 100 EMIT 108 EMIT 105 EMIT 98 EMIT 32 EMIT 
-108 EMIT 111 EMIT 97 EMIT 100 EMIT 101 EMIT 100 EMIT 
-CR
+
+." Standard library loaded. Welcome to qart!" CR

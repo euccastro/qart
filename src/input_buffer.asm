@@ -8,6 +8,7 @@ global REFILL
 global BACKSLASH
 global PARSE_WORD
 global SCAN_CHAR
+global SOURCE_FETCH
 
 extern input_buffer
 extern input_length
@@ -161,6 +162,18 @@ PARSE_WORD:
     mov qword [DSP], 0          ; Length = 0
     jmp NEXT
 
+; SOURCE@ ( -- addr )
+; Push address of current position in input buffer
+SOURCE_FETCH:
+    ; Calculate current position address
+    mov rax, input_buffer
+    add rax, [input_position]
+    
+    ; Push address onto stack
+    sub DSP, 8
+    mov [DSP], rax
+    jmp NEXT
+
 ; SCAN_CHAR ( char -- n )
 ; Search for character in input buffer starting from current position
 ; If found: advance input_position to that character and return distance
@@ -194,13 +207,15 @@ SCAN_CHAR:
     jmp .search_loop
     
 .found:
-    ; Update input_position to found character
-    mov [input_position], rsi
-    
     ; Calculate distance (found position - original position)
+    ; Note: distance is to the character, not past it
     sub rsi, rdx
     sub DSP, 8              ; Make room on stack
     mov [DSP], rsi          ; Return distance
+
+    ; Update input_position to AFTER found character
+    inc rsi                 ; Move past the found character
+    mov [input_position], rsi
     jmp NEXT
     
 .not_found:
