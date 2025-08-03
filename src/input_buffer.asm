@@ -7,6 +7,7 @@ section .text
 global REFILL
 global BACKSLASH
 global PARSE_WORD
+global SCAN_CHAR
 
 extern input_buffer
 extern input_length
@@ -158,4 +159,53 @@ PARSE_WORD:
     mov qword [DSP], 0          ; Address = 0
     sub DSP, 8
     mov qword [DSP], 0          ; Length = 0
+    jmp NEXT
+
+; SCAN_CHAR ( char -- n )
+; Search for character in input buffer starting from current position
+; If found: advance input_position to that character and return distance
+; If not found: leave input_position unchanged and return -1
+SCAN_CHAR:
+    ; Get character to search for
+    mov rax, [DSP]          ; Get the value from stack
+    add DSP, 8              ; Pop the stack
+    ; Character is in AL (low byte of RAX)
+    
+    ; Get current position and length
+    mov rsi, [input_position]   ; Current position
+    mov rcx, [input_length]     ; Total length
+    
+    ; Save starting position
+    mov rdx, rsi                ; Save original position
+    
+    ; Set up pointer to current position
+    mov rdi, input_buffer
+    add rdi, rsi                ; Point to current position
+    
+.search_loop:
+    cmp rsi, rcx
+    jge .not_found              ; Reached end without finding
+    
+    cmp byte [rdi], al          ; Compare with target character
+    je .found                   ; Found it!
+    
+    inc rsi                     ; Advance position
+    inc rdi                     ; Advance pointer
+    jmp .search_loop
+    
+.found:
+    ; Update input_position to found character
+    mov [input_position], rsi
+    
+    ; Calculate distance (found position - original position)
+    sub rsi, rdx
+    sub DSP, 8              ; Make room on stack
+    mov [DSP], rsi          ; Return distance
+    jmp NEXT
+    
+.not_found:
+    ; Leave input_position unchanged (it's still at rdx value)
+    ; Return -1
+    sub DSP, 8              ; Make room on stack
+    mov qword [DSP], -1
     jmp NEXT

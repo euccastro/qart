@@ -235,8 +235,13 @@ dict_BACKSLASH:
   db 1, 92, 0, 0, 0, 0, 0, 0 ; Name (ASCII code not to confuse emacs)
   dq BACKSLASH            ; Code field
 
-dict_LINE_NUMBER_FETCH:
+dict_SCANC:
   dq dict_BACKSLASH       ; Link to previous
+  db 5, "SCANC", 0, 0    ; Name
+  dq SCAN_CHAR            ; Code field
+
+dict_LINE_NUMBER_FETCH:
+  dq dict_SCANC           ; Link to previous
   db 5, "LINE#", 0, 0    ; Name
   dq LINE_NUMBER_FETCH   ; Code field
 
@@ -830,6 +835,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern REFILL
   extern PARSE_WORD
   extern BACKSLASH
+  extern SCAN_CHAR
   extern LINE_NUMBER_FETCH
   extern COLUMN_NUMBER_FETCH
   extern TYPE
