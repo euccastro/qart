@@ -33,7 +33,8 @@
       "Bash(chmod:*)",
       "Bash(dev/test.sh:*)",
       "Bash(dev/test-thread.sh:*)",
-      "Bash(dev/test-verbose.sh:*)"
+      "Bash(dev/test-verbose.sh:*)",
+      "Bash(./dev/test-cont.sh:*)"
     ],
     "deny": []
   }
