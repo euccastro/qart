@@ -733,9 +733,15 @@ dict_CC_SIZE:
   db 7, "CC-SIZE"
   dq CC_SIZE
 
+extern CALL_CC
+dict_CALL_CC:
+  dq dict_CC_SIZE
+  db 7, "CALL/CC"
+  dq CALL_CC
+
 
   ;; LATEST points to the most recent word
-LATEST: dq dict_CC_SIZE
+LATEST: dq dict_CALL_CC
   
   align 8
 

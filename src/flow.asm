@@ -38,6 +38,7 @@ abort_program:
   global ZBRANCH
   global ABORT_word
   global CC_SIZE
+  global CALL_CC
   global dict_SYSEXIT
   global dict_THREAD_EXIT
   global RESTORE_CONT
@@ -160,6 +161,62 @@ CC_SIZE:
   mov [DSP], rax
   jmp NEXT
 
+  ;; CALL/CC - Call with current continuation
+  ;; ( cont-addr xt -- cont-addr )
+  ;; Captures current continuation into buffer at cont-addr,
+  ;; then calls xt with cont-addr on stack
+CALL_CC:
+  ;; Stack has: cont-addr xt
+  mov rbx, [DSP]          ; RBX = xt to call
+  mov rdi, [DSP+8]        ; RDI = buffer for continuation
+  
+  ;; Fill in continuation header
+  mov rax, RESTORE_CONT
+  mov [rdi+CONT_CODE], rax        ; Code pointer
+  
+  ;; Calculate and store data stack depth (excluding cont-addr and xt)
+  mov rax, [TLS+TLS_DATA_BASE]
+  sub rax, DSP
+  sub rax, 16                      ; Exclude the two args
+  mov [rdi+CONT_DATA_SIZE], rax   ; Store data stack size
+  
+  ;; Calculate and store return stack depth
+  mov rax, [TLS+TLS_RETURN_BASE]
+  sub rax, RSTACK
+  mov [rdi+CONT_RETURN_SIZE], rax ; Store return stack size
+  
+  ;; Store IP (pointing to instruction AFTER CALL/CC)
+  mov [rdi+CONT_SAVED_IP], IP     ; Save where to continue
+  
+  ;; Copy data stack (if any, excluding cont-addr and xt)
+  mov rcx, [rdi+CONT_DATA_SIZE]
+  test rcx, rcx
+  jz .copy_return_stack
+  
+  ;; Copy data stack contents
+  lea rsi, [DSP+16]                ; Source: skip cont-addr and xt
+  lea rdx, [rdi+CONT_HEADER_SIZE]  ; Destination in continuation
+  shr rcx, 3                        ; Convert bytes to qwords
+  rep movsq                         ; Copy the data
+  
+.copy_return_stack:
+  ;; Copy return stack (always has something - at least cleanup)
+  mov rcx, [rdi+CONT_RETURN_SIZE]
+  mov rsi, RSTACK                   ; Source
+  lea rdx, [rdi+CONT_HEADER_SIZE]  ; Start of data area
+  add rdx, [rdi+CONT_DATA_SIZE]    ; Skip past data stack contents
+  mov rdi, rdx                      ; Destination for return stack
+  shr rcx, 3                        ; Convert bytes to qwords
+  rep movsq                         ; Copy the data
+  
+  ;; Now execute the function with cont-addr on stack
+  ;; Stack currently has: cont-addr xt
+  ;; We want: cont-addr (and execute xt)
+  add DSP, 8              ; Drop xt, leave cont-addr
+  mov rdx, rbx            ; RDX = dictionary pointer (xt)
+  mov rax, [rdx+16]       ; Get code field from dict entry
+  jmp rax                 ; Execute the function
+
   ;; RESTORE-CONT - Restore a continuation
   ;; This is called when a continuation is executed
   ;; IP points to the continuation object when this runs
@@ -172,20 +229,31 @@ CC_SIZE:
   ;;   [IP+CONT_HEADER_SIZE+data_bytes]: Return stack contents
 RESTORE_CONT:
   ;; IP points to the continuation object
+  ;; Stack has value to pass to continuation
   ;; We'll preserve IP and use it as our base pointer
+  
+  ;; Save the value to pass to the continuation
+  mov rbx, [DSP]          ; RBX = value to pass
   
   ;; Load data stack depth (already in bytes)
   mov rdx, [IP+CONT_DATA_SIZE]   ; RDX = data stack size in bytes
   
-  ;; Restore data stack (always has at least cont-addr)
+  ;; Restore data stack
   mov DSP, [TLS+TLS_DATA_BASE] ; Get base from descriptor
   sub DSP, rdx              ; Make room on data stack
   
-  ;; Copy data stack contents
+  ;; Copy data stack contents (if any)
+  test rdx, rdx
+  jz .push_value
   mov rdi, DSP              ; Destination
   lea rsi, [IP+CONT_HEADER_SIZE] ; Source (skip header)
   ;; rdx already has byte count
   call memcpy_forward       ; Copy the data
+  
+.push_value:
+  ;; Push the passed value onto restored stack
+  sub DSP, 8
+  mov [DSP], rbx          ; Push the value
   
   ;; Load return stack depth and restore
   mov rdx, [IP+CONT_RETURN_SIZE] ; RDX = return stack size in bytes
