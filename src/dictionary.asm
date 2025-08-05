@@ -32,7 +32,7 @@ FIND:
     
     ; Compare lengths first
     movzx rax, byte [rdi+8] ; Get word's length
-    and rax, 0x7F           ; Mask off immediate bit
+    and rax, NAME_LENGTH_MASK ; Mask off immediate and compile-only bits
     cmp rax, rcx
     jne .next_word
     

@@ -193,7 +193,7 @@ dict_SP_FETCH:
 
 dict_LIT:
   dq dict_SP_FETCH
-  db 3, "LIT", 0, 0, 0, 0
+  db 67, "LIT", 0, 0, 0, 0  ; 3 | COMPILE_ONLY_FLAG = 67
   dq LIT
 
   ;; Test colon definition: DOUBLE ( n -- n*2 ) 
@@ -214,12 +214,12 @@ dict_EXECUTE:
 
 dict_BRANCH:
   dq dict_EXECUTE
-  db 6, "BRANCH", 0
+  db 70, "BRANCH", 0       ; 6 | COMPILE_ONLY_FLAG = 70
   dq BRANCH
 
 dict_ZBRANCH:
   dq dict_BRANCH
-  db 7, "0BRANCH"
+  db 71, "0BRANCH"         ; 7 | COMPILE_ONLY_FLAG = 71
   dq ZBRANCH
 
 dict_REFILL:
@@ -331,6 +331,10 @@ dict_ERRCR:
 unknown_word_msg: db "Unknown word: "
   unknown_word_msg_len equ 14
 
+  ;; Error message for compile-only word
+compile_only_msg: db "Interpreting compile-only word: "
+  compile_only_msg_len equ 32
+
   ;; INTERPRET ( -- ) Process words from input buffer
   align 8
 dict_INTERPRET:
@@ -347,9 +351,42 @@ dict_INTERPRET:
   dq dict_FIND            ; ( xt 1 | c-addr u 0 )
   dq dict_ZBRANCH, BRANCH_OFFSET(.try_number)       ; If not found, skip to .try_number
   
-  ;; Found - execute it
+  ;; Found - check if compile-only in interpret mode
+  dq dict_DUP             ; ( xt xt )
+  dq dict_LIT, 8          ; ( xt xt 8 )
+  dq dict_ADD             ; ( xt name-field-addr )
+  dq dict_C_FETCH         ; ( xt length-byte )
+  dq dict_LIT, COMPILE_ONLY_FLAG ; ( xt length-byte 0x40 )
+  dq dict_AND             ; ( xt compile-only? )
+  dq dict_STATE_FETCH     ; ( xt compile-only? state )
+  dq dict_ZEROEQ          ; ( xt compile-only? interpreting? )
+  dq dict_AND             ; ( xt error? )
+  dq dict_ZEROEQ          ; ( xt ok-to-execute? )
+  dq dict_ZBRANCH, BRANCH_OFFSET(.compile_only_error)
+  
+  ;; OK to execute
   dq dict_EXECUTE         ; Execute the word
   dq dict_BRANCH, BRANCH_OFFSET(.loop)
+  
+  .compile_only_error:
+  ;; Print compile-only error
+  dq dict_LIT, compile_only_msg
+  dq dict_LIT, compile_only_msg_len
+  dq dict_ERRTYPE         ; Print "Interpreting compile-only word: "
+  ;; Need to get the word name from the dictionary entry
+  dq dict_LIT, 8
+  dq dict_ADD             ; ( name-field-addr )
+  dq dict_DUP             ; ( name-field-addr name-field-addr )
+  dq dict_C_FETCH         ; ( name-field-addr length-byte )
+  dq dict_LIT, NAME_LENGTH_MASK
+  dq dict_AND             ; ( name-field-addr length )
+  dq dict_SWAP            ; ( length name-field-addr )
+  dq dict_LIT, 1
+  dq dict_ADD             ; ( length name-addr )
+  dq dict_SWAP            ; ( name-addr length )
+  dq dict_ERRTYPE         ; Print the word name
+  dq dict_ERRCR           ; Print newline
+  dq dict_EXIT
 
   .try_number:
   ;; Not in dictionary, try NUMBER

@@ -22,3 +22,8 @@
 ; Constants
 INPUT_BUFFER_SIZE equ 1048576  ; Size of input line buffer (1MB)
 NEWLINE equ 10                 ; ASCII newline character
+
+; Dictionary flags (in length byte)
+IMMED_FLAG equ 0x80            ; Bit 7: immediate word
+COMPILE_ONLY_FLAG equ 0x40     ; Bit 6: compile-only word
+NAME_LENGTH_MASK equ 0x3F      ; Bits 0-5: name length (max 63)
