@@ -52,3 +52,7 @@
 
 \ LITERAL - compile a number from stack as a literal
 : LITERAL LIT LIT , , ; IMMED
+
+: IF LIT 0BRANCH , HERE @ 777 , ; IMMED
+: ELSE LIT BRANCH , HERE @ 777 , HERE @ ROT ! ; IMMED
+: THEN HERE @ SWAP ! ; IMMED

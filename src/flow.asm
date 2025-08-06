@@ -101,22 +101,19 @@ EXECUTE:
   mov rax, [rdx+16]       ; Load code address from dict entry
   jmp rax                 ; Jump to the code
 
-  ;; BRANCH ( -- ) Skip next n words unconditionally
+  ;; BRANCH ( -- ) Jump to absolute address
 BRANCH:
-  mov rdx, [IP]
-  lea IP, [IP + (rdx+1)*8]
+  mov IP, [IP]            ; Load absolute address from next cell
   jmp NEXT
 
-  ;; ZBRANCH ( n -- ) Skip next n words if zero in TOS
+  ;; ZBRANCH ( n -- ) Jump to absolute address if TOS is zero
 ZBRANCH:
-  mov rdx, [IP]
-  add IP, 8
-  mov rax, [DSP]
-  add DSP, 8
-  xor rcx, rcx
-  test rax, rax
-  cmovz rcx, rdx
-  lea IP, [IP + rcx*8]
+  mov rdx, [IP]           ; Get absolute address
+  add IP, 8               ; Skip past the address
+  mov rax, [DSP]          ; Get flag
+  add DSP, 8              ; Drop flag
+  test rax, rax           ; Test flag
+  cmovz IP, rdx           ; If zero, jump to absolute address
   jmp NEXT
 
   ;; ABORT ( -- ) Clear stacks and execute RUN

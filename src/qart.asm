@@ -3,10 +3,6 @@
 
   %include "forth.inc"
 
-  ;; Macro for calculating branch offsets
-  ;; Usage: BRANCH_OFFSET(target_label) or JUMP_TO(target_label)
-  %define BRANCH_OFFSET(target) (((target - $) // 8) - 2)
-
   section .data
 
   ;; Main thread descriptor
@@ -350,11 +346,11 @@ dict_INTERPRET:
   ;; Get next word
   dq dict_WORD            ; ( -- c-addr u )
   dq dict_DUP             ; ( c-addr u u )
-  dq dict_ZBRANCH, BRANCH_OFFSET(.done)
+  dq dict_ZBRANCH, .done
 
   ;; Try to find in dictionary
   dq dict_FIND            ; ( xt 1 | c-addr u 0 )
-  dq dict_ZBRANCH, BRANCH_OFFSET(.try_number)       ; If not found, skip to .try_number
+  dq dict_ZBRANCH, .try_number       ; If not found, skip to .try_number
   
   ;; Found - check what to do with it
   dq dict_DUP             ; ( xt xt )
@@ -369,11 +365,11 @@ dict_INTERPRET:
   dq dict_STATE_FETCH     ; ( xt length-byte compile-only? state )
   dq dict_ZEROEQ          ; ( xt length-byte compile-only? interpreting? )
   dq dict_AND             ; ( xt length-byte error? )
-  dq dict_ZBRANCH, BRANCH_OFFSET(.no_compile_only_error)
+  dq dict_ZBRANCH, .no_compile_only_error
   
   ;; Compile-only error path
   dq dict_DROP            ; ( xt )
-  dq dict_BRANCH, BRANCH_OFFSET(.compile_only_error)
+  dq dict_BRANCH, .compile_only_error
   
   .no_compile_only_error: ; ( xt length-byte )
   ;; Check if we should execute (immediate or interpreting)
@@ -382,16 +378,16 @@ dict_INTERPRET:
   dq dict_STATE_FETCH     ; ( xt immediate? state )
   dq dict_ZEROEQ          ; ( xt immediate? interpreting? )
   dq dict_OR              ; ( xt should-execute? )
-  dq dict_ZBRANCH, BRANCH_OFFSET(.compile_it)
+  dq dict_ZBRANCH, .compile_it
   
   ;; Execute the word
   dq dict_EXECUTE         ; Execute the word
-  dq dict_BRANCH, BRANCH_OFFSET(.loop)
+  dq dict_BRANCH, .loop
   
   .compile_it:            ; ( xt )
   ;; Compile the word
   dq dict_COMMA
-  dq dict_BRANCH, BRANCH_OFFSET(.loop)
+  dq dict_BRANCH, .loop
   
   .compile_only_error:
   ;; Print compile-only error
@@ -416,17 +412,17 @@ dict_INTERPRET:
   .try_number:
   ;; Not in dictionary, try NUMBER
   dq dict_NUMBER          ; ( n 1 | c-addr u 0 )
-  dq dict_ZBRANCH, BRANCH_OFFSET(.unknown_word)
+  dq dict_ZBRANCH, .unknown_word
   
   ;; Got a number - check if we should compile it
   dq dict_STATE_FETCH     ; ( n state )
-  dq dict_ZBRANCH, BRANCH_OFFSET(.loop)  ; If interpreting, leave on stack
+  dq dict_ZBRANCH, .loop  ; If interpreting, leave on stack
   
   ;; Compile mode - compile as literal
   dq dict_LIT, dict_LIT   ; ( n dict_LIT )
   dq dict_COMMA           ; ( n )
   dq dict_COMMA           ; ( )
-  dq dict_BRANCH, BRANCH_OFFSET(.loop)
+  dq dict_BRANCH, .loop
   
   .unknown_word:
   ;; Unknown word - print error
@@ -461,19 +457,19 @@ dict_TICK:
   dq DOCOL                ; Colon definition
   dq dict_WORD            ; ( -- c-addr u )
   dq dict_DUP
-  dq dict_ZBRANCH, BRANCH_OFFSET(.missing_word)
+  dq dict_ZBRANCH, .missing_word
   dq dict_FIND            ; ( xt -1 | c-addr u 0 )
-  dq dict_ZBRANCH, BRANCH_OFFSET(.unknown_word)
+  dq dict_ZBRANCH, .unknown_word
   dq dict_EXIT
   .missing_word:
   dq dict_LIT, missing_word_msg
   dq dict_LIT, missing_word_msg_len
-  dq dict_BRANCH, BRANCH_OFFSET(print_and_abort)
+  dq dict_BRANCH, print_and_abort
   .unknown_word:
   dq dict_LIT, unknown_word_msg
   dq dict_LIT, unknown_word_msg_len
   dq dict_ERRTYPE         ; Print "Unknown word: "
-  dq dict_BRANCH, BRANCH_OFFSET(print_and_abort)
+  dq dict_BRANCH, print_and_abort
 
   ;; STATE ( -- addr ) Push address of STATE variable
 dict_STATE:
@@ -487,14 +483,14 @@ dict_ASSERT:
   db 6, "ASSERT", 0       ; Name
   dq DOCOL                ; Colon definition
   ;; Check if assertion failed
-  dq dict_ZBRANCH, BRANCH_OFFSET(.fail)
+  dq dict_ZBRANCH, .fail
   ;; Passed - check if verbose mode
   dq dict_DEBUG_FETCH     ; ( debug-flag )
-  dq dict_ZBRANCH, BRANCH_OFFSET(.done)
+  dq dict_ZBRANCH, .done
   ;; Verbose mode - push PASS message
   dq dict_LIT, pass_msg   ; ( pass_msg )
   dq dict_LIT, pass_msg_len ; ( pass_msg 6 )
-  dq dict_BRANCH, BRANCH_OFFSET(.print)
+  dq dict_BRANCH, .print
   .fail:
   ;; Failed - push FAIL message
   dq dict_LIT, fail_msg   ; ( fail_msg )
@@ -578,10 +574,10 @@ dict_QUIT:
   .loop:
   dq dict_PROMPT          ; Show prompt if interactive
   dq dict_REFILL
-  dq dict_ZBRANCH, BRANCH_OFFSET(.bye)
+  dq dict_ZBRANCH, .bye
   dq dict_INTERPRET
   dq dict_IACR                  ; CR if interactive
-  dq dict_BRANCH, BRANCH_OFFSET(.loop)
+  dq dict_BRANCH, .loop
   .bye:
   dq dict_BYE_MSG         ; Show bye message if interactive
   dq dict_EXIT
@@ -602,12 +598,12 @@ dict_SHOWWORDS:
   ;; Get next word
   dq dict_WORD            ; ( -- c-addr u )
   dq dict_DUP             ; ( c-addr u u )
-  dq dict_ZBRANCH, BRANCH_OFFSET(.done)
+  dq dict_ZBRANCH, .done
   
   ;; For each character in the word
   .byte_loop:
   dq dict_DUP             ; ( c-addr u u )
-  dq dict_ZBRANCH, BRANCH_OFFSET(.end_word)
+  dq dict_ZBRANCH, .end_word
   
   ;; Print one byte
   dq dict_OVER            ; ( c-addr count c-addr )
@@ -623,7 +619,7 @@ dict_SHOWWORDS:
   dq dict_SWAP            ; ( c-addr+1 count )
   dq dict_LIT, -1
   dq dict_ADD
-  dq dict_BRANCH, BRANCH_OFFSET(.byte_loop)
+  dq dict_BRANCH, .byte_loop
   
   .end_word:
   ;; Clean up
@@ -632,7 +628,7 @@ dict_SHOWWORDS:
   dq dict_EMIT
   dq dict_LIT, ' '
   dq dict_EMIT            ; Double space
-  dq dict_BRANCH, BRANCH_OFFSET(.loop)
+  dq dict_BRANCH, .loop
   
   .done:
   dq dict_TWO_DROP
@@ -673,7 +669,7 @@ dict_CREATE:
   dq dict_LIT, -8               ; (c-addr u is-zero u -8)
   dq dict_AND                   ; (c-addr u is-zero u&~7)
   dq dict_OR                    ; (c-addr u invalid?)
-  dq dict_ZBRANCH, BRANCH_OFFSET(.size_ok)
+  dq dict_ZBRANCH, .size_ok
   
   ;; Size error - print message and abort
   dq dict_LIT, wrong_word_size_msg
