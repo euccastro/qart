@@ -12,6 +12,7 @@
   global LSHIFT
   global OR
   global LESS_THAN
+  global RSHIFT
 
   extern NEXT
 
@@ -82,4 +83,13 @@ LESS_THAN:
   movzx rax, al           ; Zero-extend to 64 bits
   neg rax                 ; Convert 1 to -1, 0 stays 0
   mov [DSP], rax          ; Store result
+  jmp NEXT
+
+  ;; RSHIFT ( x1 u -- x2 ) Arithmetic right shift
+RSHIFT:
+  mov rcx, [DSP]          ; shift count
+  add DSP, 8
+  mov rax, [DSP]          ; value to shift
+  sar rax, cl             ; arithmetic shift right (preserves sign)
+  mov [DSP], rax
   jmp NEXT

@@ -151,8 +151,13 @@ dict_LESS_THAN:
   db 1, "<", 0, 0, 0, 0, 0, 0
   dq LESS_THAN
 
-dict_DROP:
+dict_RSHIFT:
   dq dict_LESS_THAN
+  db 6, "RSHIFT", 0
+  dq RSHIFT
+
+dict_DROP:
+  dq dict_RSHIFT
   db 4, "DROP", 0, 0, 0
   dq DROP
 
@@ -876,6 +881,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern LSHIFT
   extern OR
   extern LESS_THAN
+  extern RSHIFT
   extern TO_R
   extern R_FROM
   extern R_FETCH
