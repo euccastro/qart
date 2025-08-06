@@ -515,86 +515,152 @@ Moving toward Missionary-style functional effects with structured concurrency:
 ### Development Approach
 **Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.
 
-### Current Status - Working Forth Compiler!
-**Major milestone achieved**: Full colon compiler implementation
-- **Working compiler**: Can define new words with : and ; 
-- **Immediate word support**: ; is immediate and executes during compilation
-- **STATE-aware compilation**: Properly handles compile vs interpret modes
-- **Literal compilation**: Numbers are compiled as LIT instructions
-- **Nested definitions**: New words can call previously defined words
-- **Dictionary management**: CREATE builds proper entries, LATEST tracks newest
-- **Error handling**: Word length validation, unknown word detection
-- **Test suite**: Comprehensive tests for all primitives and compiler
+**Challenge the user's statements**: When Claude is uncertain about the correctness of something the user (Estevo) states, Claude should err on the side of challenging it rather than accepting it. This helps clarify thinking and often leads to better solutions (as demonstrated when questioning the `LITERAL` implementation led to the simpler `LIT LIT , ,` pattern).
 
-### Recent Accomplishments
-- Implemented \ (BACKSLASH) for rest-of-line comments
-- Merged comprehensive store tests into main test.fth
-- Added comments to all tests explaining what they verify
-- Updated ASSERT to show line:col instead of numeric IDs
-- Tests now use comments to clarify test purposes without over-explaining mechanics
-- Added comprehensive tests for all words in alphabetical order:
-  - Stack manipulation: DUP, DROP, SWAP, OVER, 2DUP, 2DROP, SP@
-  - Arithmetic: ADD (+), = (EQUAL), 0= (ZEROEQ), AND
-  - Memory: @, !, C@, C!, >R, R>, R@
-  - I/O: DOT (.), EMIT, KEY, TYPE
-  - Control: EXECUTE, BRANCH, 0BRANCH (noted as compile-only)
-  - Parsing: WORD, NUMBER, FIND
-  - System: REFILL, EXIT, STATE, OUTPUT, FLAGS, ASSERT
-  - Comments: \ (BACKSLASH)
-  - Debugging: LINE#, COL#
-- Refactored to QUIT/ABORT architecture:
-  - Removed test_program entry point
-  - QUIT is now the main interpreter loop (colon definition)
-  - ABORT clears stacks and jumps to QUIT
-  - _start simply calls ABORT to initialize the system
-- Standardized boolean return values: FIND and NUMBER now return -1 for success (consistent with EQUAL, ZEROEQ)
-- Implemented tick operator (') for getting execution tokens
-- Fixed ZBRANCH understanding: it consumes the flag it tests
+## Current Architecture
 
-### Test Organization
-- dev/test.sh runs all test files with headers showing which file is running
-- dev/test-verbose.sh runs tests with PASS/FAIL output for debugging
-- Merged store-test.fth into main dev/test.fth to avoid test fragmentation
-- All tests in dev/test.fth now have descriptive comments
+### Core Interpreter
+- **Unified INTERPRET loop**: Single interpreter handles both compile and interpret modes based on STATE
+- **Execution model**: 
+  - Immediate words execute in both modes
+  - Non-immediate words execute when interpreting, compile when compiling
+  - Numbers are left on stack when interpreting, compiled as `LIT n` when compiling
+- **Colon compiler**: `:` creates dictionary entry with DOCOL and sets STATE=1; compilation handled by INTERPRET
+- **Dictionary structure**: Link pointer (8 bytes), name field (8 bytes with flags), code field (8 bytes)
+- **Dictionary flags in name length byte**:
+  - Bit 7: Immediate (IMMED_FLAG = 0x80)
+  - Bit 6: Compile-only (COMPILE_ONLY_FLAG = 0x40)  
+  - Bits 0-5: Name length (max 63 chars)
 
-### Threading Implementation - COMPLETE!
-- **THREAD primitive working**: Creates OS threads with clone() that share memory via CLONE_VM
-- **Stack layout per thread** (8KB total):
-  - First 32 bytes: Thread descriptor
-  - Next 3KB: Return stack (grows down from +3072)
-  - Next 4KB: Data stack (grows down from +7168)
-  - Remaining: System stack
-- **Execution model**: Thread executes mini-program `[user_xt, dict_THREAD_EXIT]`
-- **Automatic cleanup**: THREAD_EXIT calls thread-local cleanup function from descriptor
-- **Thread-local state**: Each thread has its own descriptor with FLAGS field
-- **TLS architecture**: R13 points to thread descriptor for all flag/stack access
+### Implemented Words
 
-### Timing and Synchronization Primitives
-- **CLOCK@ ( -- seconds nanoseconds )**: Returns monotonic time via clock_gettime(CLOCK_MONOTONIC)
-  - Used for timing measurements
-  - Nanosecond precision (though actual resolution depends on hardware)
-- **SLEEP ( nanoseconds -- )**: Sleep for specified nanoseconds via nanosleep()
-  - Handles durations > 1 second by dividing into seconds/nanoseconds
-  - Yields to scheduler (not busy-waiting)
-  - Essential for thread coordination without burning CPU
-- **< (LESS_THAN)**: Added for time comparisons in tests
+#### Core System
+- **QUIT/ABORT**: Main interpreter loop and system initialization
+- **INTERPRET**: Unified interpreter/compiler
+- **': Get execution token for following word
+- **EXECUTE**: Execute an execution token
+- **EXIT**: Return from current word or exit program
 
-### Thread-Local State - COMPLETE!
-**Solution implemented**: STATE, OUTPUT, and FLAGS are now stored in the thread descriptor's FLAGS field:
-- Bit 0: STATE (compile/interpret)
-- Bits 1-2: OUTPUT (stdin/stdout/stderr)  
-- Bit 3: DEBUG (verbose ASSERT)
-- Bit 4: INTERACTIVE (prompts and bye message)
-- Bits 5-63: Reserved
+#### Compilation
+- **:** Begin colon definition
+- **;** (immediate): End colon definition
+- **CREATE**: Create new dictionary entry
+- **,**: Compile cell to dictionary
+- **ALLOT**: Allocate dictionary space
+- **HERE**: Address of next free dictionary location
+- **LATEST**: Address of most recent dictionary entry
+- **[** (immediate): Switch to interpret mode
+- **]**: Switch to compile mode
+- **LITERAL** (immediate): Compile number from stack as literal
+- **LIT** (compile-only): Runtime literal push
+- **BRANCH** (compile-only): Unconditional branch
+- **0BRANCH** (compile-only): Branch if TOS is zero
 
-Each thread has its own descriptor (pointed to by TLS/R13), giving automatic thread-local behavior. Accessor words (STATE@/STATE!/OUTPUT@/OUTPUT!/DEBUG@/DEBUG!) provide clean interface.
+#### Stack Operations
+- **DUP, DROP, SWAP, OVER, ROT**: Basic manipulation
+- **2DUP, 2DROP**: Double-cell operations
+- **SP@**: Get current stack pointer
+- **>R, R>, R@**: Return stack operations
 
-**Note**: The global FLAGS, STATE, and OUTPUT variables in qart.asm are legacy - they're effectively just the main thread's thread-local values. For the main thread, the thread descriptor is statically allocated at `main_thread_descriptor`. All flag operations should use the thread-local accessors or direct TLS+TLS_FLAGS access.
+#### Arithmetic & Logic
+- **+, -**: Basic arithmetic
+- **=, 0=, <**: Comparison
+- **AND, OR**: Bitwise operations
+- **LSHIFT**: Left shift
 
-### Next Actions
-1. Additional stack words - ROT (done), -ROT, 2SWAP, NIP, TUCK
-2. Control flow - IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT
-3. Build synchronization library - Mutexes, semaphores, channels as Forth words using WAIT/WAKE
+#### Memory
+- **@, !**: Cell fetch/store
+- **C@, C!**: Byte fetch/store
+
+#### I/O
+- **EMIT**: Output character
+- **KEY**: Input character (-1 on EOF)
+- **TYPE**: Output string
+- **.** (DOT): Output number in decimal
+- **CR**: Output newline (colon definition)
+
+#### Input Processing
+- **REFILL**: Read line into input buffer
+- **WORD**: Parse next word from input
+- **\\** (immediate): Skip rest of line
+- **SCANC**: Scan for character in input
+- **SOURCE@**: Get current input position
+- **LINE#, COL#**: Current line and column numbers
+
+#### Dictionary & Parsing
+- **FIND**: Look up word in dictionary
+- **NUMBER**: Parse string as number
+- **IMMED**: Make latest word immediate
+- **IMMED?**: Test if word is immediate
+
+#### Threading & Synchronization
+- **THREAD**: Create OS thread
+- **WAIT** (FWAIT): Futex wait operation
+- **WAKE**: Futex wake operation
+- **CLOCK@**: Get monotonic time (seconds, nanoseconds)
+- **SLEEP**: Sleep for nanoseconds
+
+#### State Management
+- **STATE@, STATE!**: Get/set compile state
+- **OUTPUT@, OUTPUT!**: Get/set output stream (0=stdin, 1=stdout, 2=stderr)
+- **DEBUG@, DEBUG!**: Get/set debug flags
+
+#### Continuations
+- **CC-SIZE**: Calculate continuation size
+- **CALL/CC**: Call with current continuation
+
+#### Testing & Debug
+- **ASSERT**: Test assertion (shows line:col on failure)
+
+### Standard Library (stdlib.fth)
+- **Stack**: NIP, TUCK, -ROT
+- **Arithmetic**: 1+, 1-, 2+, 2-, 2TIMES, NEGATE
+- **Boolean**: TRUE, FALSE, NOT
+- **Comparison**: <>, >, <=, >=, 0<, 0>, 0<>
+- **Memory**: +!, CELL+, CELL-
+- **I/O**: SPACE, BL, ." (dot-quote)
+- **Comments**: ( for parenthetical comments
+- **Compilation**: [,] (immediate comma)
+
+### Test Infrastructure
+- **dev/test.sh**: Runs all test files with headers
+- **dev/test-verbose.sh**: Shows PASS/FAIL for each assertion
+- **dev/qi**: Interactive REPL with stdlib loaded
+
+### Threading Architecture
+- **OS threads via clone()**: Share memory with CLONE_VM
+- **Per-thread memory layout** (8KB mmap):
+  - Bytes 0-31: Thread descriptor
+  - Bytes 32-3071: Return stack (grows down)
+  - Bytes 3072-7167: Data stack (grows down)
+  - Bytes 7168-8191: System stack
+- **Thread descriptor**: FLAGS, stack bases, cleanup function
+- **TLS register (R13)**: Points to thread descriptor
+- **Thread-local FLAGS bits**:
+  - Bit 0: STATE (compile/interpret)
+  - Bits 1-2: OUTPUT (0=stdin, 1=stdout, 2=stderr)
+  - Bit 3: DEBUG (verbose ASSERT)
+  - Bit 4: INTERACTIVE (prompts/messages)
+
+## Current Plans & Roadmap
+
+### Immediate Priorities
+1. **Control flow structures**: IF/THEN/ELSE, BEGIN/UNTIL/WHILE/REPEAT, DO/LOOP
+2. **Additional stack words**: 2SWAP and other double-cell operations
+3. **Multiplication/division**: Basic arithmetic completion
+
+### Near-term Goals
+1. **Synchronization library**: Mutexes, semaphores, channels built on WAIT/WAKE primitives
+2. **String handling**: S" for string literals, string comparison
+3. **Variable/constant definitions**: VARIABLE, CONSTANT, VALUE
+4. **File I/O**: Basic file operations for loading source files
+
+### Long-term Vision
+1. **Structured concurrency**: Missionary-style functional effects with task composition
+2. **Delimited continuations**: RESET/SHIFT for composable control flow
+3. **Persistent data structures**: Immutable collections with structural sharing
+4. **Host interfacing**: Graphics and desktop application support (likely via terminal UI initially)
+5. **Networking**: Raw socket programming for distributed computing
 
 ## Interactive Mode
 

@@ -351,21 +351,41 @@ dict_INTERPRET:
   dq dict_FIND            ; ( xt 1 | c-addr u 0 )
   dq dict_ZBRANCH, BRANCH_OFFSET(.try_number)       ; If not found, skip to .try_number
   
-  ;; Found - check if compile-only in interpret mode
+  ;; Found - check what to do with it
   dq dict_DUP             ; ( xt xt )
   dq dict_LIT, 8          ; ( xt xt 8 )
   dq dict_ADD             ; ( xt name-field-addr )
   dq dict_C_FETCH         ; ( xt length-byte )
-  dq dict_LIT, COMPILE_ONLY_FLAG ; ( xt length-byte 0x40 )
-  dq dict_AND             ; ( xt compile-only? )
-  dq dict_STATE_FETCH     ; ( xt compile-only? state )
-  dq dict_ZEROEQ          ; ( xt compile-only? interpreting? )
-  dq dict_AND             ; ( xt error? )
-  dq dict_ZEROEQ          ; ( xt ok-to-execute? )
-  dq dict_ZBRANCH, BRANCH_OFFSET(.compile_only_error)
   
-  ;; OK to execute
+  ;; First check compile-only in interpret mode
+  dq dict_DUP             ; ( xt length-byte length-byte )
+  dq dict_LIT, COMPILE_ONLY_FLAG ; ( xt length-byte length-byte 0x40 )
+  dq dict_AND             ; ( xt length-byte compile-only? )
+  dq dict_STATE_FETCH     ; ( xt length-byte compile-only? state )
+  dq dict_ZEROEQ          ; ( xt length-byte compile-only? interpreting? )
+  dq dict_AND             ; ( xt length-byte error? )
+  dq dict_ZBRANCH, BRANCH_OFFSET(.no_compile_only_error)
+  
+  ;; Compile-only error path
+  dq dict_DROP            ; ( xt )
+  dq dict_BRANCH, BRANCH_OFFSET(.compile_only_error)
+  
+  .no_compile_only_error: ; ( xt length-byte )
+  ;; Check if we should execute (immediate or interpreting)
+  dq dict_LIT, IMMED_FLAG ; ( xt length-byte 0x80 )
+  dq dict_AND             ; ( xt immediate? )
+  dq dict_STATE_FETCH     ; ( xt immediate? state )
+  dq dict_ZEROEQ          ; ( xt immediate? interpreting? )
+  dq dict_OR              ; ( xt should-execute? )
+  dq dict_ZBRANCH, BRANCH_OFFSET(.compile_it)
+  
+  ;; Execute the word
   dq dict_EXECUTE         ; Execute the word
+  dq dict_BRANCH, BRANCH_OFFSET(.loop)
+  
+  .compile_it:            ; ( xt )
+  ;; Compile the word
+  dq dict_COMMA
   dq dict_BRANCH, BRANCH_OFFSET(.loop)
   
   .compile_only_error:
@@ -391,8 +411,19 @@ dict_INTERPRET:
   .try_number:
   ;; Not in dictionary, try NUMBER
   dq dict_NUMBER          ; ( n 1 | c-addr u 0 )
-  dq dict_ZEROEQ
-  dq dict_ZBRANCH, BRANCH_OFFSET(.loop)      ; If not failed, number is in stack
+  dq dict_ZBRANCH, BRANCH_OFFSET(.unknown_word)
+  
+  ;; Got a number - check if we should compile it
+  dq dict_STATE_FETCH     ; ( n state )
+  dq dict_ZBRANCH, BRANCH_OFFSET(.loop)  ; If interpreting, leave on stack
+  
+  ;; Compile mode - compile as literal
+  dq dict_LIT, dict_LIT   ; ( n dict_LIT )
+  dq dict_COMMA           ; ( n )
+  dq dict_COMMA           ; ( )
+  dq dict_BRANCH, BRANCH_OFFSET(.loop)
+  
+  .unknown_word:
   ;; Unknown word - print error
   dq dict_LIT, unknown_word_msg
   dq dict_LIT, unknown_word_msg_len
@@ -685,46 +716,7 @@ dict_COLON:
   ;; set compilation mode
   dq dict_LIT, 1
   dq dict_STATE_STORE
-
-  .loop:
-  dq dict_WORD                  ; (c-addr u)
-  dq dict_DUP                   ; (c-addr u u)
-  dq dict_ZBRANCH, BRANCH_OFFSET(.premature_end) ; (c-addr u)
-  dq dict_FIND                                   ; (xt -1 | c-addr u 0)
-  dq dict_ZBRANCH, BRANCH_OFFSET(.try_number)    ; (xt)
-  dq dict_DUP                                    ; (xt xt)
-  dq dict_IMMED_TEST                             ; (xt t/f)
-  dq dict_ZBRANCH, BRANCH_OFFSET(.compile)       ; (xt)
-  dq dict_EXECUTE               ; ()
-
-  ;; check whether we're done
-  dq dict_STATE
-  dq dict_FETCH
-  dq dict_ZEROEQ
-  dq dict_ZBRANCH, BRANCH_OFFSET(.loop)
   dq dict_EXIT
-
-  .compile:                      ; (xt)
-  dq dict_COMMA
-  dq dict_BRANCH, BRANCH_OFFSET(.loop)
-
-  .try_number:                   ; (c-addr u)
-  dq dict_NUMBER                ; ( n -1 | c-addr u 0 )
-  dq dict_ZBRANCH, BRANCH_OFFSET(.unknown_word)
-  dq dict_LIT, dict_LIT, dict_COMMA
-  dq dict_COMMA
-  dq dict_BRANCH, BRANCH_OFFSET(.loop)
-
-  .unknown_word:
-  dq dict_LIT, unknown_word_msg
-  dq dict_LIT, unknown_word_msg_len
-  dq dict_ERRTYPE
-  ;; print actual word
-  dq dict_BRANCH, BRANCH_OFFSET(print_and_abort)
-  .premature_end:
-  dq dict_LIT, missing_word_msg
-  dq dict_LIT, missing_word_msg_len
-  dq dict_BRANCH, BRANCH_OFFSET(print_and_abort)
 
 dict_SEMICOLON:
   dq dict_COLON
