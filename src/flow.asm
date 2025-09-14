@@ -94,7 +94,7 @@ SYSEXIT:
   ;; Loads cleanup function from TLS and executes via NEXT
 THREAD_EXIT:
   lea IP, [TLS+TLS_CLEANUP] ; Point IP to cleanup field in descriptor
-  jmp NEXT                  ; NEXT will load and execute it
+  jmp JMP2IP
 
   ;; EXECUTE ( xt -- ) Execute word given execution token
   ;; Execution token is a dictionary pointer
