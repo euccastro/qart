@@ -99,8 +99,8 @@ THREAD_EXIT:
   ;; EXECUTE ( xt -- ) Execute word given execution token
   ;; Execution token is a dictionary pointer
 EXECUTE:
-  mov [RSTACK], IP
-  sub RSTACK, 8                    ; Save return address  
+  sub RSTACK, 8                    ; Make room in return stack
+  mov [RSTACK], IP                 ; Save return address
   mov rax, [DSP]                   ; Get dictionary pointer from stack
   add DSP, 8                       ; Drop from stack
   mov [TLS+TLS_EXECUTE_BUFFER], rax ; Store in execute buffer
