@@ -109,7 +109,7 @@ The project is organized to separate source code, development tools, documentati
 
 ## Register Usage
 
-- **R12 (IP)**: Instruction Pointer - points to next word to execute
+- **R12 (IP)**: Instruction Pointer - points to currently executing word
 - **R13 (TLS)**: Thread Local Storage - points to thread descriptor
 - **R14 (RSTACK)**: Return Stack Pointer
 - **R15 (DSP)**: Data Stack Pointer
@@ -157,9 +157,10 @@ Please follow these emacs-style assembly formatting conventions for consistency:
   ;; NEXT - The inner interpreter
   ;; Dictionary-based execution: IP points to dictionary entry addresses
 NEXT:
-  mov rdx, [IP]           ; Get dictionary entry address
-  add IP, 8               ; Advance IP
-  mov rax, [rdx+16]       ; Get code field from dict entry
+  add IP, 8               ; Advance IP to next instruction
+JMP2IP:                   ; Jump to execution token at IP without advancing
+  mov rax, [IP]           ; Get dictionary entry address
+  mov rax, [rax+16]       ; Get code field from dict entry (link=8 + name=8)
   jmp rax                 ; Execute the code
 
 thread_func:
@@ -445,7 +446,8 @@ Moving toward Missionary-style functional effects with structured concurrency:
 
 #### Core Architecture
 - **Execution tokens are dictionary pointers**: Not CFAs! This unifies threaded code and EXECUTE semantics
-- **DOCOL receives dictionary pointer in RDX**: Both from NEXT and EXECUTE, enabling uniform handling
+- **IP semantics refactored**: IP now points to "currently executing instruction" not "next instruction to execute"
+- **JMP2IP primitive**: Jump to execution token at IP without advancing IP first (used by EXECUTE, DOCOL, etc.)
 - **Primitives must handle their own `jmp NEXT`**: Unlike colon definitions
 - **Dictionary name field**: Exactly 8 bytes (1 length + up to 7 name chars)
 - **Immediate flag in bit 7**: FIND masks with 0x7F when comparing names
@@ -499,6 +501,31 @@ Moving toward Missionary-style functional effects with structured concurrency:
   - Parenthetical comments made immediate using IMMED in stdlib.fth
 - **File concatenation in dev/qi**: Spaces inserted between concatenated files to prevent word joining
 
+### IP Semantics Refactoring (Recent Major Change)
+
+**Background**: We recently completed a major refactoring of the IP (Instruction Pointer) semantics to eliminate the "sneaky usage of RDX" parameter passing between NEXT and DOCOL.
+
+**Key Changes**:
+- **IP semantics changed**: IP now points to "currently executing instruction" instead of "next instruction to execute"
+- **NEXT refactored**: Now advances IP (`add IP, 8`) before loading the dictionary entry
+- **JMP2IP added**: New primitive for jumping to execution token at IP without advancing IP first
+- **All primitives updated**: DOCOL, EXECUTE, LIT, BRANCH, ZBRANCH, THREAD_EXIT updated for new semantics
+- **Execute buffer approach**: EXECUTE now uses thread-local execute buffers instead of RDX parameter passing
+
+**Critical Gotchas from this Refactoring**:
+1. **Use JMP2IP not NEXT**: When jumping to an execution token (EXECUTE, DOCOL, THREAD_EXIT), use `jmp JMP2IP`, not `jmp NEXT`
+2. **LIT needs IP advancement**: LIT must advance IP before loading the literal value (`add IP, 8` then `mov rax, [IP]`)
+3. **BRANCH/ZBRANCH offsets**: Be careful about IP advancement when calculating branch target addresses
+4. **Thread-local execute buffers**: EXECUTE requires proper TLS setup with execute buffer at +32 and exit at +40
+
+**Current Status**: 
+- ✅ Core primitives updated (NEXT, JMP2IP, DOCOL, EXECUTE, LIT, THREAD_EXIT)
+- ✅ Basic expressions and sessions work
+- ⚠️ **Still bugs to fix**: Some primitives may still have issues with the new IP semantics
+- 🚧 **Testing needed**: Full test suite should be run and fixed before proceeding to new features
+
+**Why this matters**: This refactoring creates a cleaner, more consistent execution model that eliminates hidden parameter passing and makes the codebase easier to understand and debug.
+
 ### Critical Things to Watch For
 1. **Register preservation**: Never clobber R12-R15 (IP, TLS, RSTACK, DSP) in primitives
 2. **Stack direction**: Data stack grows downward (sub DSP, 8 to push)
@@ -511,6 +538,7 @@ Moving toward Missionary-style functional effects with structured concurrency:
 9. **sys_clone behavior with stacks**: The child gets a NEW stack pointer (passed in RSI), so push/pop around sys_clone only affects parent. Child must calculate its own values from its stack pointer.
 10. **Callee-saved registers inherit across clone**: R12-R15, RBX, RBP all preserve their values in the child. We use RBP to pass mmap base to child thread.
 11. **Thread-local state via TLS**: R13 points to thread descriptor containing FLAGS field with STATE/OUTPUT/DEBUG as bit fields.
+12. **IP refactoring gotchas**: After recent IP semantics change, use `jmp JMP2IP` (not `jmp NEXT`) when jumping to execution tokens. LIT must advance IP before loading values. Some primitives may still have bugs from this refactoring.
 
 ### Development Approach
 **Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.
