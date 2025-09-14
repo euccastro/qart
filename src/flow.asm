@@ -30,6 +30,7 @@ abort_program:
   section .text
 
   global NEXT
+  global JMP2IP
   global DOCOL
   global DOCREATE
   global EXIT
@@ -50,26 +51,28 @@ abort_program:
   ;; NEXT - The inner interpreter
   ;; Dictionary-based execution: IP points to dictionary entry addresses
 NEXT:
-  mov rdx, [IP]           ; Get dictionary entry address
-  add IP, 8               ; Advance IP
-  mov rax, [rdx+16]       ; Get code field from dict entry (link=8 + name=8)
+  add IP, 8               ; Advance IP to next instruction
+JMP2IP:                   ; Jump to execution token at IP without advancing
+  mov rax, [IP]           ; Get dictionary entry address
+  mov rax, [rax+16]       ; Get code field from dict entry (link=8 + name=8)
   jmp rax                 ; Execute the code
 
   ;; DOCOL - Runtime for colon definitions
-  ;; Expects RDX = dictionary entry address
-  ;; Dictionary structure: link(8) + name(8) + code(8) + body...
+  ;; IP points to current dictionary entry when this executes
 DOCOL:
   sub RSTACK, 8           ; Make room on return stack
-  mov [RSTACK], IP        ; Save current IP
-  lea IP, [rdx+24]        ; IP = start of body (after 16-byte header and pointer to DOCOL)
-  jmp NEXT                ; Start executing the body
+  mov [RSTACK], IP        ; Save current IP (return address in calling sequence)
+  mov rax, [IP]           ; Get dictionary entry address
+  lea IP, [rax+24]        ; IP = start of body (after link+name+code = 24 bytes)
+  jmp JMP2IP              ; Start executing the body
 
   ;; DOCREATE - Runtime for CREATE'd words
-  ;; Expects RDX = dictionary entry address
+  ;; IP points to current dictionary entry when this executes
   ;; Pushes address of data field (right after code field)
 DOCREATE:
   sub DSP, 8              ; Make room on data stack
-  lea rax, [rdx+24]       ; Address after link(8) + name(8) + code(8)
+  mov rax, [IP]           ; Get dictionary entry address
+  lea rax, [rax+24]       ; Address after link(8) + name(8) + code(8)
   mov [DSP], rax          ; Push data field address
   jmp NEXT
 
@@ -96,25 +99,28 @@ THREAD_EXIT:
   ;; EXECUTE ( xt -- ) Execute word given execution token
   ;; Execution token is a dictionary pointer
 EXECUTE:
-  mov rdx, [DSP]          ; Get dictionary pointer from stack
-  add DSP, 8              ; Drop from stack
-  mov rax, [rdx+16]       ; Load code address from dict entry
-  jmp rax                 ; Jump to the code
+  mov [RSTACK], IP
+  sub RSTACK, 8                    ; Save return address  
+  mov rax, [DSP]                   ; Get dictionary pointer from stack
+  add DSP, 8                       ; Drop from stack
+  mov [TLS+TLS_EXECUTE_BUFFER], rax ; Store in execute buffer
+  lea IP, [TLS+TLS_EXECUTE_BUFFER] ; Set IP to buffer address
+  jmp JMP2IP                       ; Execute at IP without advancing
 
   ;; BRANCH ( -- ) Jump to absolute address
 BRANCH:
-  mov IP, [IP]            ; Load absolute address from next cell
-  jmp NEXT
+  mov IP, [IP+8]            ; Load absolute address
+  jmp JMP2IP              ; Execute at new IP without advancing
 
   ;; ZBRANCH ( n -- ) Jump to absolute address if TOS is zero
 ZBRANCH:
-  mov rdx, [IP]           ; Get absolute address
-  add IP, 8               ; Skip past the address
+  mov rdx, [IP+8]           ; Get absolute address
+  add IP, 16               ; Advance past address (+1 because we'll be using JMP2IP not NEXT)
   mov rax, [DSP]          ; Get flag
   add DSP, 8              ; Drop flag
   test rax, rax           ; Test flag
   cmovz IP, rdx           ; If zero, jump to absolute address
-  jmp NEXT
+  jmp JMP2IP              ; Execute at IP without advancing
 
   ;; ABORT ( -- ) Clear stacks and execute RUN
 ABORT_word:
@@ -128,9 +134,9 @@ ABORT_word:
   extern main_thread_descriptor
   mov TLS, main_thread_descriptor
   
-  ;; Point IP to abort_program and let NEXT execute it
-  mov IP, abort_program    ; IP points to QUIT/SYSEXIT program
-  jmp NEXT                 ; NEXT will execute QUIT then SYSEXIT
+  ;; Execute abort_program directly
+  mov IP, abort_program    ; IP points to QUIT/SYSEXIT program  
+  jmp JMP2IP               ; Execute first word in program
 
   ;; CC-SIZE - Calculate size needed for a continuation
   ;; ( -- n )

@@ -11,6 +11,8 @@
 %define TLS_DATA_BASE 8     ; Offset to data stack base
 %define TLS_RETURN_BASE 16  ; Offset to return stack base
 %define TLS_CLEANUP 24      ; Offset to cleanup function pointer
+%define TLS_EXECUTE_BUFFER 32 ; Offset to execute buffer (2 qwords)
+%define TLS_EXECUTE_EXIT 40   ; Offset to execute exit (always dict_EXIT)
 
 ; Continuation structure offsets
 %define CONT_CODE 0         ; Offset to code pointer (RESTORE_CONT)
