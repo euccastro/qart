@@ -1,17 +1,43 @@
 #!/bin/bash
 # Interactive qart with stdlib preloaded
 # This version uses a named pipe to allow true interactive use
+# Usage: qi [-v] [file1.fth file2.fth ...]
+#   -v enables verbose mode (DEBUG flag for PASS/FAIL output from ASSERT)
 
 HERE=$(dirname $0)
 
-if [ $# -eq 0 ]; then
-    # Interactive mode: load stdlib, enable prompts, then read from TTY
-    { cat $HERE/../src/stdlib.fth; echo " INTERAC "; cat -; } | $HERE/../out/qart
+# Parse command line arguments
+VERBOSE=0
+FILES=()
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v)
+            VERBOSE=1
+            shift
+            ;;
+        *)
+            FILES+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# Set up verbose mode command if requested
+VERBOSE_CMD=""
+if [ $VERBOSE -eq 1 ]; then
+    VERBOSE_CMD=" 1 DEBUG! "  # Enable verbose ASSERT output
+fi
+
+if [ ${#FILES[@]} -eq 0 ]; then
+    # Interactive mode: load stdlib, enable prompts and verbose if requested, then read from TTY
+    { cat $HERE/../src/stdlib.fth; echo " INTERAC $VERBOSE_CMD"; cat -; } | $HERE/../out/qart
 else
     # File mode: load stdlib and files with spaces between to prevent word joining
     {
         cat $HERE/../src/stdlib.fth
-        for file in "$@"; do
+        echo " $VERBOSE_CMD"  # Enable verbose mode if requested
+        for file in "${FILES[@]}"; do
             echo " "  # Add space separator between files
             cat "$file"
         done
