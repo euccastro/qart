@@ -1,2 +1,3 @@
 * stack
-** mais tests para CALL/CC
+** more tests for CALL/CC
+** unify execute descriptor initialization between main <-> subthreads

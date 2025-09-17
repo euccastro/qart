@@ -3,6 +3,7 @@
 
 %include "forth.inc"
 
+extern dict_BRANCH
 extern NEXT
 extern JMP2IP
 
@@ -123,12 +124,6 @@ THREAD:
     ; Set cleanup function for this thread
     mov rax, dict_THREAD_CLEANUP
     mov [rbp+TLS_CLEANUP], rax   ; Store cleanup function
-    
-    ; Initialize execute buffer
-    mov qword [rbp+TLS_EXECUTE_BUFFER], 0  ; Execute buffer (filled by EXECUTE)
-    extern dict_EXIT
-    mov rax, dict_EXIT
-    mov [rbp+TLS_EXECUTE_EXIT], rax        ; Execute exit (always dict_EXIT)
     
     ; Point TLS to our new descriptor
     mov TLS, rbp

@@ -14,9 +14,6 @@ main_thread_descriptor:
   dq return_stack_base      ; +16: return stack base address
   extern dict_SYSEXIT
   dq dict_SYSEXIT           ; +24: cleanup function (exits entire process)
-  dq 0                      ; +32: execute buffer (filled by EXECUTE)
-  extern dict_EXIT
-  dq dict_EXIT              ; +40: execute exit (always dict_EXIT)
   align 8
 buffer: times 20 db 0
 newline: db NEWLINE
@@ -853,6 +850,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   global main_thread_descriptor
   global dict_QUIT
   global HERE
+  global dict_BRANCH
 
   ;; Import all the primitives from other files
   extern NEXT

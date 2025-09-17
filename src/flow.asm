@@ -98,14 +98,18 @@ THREAD_EXIT:
 
   ;; EXECUTE ( xt -- ) Execute word given execution token
   ;; Execution token is a dictionary pointer
+  ;; NB: during EXECUTE we temporarily violate the rule that "IP points to the
+  ;; currently executing word".  This works because
+  ;; - if the word to execute is a colon definitions will push the right IP to
+  ;;   the return stack normally
+  ;; - if the word to execute is anything else (including EXECUTE itself), by
+  ;;   default we want to return to the word after this EXECUTE.
 EXECUTE:
-  sub RSTACK, 8                    ; Make room in return stack
-  mov [RSTACK], IP                 ; Save return address
-  mov rax, [DSP]                   ; Get dictionary pointer from stack
-  add DSP, 8                       ; Drop from stack
-  mov [TLS+TLS_EXECUTE_BUFFER], rax ; Store in execute buffer
-  lea IP, [TLS+TLS_EXECUTE_BUFFER] ; Set IP to buffer address
-  jmp JMP2IP                       ; Execute at IP without advancing
+  mov rax, [DSP]     ; Get execution token
+  add DSP, 8         ; Pop it
+  ; IP stays pointing to instruction after EXECUTE
+  mov rax, [rax+16]  ; Get code field
+  jmp rax           ; Jump directly to the code
 
   ;; BRANCH ( -- ) Jump to absolute address
 BRANCH:
