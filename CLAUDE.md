@@ -109,7 +109,8 @@ The project is organized to separate source code, development tools, documentati
 
 ## Register Usage
 
-- **R12 (NEXTIP)**: Instruction Pointer - points to next word to execute
+- **RBX (CURRIP)**: Current Instruction Pointer - points to currently executing dictionary entry
+- **R12 (NEXTIP)**: Next Instruction Pointer - points to next dictionary entry to execute
 - **R13 (TLS)**: Thread Local Storage - points to thread descriptor
 - **R14 (RSTACK)**: Return Stack Pointer
 - **R15 (DSP)**: Data Stack Pointer
@@ -445,7 +446,11 @@ Moving toward Missionary-style functional effects with structured concurrency:
 
 #### Core Architecture
 - **Execution tokens are dictionary pointers**: Not CFAs! This unifies threaded code and EXECUTE semantics
-- **DOCOL receives dictionary pointer in RDX**: Both from NEXT and EXECUTE, enabling uniform handling
+- **Dual IP architecture**: CURRIP points to currently executing word, NEXTIP points to next word to execute
+- **NEXT sets CURRIP**: When NEXT loads a word, it sets CURRIP to the dictionary entry before jumping to its code
+- **DOCOL and DOCREATE use CURRIP**: These runtimes need access to their dictionary entry for body calculation
+- **LIT/BRANCH use NEXTIP**: These read inline data and advance NEXTIP, so they're not EXECUTEd directly
+- **EXECUTE conditional logic**: Sets CURRIP only for words that need it (DOCOL, DOCREATE), not for primitives
 - **Primitives must handle their own `jmp NEXT`**: Unlike colon definitions
 - **Dictionary name field**: Exactly 8 bytes (1 length + up to 7 name chars)
 - **Immediate flag in bit 7**: FIND masks with 0x7F when comparing names
@@ -500,7 +505,7 @@ Moving toward Missionary-style functional effects with structured concurrency:
 - **File concatenation in dev/qi**: Spaces inserted between concatenated files to prevent word joining
 
 ### Critical Things to Watch For
-1. **Register preservation**: Never clobber R12-R15 (NEXTIP, TLS, RSTACK, DSP) in primitives
+1. **Register preservation**: Never clobber RBX, R12-R15 (CURRIP, NEXTIP, TLS, RSTACK, DSP) in primitives
 2. **Stack direction**: Data stack grows downward (sub DSP, 8 to push)
 3. **NASM reserved words**: Check if a word name conflicts before using it
 4. **Buffer bounds**: Always validate positions against buffer length
@@ -509,8 +514,9 @@ Moving toward Missionary-style functional effects with structured concurrency:
 7. **Dictionary name field syntax**: Must use commas between all elements! `db 1, "'", 0, 0, 0, 0, 0, 0` not `db 1 "'", 0, 0, 0, 0, 0, 0`. Missing commas cause incorrect assembly and dictionary misalignment.
 8. **Data alignment**: Multi-word structures (timespec, futex vars, etc.) should be explicitly aligned with `align 8` or `align 4`. x86-64 tolerates misalignment but it hurts performance and isn't portable.
 9. **sys_clone behavior with stacks**: The child gets a NEW stack pointer (passed in RSI), so push/pop around sys_clone only affects parent. Child must calculate its own values from its stack pointer.
-10. **Callee-saved registers inherit across clone**: R12-R15, RBX, RBP all preserve their values in the child. We use RBP to pass mmap base to child thread.
+10. **Callee-saved registers inherit across clone**: RBX, R12-R15, RBP all preserve their values in the child. We use RBP to pass mmap base to child thread.
 11. **Thread-local state via TLS**: R13 points to thread descriptor containing FLAGS field with STATE/OUTPUT/DEBUG as bit fields.
+12. **CURRIP vs NEXTIP usage**: CURRIP is for words needing self-reference (DOCOL, DOCREATE), NEXTIP is for inline data reading (LIT, BRANCH).
 
 ### Development Approach
 **Collaborative implementation**: The developer implements features while asking questions about design decisions, optimization opportunities, and debugging issues. Claude provides guidance, spots bugs, and suggests improvements without implementing directly unless requested.

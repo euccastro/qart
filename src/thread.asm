@@ -33,14 +33,14 @@ section .text
 global THREAD
 THREAD:
     ; Save execution token
-    mov rbx, [DSP]          ; Get xt from stack (don't pop yet)
+    mov r11, [DSP]          ; Get xt from stack (don't pop yet)
     
     ; Basic validation - execution tokens must be 8-byte aligned
-    test rbx, 7             ; Check low 3 bits
+    test r11, 7             ; Check low 3 bits
     jnz .invalid_xt         ; Not aligned = invalid
     
     ; Check if address is in kernel space (negative when viewed as signed)
-    test rbx, rbx
+    test r11, r11
     js .invalid_xt          ; Negative = kernel space = invalid
     
     ; Allocate 8KB for child's stacks
@@ -105,7 +105,7 @@ THREAD:
     ; Child thread initialization
     ; RSP points to top of mmap region (set by clone)
     ; rbp = mmap base (inherited from parent - it's callee-saved!)
-    ; rbx = execution token to run
+    ; r11 = execution token to run
     ; TLS = parent's descriptor pointer (will be replaced)
     
     ; Create thread descriptor at start of mmap region
@@ -137,7 +137,7 @@ THREAD:
     ; - THREAD_EXIT (which will call TLS_CLEANUP)
     extern dict_THREAD_EXIT
     lea rax, [rbp+32]       ; Program starts after descriptor
-    mov [rax], rbx          ; User's xt
+    mov [rax], r11          ; User's xt
     mov rdx, dict_THREAD_EXIT
     mov [rax+8], rdx        ; Thread exit (calls cleanup from TLS)
     

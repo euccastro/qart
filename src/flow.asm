@@ -164,7 +164,7 @@ CC_SIZE:
   ;; then calls xt with cont-addr on stack
 CALL_CC:
   ;; Stack has: cont-addr xt
-  mov rbx, [DSP]          ; RBX = xt to call
+  mov r11, [DSP]          ; r11 = xt to call
   mov rdi, [DSP+8]        ; RDI = buffer for continuation
   
   ;; Fill in continuation header
@@ -224,7 +224,7 @@ RESTORE_CONT:
   ;; Stack has value to pass (user error if empty, like . on empty stack)
   
   ;; Save the value to pass to the continuation
-  mov rbx, [DSP]          ; RBX = value to pass
+  mov r11, [DSP]          ; r11 = value to pass
   
   ;; Load data stack depth (already in bytes)
   mov rdx, [NEXTIP+CONT_DATA_SIZE]   ; RDX = data stack size in bytes
@@ -242,7 +242,7 @@ RESTORE_CONT:
   
   ;; Push the passed value onto restored stack
   sub DSP, 8
-  mov [DSP], rbx          ; Push the value
+  mov [DSP], r11          ; Push the value
   
   ;; Load return stack depth and restore
   mov rdx, [NEXTIP+CONT_RETURN_SIZE] ; RDX = return stack size in bytes
