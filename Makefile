@@ -40,4 +40,9 @@ run: $(OUTDIR)/qart
 test: $(OUTDIR)/qart
 	dev/test.sh
 
-.PHONY: all clean run test
+# Debug build with symbols
+debug: clean
+	$(MAKE) ASFLAGS="$(ASFLAGS) -g -F dwarf" $(OUTDIR)/qart
+	@echo "Debug build complete. Run: gdb $(OUTDIR)/qart"
+
+.PHONY: all clean run test debug
