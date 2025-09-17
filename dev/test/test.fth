@@ -133,7 +133,7 @@ WORD @#$ 3 = ASSERT DROP
 SP@ R@ = ASSERT
 
 \ ZBRANCH (0BRANCH) is compile-only - cannot test interactively
-\ It reads branch offset from [IP] which points to interpreter code during interpretation
+\ It reads branch offset from [NEXTIP] which points to interpreter code during interpretation
 
 \ Test 0= (ZEROEQ)
 0 0= -1 = ASSERT

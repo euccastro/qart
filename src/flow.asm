@@ -48,10 +48,10 @@ abort_program:
   extern STATE
 
   ;; NEXT - The inner interpreter
-  ;; Dictionary-based execution: IP points to dictionary entry addresses
+  ;; Dictionary-based execution: NEXTIP points to dictionary entry addresses
 NEXT:
-  mov rdx, [IP]           ; Get dictionary entry address
-  add IP, 8               ; Advance IP
+  mov rdx, [NEXTIP]           ; Get dictionary entry address
+  add NEXTIP, 8               ; Advance NEXTIP
   mov rax, [rdx+16]       ; Get code field from dict entry (link=8 + name=8)
   jmp rax                 ; Execute the code
 
@@ -60,8 +60,8 @@ NEXT:
   ;; Dictionary structure: link(8) + name(8) + code(8) + body...
 DOCOL:
   sub RSTACK, 8           ; Make room on return stack
-  mov [RSTACK], IP        ; Save current IP
-  lea IP, [rdx+24]        ; IP = start of body (after 16-byte header and pointer to DOCOL)
+  mov [RSTACK], NEXTIP        ; Save current NEXTIP
+  lea NEXTIP, [rdx+24]        ; NEXTIP = start of body (after 16-byte header and pointer to DOCOL)
   jmp NEXT                ; Start executing the body
 
   ;; DOCREATE - Runtime for CREATE'd words
@@ -75,9 +75,9 @@ DOCREATE:
 
   ;; EXIT ( -- ) Return from colon definition
 EXIT:
-  mov rax, [RSTACK]       ; Get saved IP
+  mov rax, [RSTACK]       ; Get saved NEXTIP
   add RSTACK, 8           ; Drop from return stack
-  mov IP, rax             ; Restore IP
+  mov NEXTIP, rax             ; Restore NEXTIP
   jmp NEXT                ; Continue in caller
 
   ;; SYSEXIT ( -- ) Exit the entire process
@@ -90,7 +90,7 @@ SYSEXIT:
   ;; THREAD_EXIT ( -- ) Call thread-local cleanup
   ;; Loads cleanup function from TLS and executes via NEXT
 THREAD_EXIT:
-  lea IP, [TLS+TLS_CLEANUP] ; Point IP to cleanup field in descriptor
+  lea NEXTIP, [TLS+TLS_CLEANUP] ; Point NEXTIP to cleanup field in descriptor
   jmp NEXT                  ; NEXT will load and execute it
 
   ;; EXECUTE ( xt -- ) Execute word given execution token
@@ -103,17 +103,17 @@ EXECUTE:
 
   ;; BRANCH ( -- ) Jump to absolute address
 BRANCH:
-  mov IP, [IP]            ; Load absolute address from next cell
+  mov NEXTIP, [NEXTIP]            ; Load absolute address from next cell
   jmp NEXT
 
   ;; ZBRANCH ( n -- ) Jump to absolute address if TOS is zero
 ZBRANCH:
-  mov rdx, [IP]           ; Get absolute address
-  add IP, 8               ; Skip past the address
+  mov rdx, [NEXTIP]           ; Get absolute address
+  add NEXTIP, 8               ; Skip past the address
   mov rax, [DSP]          ; Get flag
   add DSP, 8              ; Drop flag
   test rax, rax           ; Test flag
-  cmovz IP, rdx           ; If zero, jump to absolute address
+  cmovz NEXTIP, rdx           ; If zero, jump to absolute address
   jmp NEXT
 
   ;; ABORT ( -- ) Clear stacks and execute RUN
@@ -128,8 +128,8 @@ ABORT_word:
   extern main_thread_descriptor
   mov TLS, main_thread_descriptor
   
-  ;; Point IP to abort_program and let NEXT execute it
-  mov IP, abort_program    ; IP points to QUIT/SYSEXIT program
+  ;; Point NEXTIP to abort_program and let NEXT execute it
+  mov NEXTIP, abort_program    ; NEXTIP points to QUIT/SYSEXIT program
   jmp NEXT                 ; NEXT will execute QUIT then SYSEXIT
 
   ;; CC-SIZE - Calculate size needed for a continuation
@@ -140,7 +140,7 @@ CC_SIZE:
   ;; +CONT_CODE:        Code pointer (8 bytes)
   ;; +CONT_DATA_SIZE:   Data stack depth in bytes (8 bytes)
   ;; +CONT_RETURN_SIZE: Return stack depth in bytes (8 bytes)
-  ;; +CONT_SAVED_IP:    Saved IP (8 bytes)
+  ;; +CONT_SAVED_IP:    Saved NEXTIP (8 bytes)
   mov rax, CONT_HEADER_SIZE      ; Start with header size
 
   ;; Calculate data stack depth
@@ -182,8 +182,8 @@ CALL_CC:
   sub rax, RSTACK
   mov [rdi+CONT_RETURN_SIZE], rax ; Store return stack size
   
-  ;; Store IP (pointing to instruction AFTER CALL/CC)
-  mov [rdi+CONT_SAVED_IP], IP     ; Save where to continue
+  ;; Store NEXTIP (pointing to instruction AFTER CALL/CC)
+  mov [rdi+CONT_SAVED_IP], NEXTIP     ; Save where to continue
   
   ;; Copy data stack (excluding cont-addr and xt)
   mov rcx, [rdi+CONT_DATA_SIZE]
@@ -210,24 +210,24 @@ CALL_CC:
 
   ;; RESTORE-CONT - Restore a continuation
   ;; This is called when a continuation is executed
-  ;; IP points to the continuation object when this runs
+  ;; NEXTIP points to the continuation object when this runs
   ;; Continuation layout:
-  ;;   [IP+CONT_CODE]:        Code pointer to RESTORE-CONT (this code)
-  ;;   [IP+CONT_DATA_SIZE]:   Data stack depth in bytes
-  ;;   [IP+CONT_RETURN_SIZE]: Return stack depth in bytes
-  ;;   [IP+CONT_SAVED_IP]:    Saved IP
-  ;;   [IP+CONT_HEADER_SIZE]: Data stack contents
-  ;;   [IP+CONT_HEADER_SIZE+data_bytes]: Return stack contents
+  ;;   [NEXTIP+CONT_CODE]:        Code pointer to RESTORE-CONT (this code)
+  ;;   [NEXTIP+CONT_DATA_SIZE]:   Data stack depth in bytes
+  ;;   [NEXTIP+CONT_RETURN_SIZE]: Return stack depth in bytes
+  ;;   [NEXTIP+CONT_SAVED_IP]:    Saved NEXTIP
+  ;;   [NEXTIP+CONT_HEADER_SIZE]: Data stack contents
+  ;;   [NEXTIP+CONT_HEADER_SIZE+data_bytes]: Return stack contents
 RESTORE_CONT:
   ;; This IS the continuation - directly executable like any word
-  ;; IP points to our continuation object structure
+  ;; NEXTIP points to our continuation object structure
   ;; Stack has value to pass (user error if empty, like . on empty stack)
   
   ;; Save the value to pass to the continuation
   mov rbx, [DSP]          ; RBX = value to pass
   
   ;; Load data stack depth (already in bytes)
-  mov rdx, [IP+CONT_DATA_SIZE]   ; RDX = data stack size in bytes
+  mov rdx, [NEXTIP+CONT_DATA_SIZE]   ; RDX = data stack size in bytes
   
   ;; Restore data stack
   mov DSP, [TLS+TLS_DATA_BASE] ; Get base from descriptor
@@ -236,7 +236,7 @@ RESTORE_CONT:
   ;; Copy data stack contents
   mov rcx, rdx              ; RCX = byte count
   mov rdi, DSP              ; Destination
-  lea rsi, [IP+CONT_HEADER_SIZE] ; Source (skip header)
+  lea rsi, [NEXTIP+CONT_HEADER_SIZE] ; Source (skip header)
   shr rcx, 3                ; Convert to qwords (0 if empty)
   rep movsq                 ; Copy the data (no-op if RCX=0)
   
@@ -245,23 +245,23 @@ RESTORE_CONT:
   mov [DSP], rbx          ; Push the value
   
   ;; Load return stack depth and restore
-  mov rdx, [IP+CONT_RETURN_SIZE] ; RDX = return stack size in bytes
+  mov rdx, [NEXTIP+CONT_RETURN_SIZE] ; RDX = return stack size in bytes
   mov RSTACK, [TLS+TLS_RETURN_BASE] ; Get base from descriptor
   
   ;; Adjust RSTACK (rdx has size in bytes, always non-zero)
   sub RSTACK, rdx           ; Make room on return stack
   
   ;; Calculate source offset (header + data stack bytes)
-  mov rax, [IP+CONT_DATA_SIZE]   ; Data stack size in bytes
+  mov rax, [NEXTIP+CONT_DATA_SIZE]   ; Data stack size in bytes
   add rax, CONT_HEADER_SIZE      ; Add header size
   
   ;; Copy return stack contents
   mov rcx, rdx              ; RCX = byte count
   mov rdi, RSTACK           ; Destination
-  lea rsi, [IP+rax]         ; Source (IP + offset in rax)
+  lea rsi, [NEXTIP+rax]         ; Source (NEXTIP + offset in rax)
   shr rcx, 3                ; Convert to qwords
   rep movsq                 ; Copy the data
   
-  ;; Restore IP and continue
-  mov IP, [IP+CONT_SAVED_IP]     ; Load saved IP from continuation
+  ;; Restore NEXTIP and continue
+  mov NEXTIP, [NEXTIP+CONT_SAVED_IP]     ; Load saved NEXTIP from continuation
   jmp NEXT                  ; Continue execution

@@ -141,8 +141,8 @@ THREAD:
     mov rdx, dict_THREAD_EXIT
     mov [rax+8], rdx        ; Thread exit (calls cleanup from TLS)
     
-    ; Point IP at our program
-    lea IP, [rbp+32]
+    ; Point NEXTIP at our program
+    lea NEXTIP, [rbp+32]
     
     ; Start execution via NEXT
     jmp NEXT

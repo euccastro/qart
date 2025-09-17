@@ -1,7 +1,7 @@
 ; forth.inc - Common definitions for all Forth assembly files
 
 ; Register assignments
-%define IP r12              ; Instruction Pointer
+%define NEXTIP r12              ; Instruction Pointer
 %define TLS r13             ; Thread Local Storage (pointer to thread descriptor)
 %define RSTACK r14          ; Return Stack Pointer
 %define DSP r15             ; Data Stack Pointer
@@ -16,7 +16,7 @@
 %define CONT_CODE 0         ; Offset to code pointer (RESTORE_CONT)
 %define CONT_DATA_SIZE 8    ; Offset to data stack size in bytes
 %define CONT_RETURN_SIZE 16 ; Offset to return stack size in bytes
-%define CONT_SAVED_IP 24    ; Offset to saved IP
+%define CONT_SAVED_IP 24    ; Offset to saved NEXTIP
 %define CONT_HEADER_SIZE 32 ; Total header size before stack data
 
 ; Constants

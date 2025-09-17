@@ -34,7 +34,7 @@ R8-R15 are new registers added in x86_64 with no historical baggage.
 | Register | Special Features | Our Usage | Why This Choice? |
 |----------|-----------------|-----------|------------------|
 | RAX | • Syscall number & return<br>• Division dividend (low)<br>• Multiplication result<br>• Shorter encodings | • Syscall numbers<br>• Math operations<br>• General computation | Required for syscalls and div/mul |
-| R12 | • Callee-saved<br>• No special meaning | • Forth instruction pointer (IP) | Arbitrary - part of R12-R15 "system" block |
+| R12 | • Callee-saved<br>• No special meaning | • Forth instruction pointer (NEXTIP) | Arbitrary - part of R12-R15 "system" block |
 | R13 | • Callee-saved<br>• No special meaning | • Thread Local Storage (TLS) pointer<br>• Points to thread descriptor | Clean thread-local storage |
 | R14 | • Callee-saved<br>• No special meaning | • Forth return stack pointer (RSTACK) | Part of R12-R15 "system" block |
 | R15 | • Callee-saved<br>• No special meaning | • Forth data stack pointer (DSP) | Part of R12-R15 "system" block |

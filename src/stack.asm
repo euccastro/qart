@@ -18,8 +18,8 @@ extern NEXT
 
 ; LIT ( -- n ) Push following cell as literal
 LIT:
-    mov rax, [IP]           ; Get literal value
-    add IP, 8               ; Skip it
+    mov rax, [NEXTIP]           ; Get literal value
+    add NEXTIP, 8               ; Skip it
     sub DSP, 8              ; Make room
     mov [DSP], rax          ; Push value
     jmp NEXT

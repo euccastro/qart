@@ -80,7 +80,7 @@ The project is organized to separate source code, development tools, documentati
   - Dictionary-based NEXT inner interpreter (ITC model)
   - Data stack with DSP in R15
   - Return stack with RSTACK in R14
-  - Instruction pointer (IP) in R12
+  - Instruction pointer (NEXTIP) in R12
   - Dictionary structure with linked list
   - DOCOL runtime for colon definitions
   - Core primitives: LIT, DUP, DROP, ADD, >R, R>, R@, @, !, C@, C!, DOT (.), EXIT, EXECUTE, FIND, NUMBER, REFILL, WORD, SP@ (stack pointer fetch)
@@ -109,7 +109,7 @@ The project is organized to separate source code, development tools, documentati
 
 ## Register Usage
 
-- **R12 (IP)**: Instruction Pointer - points to next word to execute
+- **R12 (NEXTIP)**: Instruction Pointer - points to next word to execute
 - **R13 (TLS)**: Thread Local Storage - points to thread descriptor
 - **R14 (RSTACK)**: Return Stack Pointer
 - **R15 (DSP)**: Data Stack Pointer
@@ -155,10 +155,10 @@ Please follow these emacs-style assembly formatting conventions for consistency:
   section .text
 
   ;; NEXT - The inner interpreter
-  ;; Dictionary-based execution: IP points to dictionary entry addresses
+  ;; Dictionary-based execution: NEXTIP points to dictionary entry addresses
 NEXT:
-  mov rdx, [IP]           ; Get dictionary entry address
-  add IP, 8               ; Advance IP
+  mov rdx, [NEXTIP]           ; Get dictionary entry address
+  add NEXTIP, 8               ; Advance NEXTIP
   mov rax, [rdx+16]       ; Get code field from dict entry
   jmp rax                 ; Execute the code
 
@@ -294,15 +294,15 @@ We're implementing Scheme-style call-with-current-continuation to enable advance
 
 **How CALL/CC works**:
 1. Pop execution token from data stack
-2. Save current continuation (both stacks + IP after CALL/CC)
+2. Save current continuation (both stacks + NEXTIP after CALL/CC)
 3. Package as continuation object
 4. Execute the function with continuation on stack
 5. If function returns normally, continue after CALL/CC
-6. If continuation is invoked later, restore saved state and jump to saved IP
+6. If continuation is invoked later, restore saved state and jump to saved NEXTIP
 
 **Key design decisions**:
 - **Stack-based syntax** (`' FN CALL/CC` not `CALL/CC FN`) for consistency with EXECUTE and to enable dynamic function selection
-- **IP points after CALL/CC** to exclude the capture mechanism from the continuation (avoiding infinite loops)
+- **NEXTIP points after CALL/CC** to exclude the capture mechanism from the continuation (avoiding infinite loops)
 - **Function boundary via EXIT** - when called function returns, we know it's done (natural Forth mechanism)
 - **Full stack capture** - Unlike delimited continuations, we capture entire stack states (simpler to implement)
 
@@ -332,7 +332,7 @@ Offset  Contents
 +0:     Code pointer (to RESTORE-CONT primitive)
 +8:     Data stack depth (in cells)
 +16:    Return stack depth (in cells)
-+24:    Saved IP (instruction pointer)
++24:    Saved NEXTIP (instruction pointer)
 +32:    Data stack contents (variable size)
 +?:     Return stack contents (variable size)
 ```
@@ -393,7 +393,7 @@ Continuation Object:
   +0:  Code pointer (to RESTORE_CONT)
   +8:  Data stack size in bytes
   +16: Return stack size in bytes
-  +24: Saved IP
+  +24: Saved NEXTIP
   +32: Data stack contents
   +?:  Return stack contents
 ```
@@ -500,7 +500,7 @@ Moving toward Missionary-style functional effects with structured concurrency:
 - **File concatenation in dev/qi**: Spaces inserted between concatenated files to prevent word joining
 
 ### Critical Things to Watch For
-1. **Register preservation**: Never clobber R12-R15 (IP, TLS, RSTACK, DSP) in primitives
+1. **Register preservation**: Never clobber R12-R15 (NEXTIP, TLS, RSTACK, DSP) in primitives
 2. **Stack direction**: Data stack grows downward (sub DSP, 8 to push)
 3. **NASM reserved words**: Check if a word name conflicts before using it
 4. **Buffer bounds**: Always validate positions against buffer length
