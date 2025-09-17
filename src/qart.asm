@@ -12,8 +12,8 @@ main_thread_descriptor:
   dq 2                      ; +0: flags (STATE=0, OUTPUT=1 (stdout), DEBUG=0)
   dq data_stack_base        ; +8: data stack base address
   dq return_stack_base      ; +16: return stack base address
-  extern dict_SYSEXIT
-  dq dict_SYSEXIT           ; +24: cleanup function (exits entire process)
+  extern SYSEXIT
+  dq SYSEXIT              ; +24: cleanup function (exits entire process)
   align 8
 buffer: times 20 db 0
 newline: db NEWLINE
@@ -197,16 +197,16 @@ dict_LIT:
   db 67, "LIT", 0, 0, 0, 0  ; 3 | COMPILE_ONLY_FLAG = 67
   dq LIT
 
-  ;; Test colon definition: DOUBLE ( n -- n*2 ) 
+  ;; Test colon definition: DOUBLE ( n -- n*2 )
   ;; Equivalent to : DOUBLE DUP + ;
 dict_DOUBLE:
   dq dict_LIT             ; Link to previous
   db 6, "DOUBLE", 0       ; Name
+DOUBLE:                   ; Execution token points here
   dq DOCOL                ; Code field points to DOCOL
-  ;; Body starts here:
-  dq dict_DUP             ; DUP
-  dq dict_ADD             ; +
-  dq dict_EXIT            ; EXIT (;)
+  dq DUP                  ; DUP (primitive)
+  dq ADD                  ; + (primitive)
+  dq EXIT                 ; EXIT (primitive)
 
 dict_EXECUTE:
   dq dict_DOUBLE          ; Link to previous
@@ -277,56 +277,59 @@ dict_TYPE:
 dict_ERRTYPE:
   dq dict_TYPE
   db 7, "ERRTYPE"
+ERRTYPE:                  ; Execution token points here
   dq DOCOL                ; Colon definition
   ;; Save current OUTPUT
-  dq dict_OUTPUT          ; ( c-addr u OUTPUT )
-  dq dict_FETCH           ; ( c-addr u old-output )
-  dq dict_TO_R            ; ( c-addr u ) (R: old-output)
+  dq OUTPUT_word          ; ( c-addr u OUTPUT )
+  dq FETCH                ; ( c-addr u old-output )
+  dq TO_R                 ; ( c-addr u ) (R: old-output)
   ;; Set OUTPUT to stderr
-  dq dict_LIT
+  dq LIT
   dq 2                    ; ( c-addr u 2 )
-  dq dict_OUTPUT          ; ( c-addr u 2 OUTPUT )
-  dq dict_STORE           ; ( c-addr u )
+  dq OUTPUT_word          ; ( c-addr u 2 OUTPUT )
+  dq STORE                ; ( c-addr u )
   ;; Output the string
-  dq dict_TYPE            ; ( )
+  dq TYPE                 ; ( )
   ;; Restore OUTPUT
-  dq dict_R_FROM          ; ( old-output )
-  dq dict_OUTPUT          ; ( old-output OUTPUT )
-  dq dict_STORE           ; ( )
-  dq dict_EXIT
+  dq R_FROM               ; ( old-output )
+  dq OUTPUT_word          ; ( old-output OUTPUT )
+  dq STORE                ; ( )
+  dq EXIT
 
   ;; CR ( -- ) Output newline to stdout
   align 8
 dict_CR:
   dq dict_ERRTYPE         ; Link to previous
   db 2, "CR", 0, 0, 0, 0, 0 ; Name must be exactly 8 bytes
+CR:                       ; Execution token points here
   dq DOCOL                ; Colon definition
-  ;; Body starts here at offset 24
-  dq dict_LIT, NEWLINE    ; Push newline character
-  dq dict_EMIT            ; Output it
-  dq dict_EXIT
+  dq LIT
+  dq NEWLINE              ; Push newline character
+  dq EMIT                 ; Output it
+  dq EXIT
 
-  ;; ERRCR ( -- ) Output newline to stderr  
+  ;; ERRCR ( -- ) Output newline to stderr
 dict_ERRCR:
   dq dict_CR              ; Link to previous
   db 5, "ERRCR", 0, 0
+ERRCR:                    ; Execution token points here
   dq DOCOL                ; Colon definition
   ;; Save current OUTPUT
-  dq dict_OUTPUT          ; ( OUTPUT )
-  dq dict_FETCH           ; ( old-output )
-  dq dict_TO_R            ; ( ) (R: old-output)
+  dq OUTPUT_word          ; ( OUTPUT )
+  dq FETCH                ; ( old-output )
+  dq TO_R                 ; ( ) (R: old-output)
   ;; Set OUTPUT to stderr
-  dq dict_LIT
+  dq LIT
   dq 2                    ; ( 2 )
-  dq dict_OUTPUT          ; ( 2 OUTPUT )
-  dq dict_STORE           ; ( )
+  dq OUTPUT_word          ; ( 2 OUTPUT )
+  dq STORE                ; ( )
   ;; Output newline
-  dq dict_CR              ; ( )
+  dq CR                   ; ( )
   ;; Restore OUTPUT
-  dq dict_R_FROM          ; ( old-output )
-  dq dict_OUTPUT          ; ( old-output OUTPUT )
-  dq dict_STORE           ; ( )
-  dq dict_EXIT
+  dq R_FROM               ; ( old-output )
+  dq OUTPUT_word          ; ( old-output OUTPUT )
+  dq STORE                ; ( )
+  dq EXIT
 
   ;; Error message for unknown word
 unknown_word_msg: db "Unknown word: "
@@ -341,101 +344,113 @@ compile_only_msg: db "Interpreting compile-only word: "
 dict_INTERPRET:
   dq dict_ERRCR           ; Link to previous
   db 7, "INTERPR"
+INTERPRET:                ; Execution token points here
   dq DOCOL                ; Colon definition
   .loop:
   ;; Get next word
-  dq dict_WORD            ; ( -- c-addr u )
-  dq dict_DUP             ; ( c-addr u u )
-  dq dict_ZBRANCH, .done
+  dq PARSE_WORD           ; ( -- c-addr u )
+  dq DUP                  ; ( c-addr u u )
+  dq ZBRANCH, .done
 
   ;; Try to find in dictionary
-  dq dict_FIND            ; ( xt 1 | c-addr u 0 )
-  dq dict_ZBRANCH, .try_number       ; If not found, skip to .try_number
-  
+  dq FIND                 ; ( xt 1 | c-addr u 0 )
+  dq ZBRANCH, .try_number ; If not found, skip to .try_number
+
   ;; Found - check what to do with it
-  dq dict_DUP             ; ( xt xt )
-  dq dict_LIT, 8          ; ( xt xt 8 )
-  dq dict_ADD             ; ( xt name-field-addr )
-  dq dict_C_FETCH         ; ( xt length-byte )
-  
+  dq DUP                  ; ( xt xt )
+  dq LIT
+  dq 8                    ; ( xt xt 8 )
+  dq ADD                  ; ( xt name-field-addr )
+  dq C_FETCH              ; ( xt length-byte )
+
   ;; First check compile-only in interpret mode
-  dq dict_DUP             ; ( xt length-byte length-byte )
-  dq dict_LIT, COMPILE_ONLY_FLAG ; ( xt length-byte length-byte 0x40 )
-  dq dict_AND             ; ( xt length-byte compile-only? )
-  dq dict_STATE_FETCH     ; ( xt length-byte compile-only? state )
-  dq dict_ZEROEQ          ; ( xt length-byte compile-only? interpreting? )
-  dq dict_AND             ; ( xt length-byte error? )
-  dq dict_ZBRANCH, .no_compile_only_error
-  
+  dq DUP                  ; ( xt length-byte length-byte )
+  dq LIT
+  dq COMPILE_ONLY_FLAG ; ( xt length-byte length-byte 0x40 )
+  dq AND                  ; ( xt length-byte compile-only? )
+  dq STATE_FETCH          ; ( xt length-byte compile-only? state )
+  dq ZEROEQ               ; ( xt length-byte compile-only? interpreting? )
+  dq AND                  ; ( xt length-byte error? )
+  dq ZBRANCH, .no_compile_only_error
+
   ;; Compile-only error path
-  dq dict_DROP            ; ( xt )
-  dq dict_BRANCH, .compile_only_error
-  
+  dq DROP                 ; ( xt )
+  dq BRANCH, .compile_only_error
+
   .no_compile_only_error: ; ( xt length-byte )
   ;; Check if we should execute (immediate or interpreting)
-  dq dict_LIT, IMMED_FLAG ; ( xt length-byte 0x80 )
-  dq dict_AND             ; ( xt immediate? )
-  dq dict_STATE_FETCH     ; ( xt immediate? state )
-  dq dict_ZEROEQ          ; ( xt immediate? interpreting? )
-  dq dict_OR              ; ( xt should-execute? )
-  dq dict_ZBRANCH, .compile_it
-  
+  dq LIT
+  dq IMMED_FLAG       ; ( xt length-byte 0x80 )
+  dq AND                  ; ( xt immediate? )
+  dq STATE_FETCH          ; ( xt immediate? state )
+  dq ZEROEQ               ; ( xt immediate? interpreting? )
+  dq OR                   ; ( xt should-execute? )
+  dq ZBRANCH, .compile_it
+
   ;; Execute the word
-  dq dict_EXECUTE         ; Execute the word
-  dq dict_BRANCH, .loop
-  
+  dq EXECUTE              ; Execute the word
+  dq BRANCH, .loop
+
   .compile_it:            ; ( xt )
   ;; Compile the word
-  dq dict_COMMA
-  dq dict_BRANCH, .loop
-  
+  dq COMMA
+  dq BRANCH, .loop
+
   .compile_only_error:
   ;; Print compile-only error
-  dq dict_LIT, compile_only_msg
-  dq dict_LIT, compile_only_msg_len
-  dq dict_ERRTYPE         ; Print "Interpreting compile-only word: "
+  dq LIT
+  dq compile_only_msg
+  dq LIT
+  dq compile_only_msg_len
+  dq ERRTYPE              ; Print "Interpreting compile-only word: "
   ;; Need to get the word name from the dictionary entry
-  dq dict_LIT, 8
-  dq dict_ADD             ; ( name-field-addr )
-  dq dict_DUP             ; ( name-field-addr name-field-addr )
-  dq dict_C_FETCH         ; ( name-field-addr length-byte )
-  dq dict_LIT, NAME_LENGTH_MASK
-  dq dict_AND             ; ( name-field-addr length )
-  dq dict_SWAP            ; ( length name-field-addr )
-  dq dict_LIT, 1
-  dq dict_ADD             ; ( length name-addr )
-  dq dict_SWAP            ; ( name-addr length )
-  dq dict_ERRTYPE         ; Print the word name
-  dq dict_ERRCR           ; Print newline
-  dq dict_EXIT
+  dq LIT
+  dq 8
+  dq ADD                  ; ( name-field-addr )
+  dq DUP                  ; ( name-field-addr name-field-addr )
+  dq C_FETCH              ; ( name-field-addr length-byte )
+  dq LIT
+  dq NAME_LENGTH_MASK
+  dq AND                  ; ( name-field-addr length )
+  dq SWAP                 ; ( length name-field-addr )
+  dq LIT
+  dq 1
+  dq ADD                  ; ( length name-addr )
+  dq SWAP                 ; ( name-addr length )
+  dq ERRTYPE              ; Print the word name
+  dq ERRCR                ; Print newline
+  dq EXIT
 
   .try_number:
   ;; Not in dictionary, try NUMBER
-  dq dict_NUMBER          ; ( n 1 | c-addr u 0 )
-  dq dict_ZBRANCH, .unknown_word
-  
+  dq NUMBER               ; ( n 1 | c-addr u 0 )
+  dq ZBRANCH, .unknown_word
+
   ;; Got a number - check if we should compile it
-  dq dict_STATE_FETCH     ; ( n state )
-  dq dict_ZBRANCH, .loop  ; If interpreting, leave on stack
-  
+  dq STATE_FETCH          ; ( n state )
+  dq ZBRANCH, .loop       ; If interpreting, leave on stack
+
   ;; Compile mode - compile as literal
-  dq dict_LIT, dict_LIT   ; ( n dict_LIT )
-  dq dict_COMMA           ; ( n )
-  dq dict_COMMA           ; ( )
-  dq dict_BRANCH, .loop
-  
+  dq LIT
+  dq LIT              ; ( n LIT )
+  dq COMMA                ; ( n )
+  dq COMMA                ; ( )
+  dq BRANCH, .loop
+
   .unknown_word:
   ;; Unknown word - print error
-  dq dict_LIT, unknown_word_msg
-  dq dict_LIT, unknown_word_msg_len
-  dq dict_ERRTYPE         ; Print "Unknown word: "
-  dq dict_ERRTYPE         ; Print the word itself
-  dq dict_ERRCR           ; Print newline
-  dq dict_EXIT
-  
+  dq LIT
+  dq unknown_word_msg
+  dq LIT
+  dq unknown_word_msg_len
+  dq ERRTYPE              ; Print "Unknown word: "
+  dq ERRTYPE              ; Print the word itself
+  dq ERRCR                ; Print newline
+  dq EXIT
+
   .done:
-  dq dict_TWO_DROP
-  dq dict_EXIT
+  dq TWO_DROP
+  dq EXIT
 
   ;; Error message for unknown word
 missing_word_msg: db "Expected word, got EOF."
@@ -447,29 +462,34 @@ wrong_word_size_msg: db "Wrong word size (must be 1-7 chars): "
 
   align 8
 print_and_abort:
-  dq dict_ERRTYPE         ; Print the word itself
-  dq dict_ERRCR           ; Print newline
-  dq dict_ABORT
+  dq ERRTYPE              ; Print the word itself
+  dq ERRCR                ; Print newline
+  dq ABORT_word
 
 dict_TICK:
   dq dict_INTERPRET
   db 1, "'", 0, 0, 0, 0, 0, 0
+TICK:                     ; Execution token points here
   dq DOCOL                ; Colon definition
-  dq dict_WORD            ; ( -- c-addr u )
-  dq dict_DUP
-  dq dict_ZBRANCH, .missing_word
-  dq dict_FIND            ; ( xt -1 | c-addr u 0 )
-  dq dict_ZBRANCH, .unknown_word
-  dq dict_EXIT
+  dq PARSE_WORD           ; ( -- c-addr u )
+  dq DUP
+  dq ZBRANCH, .missing_word
+  dq FIND                 ; ( xt -1 | c-addr u 0 )
+  dq ZBRANCH, .unknown_word
+  dq EXIT
   .missing_word:
-  dq dict_LIT, missing_word_msg
-  dq dict_LIT, missing_word_msg_len
-  dq dict_BRANCH, print_and_abort
+  dq LIT
+  dq missing_word_msg
+  dq LIT
+  dq missing_word_msg_len
+  dq BRANCH, print_and_abort
   .unknown_word:
-  dq dict_LIT, unknown_word_msg
-  dq dict_LIT, unknown_word_msg_len
-  dq dict_ERRTYPE         ; Print "Unknown word: "
-  dq dict_BRANCH, print_and_abort
+  dq LIT
+  dq unknown_word_msg
+  dq LIT
+  dq unknown_word_msg_len
+  dq ERRTYPE              ; Print "Unknown word: "
+  dq BRANCH, print_and_abort
 
   ;; STATE ( -- addr ) Push address of STATE variable
 dict_STATE:
@@ -481,44 +501,51 @@ dict_STATE:
 dict_ASSERT:
   dq dict_STATE           ; Link to previous
   db 6, "ASSERT", 0       ; Name
+ASSERT:                   ; Execution token points here
   dq DOCOL                ; Colon definition
   ;; Check if assertion failed
-  dq dict_ZBRANCH, .fail
+  dq ZBRANCH, .fail
   ;; Passed - check if verbose mode
-  dq dict_DEBUG_FETCH     ; ( debug-flag )
-  dq dict_ZBRANCH, .done
+  dq DEBUG_FETCH          ; ( debug-flag )
+  dq ZBRANCH, .done
   ;; Verbose mode - push PASS message
-  dq dict_LIT, pass_msg   ; ( pass_msg )
-  dq dict_LIT, pass_msg_len ; ( pass_msg 6 )
-  dq dict_BRANCH, .print
+  dq LIT
+  dq pass_msg         ; ( pass_msg )
+  dq LIT
+  dq pass_msg_len     ; ( pass_msg 6 )
+  dq BRANCH, .print
   .fail:
   ;; Failed - push FAIL message
-  dq dict_LIT, fail_msg   ; ( fail_msg )
-  dq dict_LIT, fail_msg_len ; ( fail_msg 6 )
+  dq LIT
+  dq fail_msg         ; ( fail_msg )
+  dq LIT
+  dq fail_msg_len     ; ( fail_msg 6 )
   .print:
   ;; Common print path - save OUTPUT and set to stderr
-  dq dict_OUTPUT          ; ( msg len OUTPUT )
-  dq dict_FETCH           ; ( msg len old-output )
-  dq dict_TO_R            ; ( msg len ) (R: old-output)
-  dq dict_LIT, 2          ; ( msg len 2 )
-  dq dict_OUTPUT          ; ( msg len 2 OUTPUT )
-  dq dict_STORE           ; ( msg len )
+  dq OUTPUT_word          ; ( msg len OUTPUT )
+  dq FETCH                ; ( msg len old-output )
+  dq TO_R                 ; ( msg len ) (R: old-output)
+  dq LIT
+  dq 2                ; ( msg len 2 )
+  dq OUTPUT_word          ; ( msg len 2 OUTPUT )
+  dq STORE                ; ( msg len )
   ;; Print the message
-  dq dict_TYPE            ; ( )
+  dq TYPE                 ; ( )
   ;; Print line:col
-  dq dict_LINE_NUMBER_FETCH ; ( line )
-  dq dict_DOT             ; ( ) - prints line to stderr
-  dq dict_LIT, ':' ; ( ':' )
-  dq dict_EMIT            ; ( )
-  dq dict_COLUMN_NUMBER_FETCH ; ( col )
-  dq dict_DOT             ; ( ) - prints col to stderr
-  dq dict_CR              ; Print newline
+  dq LINE_NUMBER_FETCH    ; ( line )
+  dq DOT                  ; ( ) - prints line to stderr
+  dq LIT
+  dq ':'              ; ( ':' )
+  dq EMIT                 ; ( )
+  dq COLUMN_NUMBER_FETCH  ; ( col )
+  dq DOT                  ; ( ) - prints col to stderr
+  dq CR                   ; Print newline
   ;; Restore OUTPUT
-  dq dict_R_FROM          ; ( old-output )
-  dq dict_OUTPUT          ; ( old-output OUTPUT )
-  dq dict_STORE           ; ( )
+  dq R_FROM               ; ( old-output )
+  dq OUTPUT_word          ; ( old-output OUTPUT )
+  dq STORE                ; ( )
   .done:
-  dq dict_EXIT
+  dq EXIT
 
   ;; OUTPUT ( -- addr ) Push address of OUTPUT variable
 dict_OUTPUT:
@@ -570,17 +597,18 @@ dict_IACR:
 dict_QUIT:
   dq dict_IACR           ; Link to previous
   db 4, "QUIT", 0, 0, 0   ; Name
+QUIT:                     ; Execution token points here
   dq DOCOL                ; Colon definition
   .loop:
-  dq dict_PROMPT          ; Show prompt if interactive
-  dq dict_REFILL
-  dq dict_ZBRANCH, .bye
-  dq dict_INTERPRET
-  dq dict_IACR                  ; CR if interactive
-  dq dict_BRANCH, .loop
+  dq PROMPT               ; Show prompt if interactive
+  dq REFILL
+  dq ZBRANCH, .bye
+  dq INTERPRET            ; Call INTERPRET
+  dq IACR                 ; CR if interactive
+  dq BRANCH, .loop
   .bye:
-  dq dict_BYE_MSG         ; Show bye message if interactive
-  dq dict_EXIT
+  dq BYE_MSG              ; Show bye message if interactive
+  dq EXIT
 
   ;; ABORT ( -- ) Clear stacks and jump to QUIT
   align 8
@@ -593,47 +621,53 @@ dict_ABORT:
 dict_SHOWWORDS:
   dq dict_ABORT           ; Link to previous
   db 5, "SHOWW", 0, 0
+SHOWWORDS:                ; Execution token points here
   dq DOCOL                ; Colon definition
   .loop:
   ;; Get next word
-  dq dict_WORD            ; ( -- c-addr u )
-  dq dict_DUP             ; ( c-addr u u )
-  dq dict_ZBRANCH, .done
-  
+  dq PARSE_WORD           ; ( -- c-addr u )
+  dq DUP                  ; ( c-addr u u )
+  dq ZBRANCH, .done
+
   ;; For each character in the word
   .byte_loop:
-  dq dict_DUP             ; ( c-addr u u )
-  dq dict_ZBRANCH, .end_word
-  
+  dq DUP                  ; ( c-addr u u )
+  dq ZBRANCH, .end_word
+
   ;; Print one byte
-  dq dict_OVER            ; ( c-addr count c-addr )
-  dq dict_C_FETCH         ; ( c-addr count byte )
-  dq dict_DOT             ; ( c-addr count )
-  dq dict_LIT, ' '
-  dq dict_EMIT
-  
+  dq OVER                 ; ( c-addr count c-addr )
+  dq C_FETCH              ; ( c-addr count byte )
+  dq DOT                  ; ( c-addr count )
+  dq LIT
+  dq ' '
+  dq EMIT
+
   ;; Next byte
-  dq dict_SWAP            ; ( count c-addr )
-  dq dict_LIT, 1
-  dq dict_ADD             ; ( count c-addr+1 )
-  dq dict_SWAP            ; ( c-addr+1 count )
-  dq dict_LIT, -1
-  dq dict_ADD
-  dq dict_BRANCH, .byte_loop
-  
+  dq SWAP                 ; ( count c-addr )
+  dq LIT
+  dq 1
+  dq ADD                  ; ( count c-addr+1 )
+  dq SWAP                 ; ( c-addr+1 count )
+  dq LIT
+  dq -1
+  dq ADD
+  dq BRANCH, .byte_loop
+
   .end_word:
   ;; Clean up
-  dq dict_TWO_DROP        ; ( c-addr u )
-  dq dict_LIT, '.'
-  dq dict_EMIT
-  dq dict_LIT, ' '
-  dq dict_EMIT            ; Double space
-  dq dict_BRANCH, .loop
-  
+  dq TWO_DROP             ; ( c-addr u )
+  dq LIT
+  dq '.'
+  dq EMIT
+  dq LIT
+  dq ' '
+  dq EMIT                 ; Double space
+  dq BRANCH, .loop
+
   .done:
-  dq dict_TWO_DROP
-  dq dict_CR
-  dq dict_EXIT
+  dq TWO_DROP
+  dq CR
+  dq EXIT
 
 dict_COMMA:
   dq dict_SHOWWORDS
@@ -648,47 +682,52 @@ dict_ALLOT:
 dict_CREATE:
   dq dict_ALLOT
   db 6, "CREATE", 0
+CREATE:                       ; Execution token points here
   dq DOCOL
-
   ;; Update linked list pointers
-  dq dict_HERE
-  dq dict_FETCH                 ; save original HERE before ,
-  dq dict_LATEST
-  dq dict_FETCH
-  dq dict_COMMA
-  dq dict_LATEST
-  dq dict_STORE
+  dq HERE_word
+  dq FETCH                    ; save original HERE before ,
+  dq LATEST_word
+  dq FETCH
+  dq COMMA
+  dq LATEST_word
+  dq STORE
 
-  dq dict_WORD                  ; (c-addr u)
-  
+  dq PARSE_WORD               ; (c-addr u)
+
   ;; Check word length is 1-7
-  dq dict_DUP                   ; (c-addr u u)
-  dq dict_DUP                   ; (c-addr u u u)
-  dq dict_ZEROEQ                ; (c-addr u u is-zero)
-  dq dict_SWAP                  ; (c-addr u is-zero u)
-  dq dict_LIT, -8               ; (c-addr u is-zero u -8)
-  dq dict_AND                   ; (c-addr u is-zero u&~7)
-  dq dict_OR                    ; (c-addr u invalid?)
-  dq dict_ZBRANCH, .size_ok
-  
+  dq DUP                      ; (c-addr u u)
+  dq DUP                      ; (c-addr u u u)
+  dq ZEROEQ                   ; (c-addr u u is-zero)
+  dq SWAP                     ; (c-addr u is-zero u)
+  dq LIT
+  dq -8                   ; (c-addr u is-zero u -8)
+  dq AND                      ; (c-addr u is-zero u&~7)
+  dq OR                       ; (c-addr u invalid?)
+  dq ZBRANCH, .size_ok
+
   ;; Size error - print message and abort
-  dq dict_LIT, wrong_word_size_msg
-  dq dict_LIT, wrong_word_size_msg_len
-  dq dict_ERRTYPE
-  dq dict_ERRTYPE               ; Print the word
-  dq dict_ERRCR
-  dq dict_ABORT
-  
+  dq LIT
+  dq wrong_word_size_msg
+  dq LIT
+  dq wrong_word_size_msg_len
+  dq ERRTYPE
+  dq ERRTYPE                  ; Print the word
+  dq ERRCR
+  dq ABORT_word
+
   .size_ok:
-  dq dict_SWAP                  ; (u c-addr)
-  dq dict_FETCH
-  dq dict_LIT, 8
-  dq dict_LSHIFT
-  dq dict_OR
-  dq dict_COMMA
-  dq dict_LIT, DOCREATE
-  dq dict_COMMA
-  dq dict_EXIT
+  dq SWAP                     ; (u c-addr)
+  dq FETCH
+  dq LIT
+  dq 8
+  dq LSHIFT
+  dq OR
+  dq COMMA
+  dq LIT
+  dq DOCREATE
+  dq COMMA
+  dq EXIT
 
 dict_IMMED_TEST:
   dq dict_CREATE
@@ -703,30 +742,38 @@ dict_IMMED:
 dict_COLON:
   dq dict_IMMED
   db 1, ":", 0, 0, 0, 0, 0, 0
+COLON:                        ; Execution token points here
   dq DOCOL
-  dq dict_CREATE
+  dq CREATE
 
   ;; replace DOCREATE with DOCOL
-  dq dict_LIT, DOCOL
-  dq dict_HERE
-  dq dict_FETCH                 ; Get HERE value, not address
-  dq dict_LIT, 8
-  dq dict_SUB
-  dq dict_STORE
+  dq LIT
+  dq DOCOL
+  dq HERE_word
+  dq FETCH                    ; Get HERE value, not address
+  dq LIT
+  dq 8
+  dq SUB
+  dq STORE
 
   ;; set compilation mode
-  dq dict_LIT, 1
-  dq dict_STATE_STORE
-  dq dict_EXIT
+  dq LIT
+  dq 1
+  dq STATE_STORE
+  dq EXIT
 
 dict_SEMICOLON:
   dq dict_COLON
   db 129, ";", 0, 0, 0, 0, 0, 0
+SEMICOLON:                    ; Execution token points here
   dq DOCOL
-  dq dict_LIT, dict_EXIT, dict_COMMA
-  dq dict_LIT, 0
-  dq dict_STATE_STORE
-  dq dict_EXIT
+  dq LIT
+  dq EXIT
+  dq COMMA
+  dq LIT
+  dq 0
+  dq STATE_STORE
+  dq EXIT
 
 dict_THREAD:
   dq dict_SEMICOLON
@@ -849,6 +896,9 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   global return_stack_base
   global main_thread_descriptor
   global dict_QUIT
+  global QUIT
+  global ERRTYPE
+  global ERRCR
   global HERE
 
   ;; Import all the primitives from other files

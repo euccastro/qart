@@ -22,10 +22,10 @@ dict_THREAD_EXIT:
   dq THREAD_EXIT          ; Code field
 
   ;; Main program executed by ABORT: QUIT followed by thread-local cleanup
-  extern dict_QUIT
+  extern QUIT
 abort_program:
-  dq dict_QUIT            ; Call QUIT
-  dq dict_THREAD_EXIT     ; Call thread-local cleanup
+  dq QUIT                 ; Call QUIT
+  dq THREAD_EXIT          ; Call thread-local cleanup
 
   section .text
 
@@ -39,6 +39,7 @@ abort_program:
   global ABORT_word
   global CC_SIZE
   global CALL_CC
+  global SYSEXIT
   global dict_SYSEXIT
   global dict_THREAD_EXIT
   global RESTORE_CONT
@@ -48,28 +49,28 @@ abort_program:
   extern STATE
 
   ;; NEXT - The inner interpreter
-  ;; Dictionary-based execution: NEXTIP points to dictionary entry addresses
+  ;; Dictionary-based execution: NEXTIP points to code field addresses
 NEXT:
-  mov CURRIP, [NEXTIP]           ; Get dictionary entry address
+  mov CURRIP, [NEXTIP]           ; Get code field address
   add NEXTIP, 8               ; Advance NEXTIP
-  mov rax, [CURRIP+16]       ; Get code field from dict entry (link=8 + name=8)
+  mov rax, [CURRIP]       ; Get code from code field
   jmp rax                 ; Execute the code
 
   ;; DOCOL - Runtime for colon definitions
-  ;; Expects RDX = dictionary entry address
+  ;; CURRIP points to code field address
   ;; Dictionary structure: link(8) + name(8) + code(8) + body...
 DOCOL:
   sub RSTACK, 8           ; Make room on return stack
   mov [RSTACK], NEXTIP        ; Save current NEXTIP
-  lea NEXTIP, [CURRIP+24]        ; NEXTIP = start of body (after 16-byte header and pointer to DOCOL)
+  lea NEXTIP, [CURRIP+8]        ; NEXTIP = start of body (code field + 8)
   jmp NEXT                ; Start executing the body
 
   ;; DOCREATE - Runtime for CREATE'd words
-  ;; Expects RDX = dictionary entry address
+  ;; CURRIP points to code field address
   ;; Pushes address of data field (right after code field)
 DOCREATE:
   sub DSP, 8              ; Make room on data stack
-  lea rax, [CURRIP+24]       ; Address after link(8) + name(8) + code(8)
+  lea rax, [CURRIP+8]       ; Address after code field
   mov [DSP], rax          ; Push data field address
   jmp NEXT
 
@@ -94,11 +95,11 @@ THREAD_EXIT:
   jmp NEXT                  ; NEXT will load and execute it
 
   ;; EXECUTE ( xt -- ) Execute word given execution token
-  ;; Execution token is a dictionary pointer
+  ;; Execution token is a code field address
 EXECUTE:
-  mov CURRIP, [DSP]          ; Get dictionary pointer from stack
+  mov CURRIP, [DSP]          ; Get code field address from stack
   add DSP, 8              ; Drop from stack
-  mov rax, [CURRIP+16]       ; Load code address from dict entry
+  mov rax, [CURRIP]       ; Load code address from code field
   jmp rax                 ; Jump to the code
 
   ;; BRANCH ( -- ) Jump to absolute address
