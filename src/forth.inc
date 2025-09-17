@@ -1,7 +1,8 @@
 ; forth.inc - Common definitions for all Forth assembly files
 
 ; Register assignments
-%define NEXTIP r12              ; Instruction Pointer
+%define CURRIP rbx          ; Current Instruction Pointer
+%define NEXTIP r12          ; Next Instruction Pointer
 %define TLS r13             ; Thread Local Storage (pointer to thread descriptor)
 %define RSTACK r14          ; Return Stack Pointer
 %define DSP r15             ; Data Stack Pointer

@@ -50,9 +50,9 @@ abort_program:
   ;; NEXT - The inner interpreter
   ;; Dictionary-based execution: NEXTIP points to dictionary entry addresses
 NEXT:
-  mov rdx, [NEXTIP]           ; Get dictionary entry address
+  mov CURRIP, [NEXTIP]           ; Get dictionary entry address
   add NEXTIP, 8               ; Advance NEXTIP
-  mov rax, [rdx+16]       ; Get code field from dict entry (link=8 + name=8)
+  mov rax, [CURRIP+16]       ; Get code field from dict entry (link=8 + name=8)
   jmp rax                 ; Execute the code
 
   ;; DOCOL - Runtime for colon definitions
@@ -61,7 +61,7 @@ NEXT:
 DOCOL:
   sub RSTACK, 8           ; Make room on return stack
   mov [RSTACK], NEXTIP        ; Save current NEXTIP
-  lea NEXTIP, [rdx+24]        ; NEXTIP = start of body (after 16-byte header and pointer to DOCOL)
+  lea NEXTIP, [CURRIP+24]        ; NEXTIP = start of body (after 16-byte header and pointer to DOCOL)
   jmp NEXT                ; Start executing the body
 
   ;; DOCREATE - Runtime for CREATE'd words
@@ -69,7 +69,7 @@ DOCOL:
   ;; Pushes address of data field (right after code field)
 DOCREATE:
   sub DSP, 8              ; Make room on data stack
-  lea rax, [rdx+24]       ; Address after link(8) + name(8) + code(8)
+  lea rax, [CURRIP+24]       ; Address after link(8) + name(8) + code(8)
   mov [DSP], rax          ; Push data field address
   jmp NEXT
 
@@ -96,9 +96,9 @@ THREAD_EXIT:
   ;; EXECUTE ( xt -- ) Execute word given execution token
   ;; Execution token is a dictionary pointer
 EXECUTE:
-  mov rdx, [DSP]          ; Get dictionary pointer from stack
+  mov CURRIP, [DSP]          ; Get dictionary pointer from stack
   add DSP, 8              ; Drop from stack
-  mov rax, [rdx+16]       ; Load code address from dict entry
+  mov rax, [CURRIP+16]       ; Load code address from dict entry
   jmp rax                 ; Jump to the code
 
   ;; BRANCH ( -- ) Jump to absolute address
