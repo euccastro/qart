@@ -4,7 +4,7 @@
 
 section .text
 
-global FIND
+global IMPL_FIND
 
 extern NEXT
 extern LATEST
@@ -12,7 +12,7 @@ extern LATEST
 ; FIND ( c-addr u -- xt -1 | c-addr u 0 ) Look up word in dictionary
 ; If found: returns execution token and -1 (true)
 ; If not found: returns original string and 0 (false)
-FIND:
+IMPL_FIND:
     ; Save string for possible return
     mov rax, [DSP]          ; Length
     push rax

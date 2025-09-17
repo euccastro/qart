@@ -19,8 +19,8 @@ section .text
 ;; CLOCK@ ( -- seconds nanoseconds )
 ;; Get current monotonic clock time
 ;; Returns seconds and nanoseconds as two values on stack
-global CLOCK_FETCH
-CLOCK_FETCH:
+global IMPL_CLOCK_FETCH
+IMPL_CLOCK_FETCH:
     ; clock_gettime(CLOCK_MONOTONIC, &timespec)
     mov rax, SYS_clock_gettime
     mov rdi, CLOCK_MONOTONIC
@@ -54,8 +54,8 @@ CLOCK_FETCH:
 ;; Sleep for specified nanoseconds
 ;; Handles values > 1 second by converting to seconds + nanoseconds
 ;; Note: actual precision depends on system timer (typically ~1ms minimum)
-global SLEEP
-SLEEP:
+global IMPL_SLEEP
+IMPL_SLEEP:
     ; Get nanoseconds from stack
     mov rax, [DSP]
     add DSP, 8                          ; pop stack

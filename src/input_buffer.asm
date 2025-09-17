@@ -4,11 +4,11 @@
 %include "forth.inc"
 
 section .text
-global REFILL
-global BACKSLASH
-global PARSE_WORD
-global SCAN_CHAR
-global SOURCE_FETCH
+global IMPL_REFILL
+global IMPL_BACKSLASH
+global IMPL_PARSE_WORD
+global IMPL_SCAN_CHAR
+global IMPL_SOURCE_FETCH
 
 extern input_buffer
 extern input_length
@@ -20,7 +20,7 @@ extern NEXT
 ; REFILL ( -- flag )
 ; Read a line of input into the input buffer
 ; Returns -1 (true) on success, 0 (false) on EOF
-REFILL:
+IMPL_REFILL:
     ; Reset position to start of buffer
     mov qword [input_position], 0
     ; Reset line tracking
@@ -52,7 +52,7 @@ REFILL:
 
 ; BACKSLASH ( -- )
 ; Skip to end of current line (rest-of-line comment)
-BACKSLASH:
+IMPL_BACKSLASH:
     ; Get current position and length
     mov rsi, [input_position]   ; Current position
     mov rcx, [input_length]     ; Total length
@@ -92,7 +92,7 @@ BACKSLASH:
 ; PARSE_WORD ( -- addr length )
 ; Parse next space-delimited word from input buffer
 ; Returns address and length on stack (0 0 if no more words)
-PARSE_WORD:
+IMPL_PARSE_WORD:
     ; Get current position and length
     mov rsi, [input_position]   ; Current position
     mov rcx, [input_length]     ; Total length
@@ -164,7 +164,7 @@ PARSE_WORD:
 
 ; SOURCE@ ( -- addr )
 ; Push address of current position in input buffer
-SOURCE_FETCH:
+IMPL_SOURCE_FETCH:
     ; Calculate current position address
     mov rax, input_buffer
     add rax, [input_position]
@@ -178,7 +178,7 @@ SOURCE_FETCH:
 ; Search for character in input buffer starting from current position
 ; If found: advance input_position to that character and return distance
 ; If not found: leave input_position unchanged and return -1
-SCAN_CHAR:
+IMPL_SCAN_CHAR:
     ; Get character to search for
     mov rax, [DSP]          ; Get the value from stack
     add DSP, 8              ; Pop the stack

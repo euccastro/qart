@@ -60,142 +60,170 @@ dict_EXIT:
 dict_DOT:
   dq dict_EXIT
   db 1, ".", 0, 0, 0, 0, 0, 0
-  dq DOT
+DOT:                      ; Execution token points here
+  dq IMPL_DOT
 
 dict_EMIT:
   dq dict_DOT
   db 4, "EMIT", 0, 0, 0
-  dq EMIT
+EMIT:                     ; Execution token points here
+  dq IMPL_EMIT
 
 dict_KEY:
   dq dict_EMIT
   db 3, "KEY", 0, 0, 0, 0
-  dq KEY
+KEY:                      ; Execution token points here
+  dq IMPL_KEY
 
 dict_C_STORE:
   dq dict_KEY
   db 2, "C!", 0, 0, 0, 0, 0
-  dq C_STORE
+C_STORE:                  ; Execution token points here
+  dq IMPL_C_STORE
 
 dict_C_FETCH:
   dq dict_C_STORE
   db 2, "C@", 0, 0, 0, 0, 0
-  dq C_FETCH
+C_FETCH:                  ; Execution token points here
+  dq IMPL_C_FETCH
 
 dict_STORE:
   dq dict_C_FETCH
   db 1, "!", 0, 0, 0, 0, 0, 0
-  dq STORE
+STORE:                    ; Execution token points here
+  dq IMPL_STORE
 
 dict_FETCH:
   dq dict_STORE
   db 1, "@", 0, 0, 0, 0, 0, 0
-  dq FETCH
+FETCH:                    ; Execution token points here
+  dq IMPL_FETCH
 
 dict_R_FETCH:
   dq dict_FETCH
   db 2, "R@", 0, 0, 0, 0, 0
-  dq R_FETCH
+R_FETCH:                  ; Execution token points here
+  dq IMPL_R_FETCH
 
 dict_R_FROM:
   dq dict_R_FETCH
   db 2, "R>", 0, 0, 0, 0, 0
-  dq R_FROM
+R_FROM:                   ; Execution token points here
+  dq IMPL_R_FROM
 
 dict_TO_R:
   dq dict_R_FROM
   db 2, ">R", 0, 0, 0, 0, 0
-  dq TO_R
+TO_R:                     ; Execution token points here
+  dq IMPL_TO_R
 
 dict_ADD:
   dq dict_TO_R
   db 1, "+", 0, 0, 0, 0, 0, 0
-  dq ADD
+ADD:                      ; Execution token points here
+  dq IMPL_ADD
 
 dict_SUB:
   dq dict_ADD
   db 1, "-", 0, 0, 0, 0, 0, 0
-  dq SUB
+SUB:                      ; Execution token points here
+  dq IMPL_SUB
 
 dict_ZEROEQ:
   dq dict_SUB
   db 2, "0=", 0, 0, 0, 0, 0
-  dq ZEROEQ
+ZEROEQ:                   ; Execution token points here
+  dq IMPL_ZEROEQ
 
 dict_EQUAL:
   dq dict_ZEROEQ
   db 1, "=", 0, 0, 0, 0, 0, 0
-  dq EQUAL
+EQUAL:                    ; Execution token points here
+  dq IMPL_EQUAL
 
 dict_AND:
   dq dict_EQUAL
   db 3, "AND", 0, 0, 0, 0
-  dq AND
+AND:                      ; Execution token points here
+  dq IMPL_AND
 
 dict_LSHIFT:
   dq dict_AND
   db 6, "LSHIFT", 0
-  dq LSHIFT
+LSHIFT:                   ; Execution token points here
+  dq IMPL_LSHIFT
 
 dict_OR:
   dq dict_LSHIFT
   db 2, "OR", 0, 0, 0, 0, 0
-  dq OR
+OR:                       ; Execution token points here
+  dq IMPL_OR
 
 dict_LESS_THAN:
   dq dict_OR
   db 1, "<", 0, 0, 0, 0, 0, 0
-  dq LESS_THAN
+LESS_THAN:                ; Execution token points here
+  dq IMPL_LESS_THAN
 
 dict_RSHIFT:
   dq dict_LESS_THAN
   db 6, "RSHIFT", 0
-  dq RSHIFT
+RSHIFT:                   ; Execution token points here
+  dq IMPL_RSHIFT
 
 dict_DROP:
   dq dict_RSHIFT
   db 4, "DROP", 0, 0, 0
-  dq DROP
+DROP:                     ; Execution token points here
+  dq IMPL_DROP
 
 dict_SWAP:
   dq dict_DROP
   db 4, "SWAP", 0, 0, 0
-  dq SWAP
+SWAP:                     ; Execution token points here
+  dq IMPL_SWAP
 
 dict_ROT:
   dq dict_SWAP
   db 3, "ROT", 0, 0, 0, 0
-  dq ROT
+ROT:                      ; Execution token points here
+  dq IMPL_ROT
 
 dict_TWO_DUP:
   dq dict_ROT
   db 4, "2DUP", 0, 0, 0
-  dq TWO_DUP
+TWO_DUP:                  ; Execution token points here
+  dq IMPL_TWO_DUP
 
 dict_TWO_DROP:
   dq dict_TWO_DUP
   db 5, "2DROP", 0, 0
-  dq TWO_DROP
+TWO_DROP:                 ; Execution token points here
+  dq IMPL_TWO_DROP
 
 dict_OVER:
   dq dict_TWO_DROP
   db 4, "OVER", 0, 0, 0
-  dq OVER
+OVER:                     ; Execution token points here
+  dq IMPL_OVER
 
 dict_DUP:
   dq dict_OVER
   db 3, "DUP", 0, 0, 0, 0
-  dq DUP
+DUP:                      ; Execution token points here
+  dq IMPL_DUP
 
 dict_SP_FETCH:
   dq dict_DUP
   db 3, "SP@", 0, 0, 0, 0
-  dq SP_FETCH
+SP_FETCH:                 ; Execution token points here
+  dq IMPL_SP_FETCH
 
 dict_LIT:
   dq dict_SP_FETCH
   db 67, "LIT", 0, 0, 0, 0  ; 3 | COMPILE_ONLY_FLAG = 67
-  dq LIT
+LIT:                      ; Execution token points here
+  dq IMPL_LIT
 
   ;; Test colon definition: DOUBLE ( n -- n*2 )
   ;; Equivalent to : DOUBLE DUP + ;
@@ -226,52 +254,62 @@ dict_ZBRANCH:
 dict_REFILL:
   dq dict_ZBRANCH         ; Link to previous
   db 6, "REFILL", 0       ; Name
-  dq REFILL               ; Code field
+REFILL:                   ; Execution token points here
+  dq IMPL_REFILL
 
 dict_WORD:
   dq dict_REFILL          ; Link to previous
   db 4, "WORD", 0, 0, 0   ; Name
-  dq PARSE_WORD           ; Code field
+PARSE_WORD:               ; Execution token points here
+  dq IMPL_PARSE_WORD
 
 dict_BACKSLASH:
   dq dict_WORD            ; Link to previous
   db 129, 92, 0, 0, 0, 0, 0, 0 ; Name (ASCII code not to confuse emacs) - IMMEDIATE (bit 7 set)
-  dq BACKSLASH            ; Code field
+BACKSLASH:                ; Execution token points here
+  dq IMPL_BACKSLASH
 
 dict_SCANC:
   dq dict_BACKSLASH       ; Link to previous
   db 5, "SCANC", 0, 0    ; Name
-  dq SCAN_CHAR            ; Code field
+SCAN_CHAR:                ; Execution token points here
+  dq IMPL_SCAN_CHAR
 
 dict_SOURCE_FETCH:
   dq dict_SCANC           ; Link to previous
   db 7, "SOURCE@"        ; Name (7 chars exactly)
-  dq SOURCE_FETCH         ; Code field
+SOURCE_FETCH:             ; Execution token points here
+  dq IMPL_SOURCE_FETCH
 
 dict_LINE_NUMBER_FETCH:
   dq dict_SOURCE_FETCH    ; Link to previous
   db 5, "LINE#", 0, 0    ; Name
-  dq LINE_NUMBER_FETCH   ; Code field
+LINE_NUMBER_FETCH:        ; Execution token points here
+  dq IMPL_LINE_NUMBER_FETCH
 
 dict_COLUMN_NUMBER_FETCH:
   dq dict_LINE_NUMBER_FETCH ; Link to previous
   db 4, "COL#", 0, 0, 0  ; Name
-  dq COLUMN_NUMBER_FETCH ; Code field
+COLUMN_NUMBER_FETCH:      ; Execution token points here
+  dq IMPL_COLUMN_NUMBER_FETCH
 
 dict_FIND:
   dq dict_COLUMN_NUMBER_FETCH
   db 4, "FIND", 0, 0, 0
-  dq FIND
+FIND:                     ; Execution token points here
+  dq IMPL_FIND
 
 dict_NUMBER:
   dq dict_FIND
   db 6, "NUMBER", 0
-  dq NUMBER
+NUMBER:                   ; Execution token points here
+  dq IMPL_NUMBER
 
 dict_TYPE:
   dq dict_NUMBER
   db 4, "TYPE", 0, 0, 0
-  dq TYPE
+TYPE:                     ; Execution token points here
+  dq IMPL_TYPE
 
   ;; ERRTYPE ( c-addr u -- ) Output string to stderr
 dict_ERRTYPE:
@@ -495,7 +533,8 @@ TICK:                     ; Execution token points here
 dict_STATE:
   dq dict_TICK       ; Link to previous
   db 5, "STATE", 0, 0     ; Name
-  dq STATE_word           ; Code field
+STATE_word:               ; Execution token points here
+  dq IMPL_STATE_word
 
   ;; ASSERT ( flag -- ) Check assertion, print FAIL: line:col if false
 dict_ASSERT:
@@ -551,46 +590,53 @@ ASSERT:                   ; Execution token points here
 dict_OUTPUT:
   dq dict_ASSERT          ; Link to previous
   db 6, "OUTPUT", 0       ; Name
-  dq OUTPUT_word          ; Code field
+OUTPUT_word:              ; Execution token points here
+  dq IMPL_OUTPUT_word
 
   ;; FLAGS ( -- addr ) Push address of FLAGS variable
 dict_FLAGS:
   dq dict_OUTPUT          ; Link to previous
   db 5, "FLAGS", 0, 0     ; Name
-  dq FLAGS_word           ; Code field
+FLAGS_word:               ; Execution token points here
+  dq IMPL_FLAGS_word
 
   ;; HERE ( -- addr ) Push address of HERE variable
 dict_HERE:
   dq dict_FLAGS          ; Link to previous
   db 4, "HERE", 0, 0, 0     ; Name
-  dq HERE_word           ; Code field
+HERE_word:                ; Execution token points here
+  dq IMPL_HERE_word
 
   ;; LATEST ( -- addr ) Push address of HERE variable
 dict_LATEST:
   dq dict_HERE          ; Link to previous
   db 6, "LATEST", 0
-  dq LATEST_word           ; Code field
+LATEST_word:              ; Execution token points here
+  dq IMPL_LATEST_word
 
   ;; PROMPT ( -- ) Show prompt if interactive
   align 8
 dict_PROMPT:
   dq dict_LATEST
   db 6, "PROMPT", 0
-  dq PROMPT
+PROMPT:                   ; Execution token points here
+  dq IMPL_PROMPT
 
-  ;; BYE_MSG ( -- ) Show bye message if interactive  
+  ;; BYE_MSG ( -- ) Show bye message if interactive
   align 8
 dict_BYE_MSG:
   dq dict_PROMPT
   db 7, "BYE-MSG"
-  dq BYE_MSG
+BYE_MSG:                  ; Execution token points here
+  dq IMPL_BYE_MSG
 
   ;; IACR ( -- ) Output CR only if interactive
-  align 8  
+  align 8
 dict_IACR:
   dq dict_BYE_MSG
   db 4, "IACR", 0, 0, 0
-  dq IACR
+IACR:                     ; Execution token points here
+  dq IMPL_IACR
 
   ;; QUIT ( -- ) Main interpreter loop
   align 8
@@ -672,12 +718,14 @@ SHOWWORDS:                ; Execution token points here
 dict_COMMA:
   dq dict_SHOWWORDS
   db 1, ",", 0, 0, 0, 0, 0, 0
-  dq COMMA
+COMMA:                    ; Execution token points here
+  dq IMPL_COMMA
 
 dict_ALLOT:
   dq dict_COMMA
   db 5, "ALLOT", 0, 0
-  dq ALLOT
+ALLOT:                    ; Execution token points here
+  dq IMPL_ALLOT
 
 dict_CREATE:
   dq dict_ALLOT
@@ -732,12 +780,14 @@ CREATE:                       ; Execution token points here
 dict_IMMED_TEST:
   dq dict_CREATE
   db 6, "IMMED?", 0
-  dq IMMED_TEST
+IMMED_TEST:               ; Execution token points here
+  dq IMPL_IMMED_TEST
 
 dict_IMMED:
   dq dict_IMMED_TEST
   db 5, "IMMED", 0, 0
-  dq IMMED
+IMMED:                    ; Execution token points here
+  dq IMPL_IMMED
 
 dict_COLON:
   dq dict_IMMED
@@ -778,63 +828,74 @@ SEMICOLON:                    ; Execution token points here
 dict_THREAD:
   dq dict_SEMICOLON
   db 6, "THREAD", 0
-  dq THREAD
+THREAD:                   ; Execution token points here
+  dq IMPL_THREAD
 
 dict_WAIT:
   dq dict_THREAD
   db 4, "WAIT", 0, 0, 0
-  dq FWAIT
+FWAIT:                    ; Execution token points here
+  dq IMPL_FWAIT
 
 dict_WAKE:
   dq dict_WAIT
   db 4, "WAKE", 0, 0, 0
-  dq WAKE
+WAKE:                     ; Execution token points here
+  dq IMPL_WAKE
 
 dict_CLOCK_FETCH:
   dq dict_WAKE
   db 6, "CLOCK@", 0
-  dq CLOCK_FETCH
+CLOCK_FETCH:              ; Execution token points here
+  dq IMPL_CLOCK_FETCH
 
 dict_SLEEP:
   dq dict_CLOCK_FETCH
   db 5, "SLEEP", 0, 0
-  dq SLEEP
+SLEEP:                    ; Execution token points here
+  dq IMPL_SLEEP
 
   ;; STATE@ ( -- n ) Get compile/interpret state
 dict_STATE_FETCH:
   dq dict_SLEEP
   db 6, "STATE@", 0
-  dq STATE_FETCH
+STATE_FETCH:              ; Execution token points here
+  dq IMPL_STATE_FETCH
 
-  ;; STATE! ( n -- ) Set compile/interpret state  
+  ;; STATE! ( n -- ) Set compile/interpret state
 dict_STATE_STORE:
   dq dict_STATE_FETCH
   db 6, "STATE!", 0
-  dq STATE_STORE
+STATE_STORE:              ; Execution token points here
+  dq IMPL_STATE_STORE
 
   ;; OUTPUT@ ( -- n ) Get output stream
 dict_OUTPUT_FETCH:
   dq dict_STATE_STORE
   db 7, "OUTPUT@"
-  dq OUTPUT_FETCH
+OUTPUT_FETCH:             ; Execution token points here
+  dq IMPL_OUTPUT_FETCH
 
   ;; OUTPUT! ( n -- ) Set output stream
 dict_OUTPUT_STORE:
   dq dict_OUTPUT_FETCH
   db 7, "OUTPUT!"
-  dq OUTPUT_STORE
+OUTPUT_STORE:             ; Execution token points here
+  dq IMPL_OUTPUT_STORE
 
   ;; DEBUG@ ( -- n ) Get debug flag
 dict_DEBUG_FETCH:
   dq dict_OUTPUT_STORE
   db 6, "DEBUG@", 0
-  dq DEBUG_FETCH
+DEBUG_FETCH:              ; Execution token points here
+  dq IMPL_DEBUG_FETCH
 
   ;; DEBUG! ( n -- ) Set debug flag
 dict_DEBUG_STORE:
   dq dict_DEBUG_FETCH
   db 6, "DEBUG!", 0
-  dq DEBUG_STORE
+DEBUG_STORE:              ; Execution token points here
+  dq IMPL_DEBUG_STORE
 
 dict_CC_SIZE:
   dq dict_DEBUG_STORE
@@ -851,7 +912,8 @@ dict_CALL_CC:
 dict_INTERACT:
   dq dict_CALL_CC
   db 7, "INTERAC"
-  dq INTERACT
+INTERACT:                 ; Execution token points here
+  dq IMPL_INTERACT
 
 
   ;; LATEST points to the most recent word
@@ -895,7 +957,6 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   global data_stack_base
   global return_stack_base
   global main_thread_descriptor
-  global dict_QUIT
   global QUIT
   global ERRTYPE
   global ERRCR
@@ -910,69 +971,69 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern BRANCH
   extern ZBRANCH
   extern CC_SIZE
-  extern LIT
-  extern DUP
-  extern DROP
-  extern OVER
-  extern SWAP
-  extern ROT
-  extern SP_FETCH
-  extern TWO_DUP
-  extern TWO_DROP
-  extern ADD
-  extern SUB
-  extern ZEROEQ
-  extern EQUAL
-  extern AND
-  extern LSHIFT
-  extern OR
-  extern LESS_THAN
-  extern RSHIFT
-  extern TO_R
-  extern R_FROM
-  extern R_FETCH
-  extern FETCH
-  extern STORE
-  extern C_FETCH
-  extern C_STORE
-  extern DOT
-  extern EMIT
-  extern KEY
-  extern NUMBER
-  extern FIND
-  extern REFILL
-  extern PARSE_WORD
-  extern BACKSLASH
-  extern SCAN_CHAR
-  extern SOURCE_FETCH
-  extern LINE_NUMBER_FETCH
-  extern COLUMN_NUMBER_FETCH
-  extern TYPE
-  extern STATE_word
-  extern OUTPUT_word
-  extern FLAGS_word
-  extern HERE_word
-  extern LATEST_word
-  extern INTERACT
-  extern PROMPT
-  extern BYE_MSG
-  extern IACR
+  extern IMPL_LIT
+  extern IMPL_DUP
+  extern IMPL_DROP
+  extern IMPL_OVER
+  extern IMPL_SWAP
+  extern IMPL_ROT
+  extern IMPL_SP_FETCH
+  extern IMPL_TWO_DUP
+  extern IMPL_TWO_DROP
+  extern IMPL_ADD
+  extern IMPL_SUB
+  extern IMPL_ZEROEQ
+  extern IMPL_EQUAL
+  extern IMPL_AND
+  extern IMPL_LSHIFT
+  extern IMPL_OR
+  extern IMPL_LESS_THAN
+  extern IMPL_RSHIFT
+  extern IMPL_TO_R
+  extern IMPL_R_FROM
+  extern IMPL_R_FETCH
+  extern IMPL_FETCH
+  extern IMPL_STORE
+  extern IMPL_C_FETCH
+  extern IMPL_C_STORE
+  extern IMPL_DOT
+  extern IMPL_EMIT
+  extern IMPL_KEY
+  extern IMPL_NUMBER
+  extern IMPL_FIND
+  extern IMPL_REFILL
+  extern IMPL_PARSE_WORD
+  extern IMPL_BACKSLASH
+  extern IMPL_SCAN_CHAR
+  extern IMPL_SOURCE_FETCH
+  extern IMPL_LINE_NUMBER_FETCH
+  extern IMPL_COLUMN_NUMBER_FETCH
+  extern IMPL_TYPE
+  extern IMPL_STATE_word
+  extern IMPL_OUTPUT_word
+  extern IMPL_FLAGS_word
+  extern IMPL_HERE_word
+  extern IMPL_LATEST_word
+  extern IMPL_INTERACT
+  extern IMPL_PROMPT
+  extern IMPL_BYE_MSG
+  extern IMPL_IACR
   extern ABORT_word
-  extern COMMA
-  extern ALLOT
-  extern IMMED_TEST
-  extern IMMED
-  extern STATE_FETCH
-  extern STATE_STORE
-  extern OUTPUT_FETCH
-  extern OUTPUT_STORE
-  extern DEBUG_FETCH
-  extern DEBUG_STORE
-  extern THREAD
-  extern FWAIT
-  extern WAKE
-  extern CLOCK_FETCH
-  extern SLEEP
+  extern IMPL_COMMA
+  extern IMPL_ALLOT
+  extern IMPL_IMMED_TEST
+  extern IMPL_IMMED
+  extern IMPL_STATE_FETCH
+  extern IMPL_STATE_STORE
+  extern IMPL_OUTPUT_FETCH
+  extern IMPL_OUTPUT_STORE
+  extern IMPL_DEBUG_FETCH
+  extern IMPL_DEBUG_STORE
+  extern IMPL_THREAD
+  extern IMPL_FWAIT
+  extern IMPL_WAKE
+  extern IMPL_CLOCK_FETCH
+  extern IMPL_SLEEP
 
   ;; ---- Main Program ----
 

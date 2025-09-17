@@ -22,7 +22,8 @@ dict_THREAD_CLEANUP:
     dq 0                    ; No link - internal use only
     db 0                    ; Name length 0 (anonymous)
     times 7 db 0            ; Padding to 8 bytes
-    dq THREAD_CLEANUP       ; Code field
+THREAD_CLEANUP:             ; Execution token points here
+    dq IMPL_THREAD_CLEANUP  ; Points to implementation
 
 section .text
 
@@ -30,8 +31,9 @@ section .text
 ;; Execute xt in a new thread with shared memory
 ;; Thread gets fresh data and return stacks
 ;; Returns 0 on success, non-zero on error
-global THREAD
-THREAD:
+global IMPL_THREAD
+global IMPL_THREAD_CLEANUP
+IMPL_THREAD:
     ; Save execution token
     mov r11, [DSP]          ; Get xt from stack (don't pop yet)
     
@@ -120,7 +122,7 @@ THREAD:
     mov [rbp+TLS_RETURN_BASE], rax
     
     ; Set cleanup function for this thread
-    mov rax, dict_THREAD_CLEANUP
+    mov rax, THREAD_CLEANUP
     mov [rbp+TLS_CLEANUP], rax   ; Store cleanup function
     
     ; Point TLS to our new descriptor
@@ -135,10 +137,10 @@ THREAD:
     ; Build mini "program" after the descriptor (at offset 32):
     ; - User's xt
     ; - THREAD_EXIT (which will call TLS_CLEANUP)
-    extern dict_THREAD_EXIT
+    extern THREAD_EXIT
     lea rax, [rbp+32]       ; Program starts after descriptor
     mov [rax], r11          ; User's xt
-    mov rdx, dict_THREAD_EXIT
+    mov rdx, THREAD_EXIT
     mov [rax+8], rdx        ; Thread exit (calls cleanup from TLS)
     
     ; Point NEXTIP at our program
@@ -150,7 +152,7 @@ THREAD:
 ;; THREAD_CLEANUP - Internal cleanup routine for threads
 ;; ( -- )
 ;; Unmaps thread stacks and exits thread
-THREAD_CLEANUP:
+IMPL_THREAD_CLEANUP:
     ; When thread's word returns, we end up here
     ; TLS points to our descriptor which IS at the mmap base
     mov rdi, TLS            ; TLS is the mmap base address
@@ -166,8 +168,8 @@ THREAD_CLEANUP:
 ;; FWAIT ( addr expected -- )
 ;; Atomically check if *addr == expected, and if so, sleep
 ;; Uses futex FUTEX_WAIT operation
-global FWAIT
-FWAIT:
+global IMPL_FWAIT
+IMPL_FWAIT:
     mov rdx, [DSP]          ; expected value
     mov rdi, [DSP+8]        ; futex address
     add DSP, 16             ; Pop both args
@@ -192,8 +194,8 @@ FWAIT:
 ;; WAKE ( addr n -- n' )
 ;; Wake up to n threads waiting on addr
 ;; Returns number of threads actually woken
-global WAKE
-WAKE:
+global IMPL_WAKE
+IMPL_WAKE:
     mov rdx, [DSP]          ; Number to wake
     mov rdi, [DSP+8]        ; futex address
     add DSP, 8              ; Pop address, leave n on stack for return

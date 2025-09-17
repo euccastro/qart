@@ -4,34 +4,34 @@
 
   section .text
 
-  global ADD
-  global ZEROEQ
-  global EQUAL
-  global AND
-  global SUB
-  global LSHIFT
-  global OR
-  global LESS_THAN
-  global RSHIFT
+  global IMPL_ADD
+  global IMPL_ZEROEQ
+  global IMPL_EQUAL
+  global IMPL_AND
+  global IMPL_SUB
+  global IMPL_LSHIFT
+  global IMPL_OR
+  global IMPL_LESS_THAN
+  global IMPL_RSHIFT
 
   extern NEXT
 
   ;; ADD ( n1 n2 -- n3 ) Add top two stack items
-ADD:
+IMPL_ADD:
   mov rax, [DSP]          ; Get top (n2)
   add DSP, 8              ; Drop it
   add [DSP], rax          ; Add to new top (n1)
   jmp NEXT
 
   ;; SUB ( n1 n2 -- n3 ) Subtract TOS from second stack item
-SUB:
+IMPL_SUB:
   mov rax, [DSP]          ; Get top (n2)
   add DSP, 8              ; Drop it
   sub [DSP], rax          ; Add to new top (n1)
   jmp NEXT
 
   ;; 0= ( n -- b ) b := -1 if n=0, 0 otherwise
-ZEROEQ:
+IMPL_ZEROEQ:
   mov rax, [DSP]
   test rax, rax
   setz al
@@ -41,7 +41,7 @@ ZEROEQ:
   jmp NEXT
 
   ;; = ( n1 n2 -- flag ) flag := -1 if n1=n2, 0 otherwise
-EQUAL:
+IMPL_EQUAL:
   mov rax, [DSP]          ; Get n2
   add DSP, 8              ; Drop it
   cmp [DSP], rax          ; Compare with n1
@@ -52,14 +52,14 @@ EQUAL:
   jmp NEXT
 
   ;; AND ( n1 n2 -- n3 ) Bitwise AND
-AND:
+IMPL_AND:
   mov rax, [DSP]          ; Get n2
   add DSP, 8              ; Drop it
   and [DSP], rax          ; AND with n1
   jmp NEXT
 
   ;; LSHIFT ( x1 u -- x2 ) Logical left shift
-LSHIFT:
+IMPL_LSHIFT:
   mov rcx, [DSP]          ; shift count
   add DSP, 8
   mov rax, [DSP]          ; value to shift
@@ -68,14 +68,14 @@ LSHIFT:
   jmp NEXT
 
   ;; OR ( x1 x2 -- x3 ) Bitwise OR
-OR:
+IMPL_OR:
   mov rax, [DSP]          ; second operand
   add DSP, 8
   or [DSP], rax           ; OR with first operand
   jmp NEXT
 
   ;; < ( n1 n2 -- flag ) flag := -1 if n1 < n2, 0 otherwise
-LESS_THAN:
+IMPL_LESS_THAN:
   mov rax, [DSP]          ; Get n2
   add DSP, 8              ; Drop it
   cmp [DSP], rax          ; Compare n1 with n2
@@ -86,7 +86,7 @@ LESS_THAN:
   jmp NEXT
 
   ;; RSHIFT ( x1 u -- x2 ) Arithmetic right shift
-RSHIFT:
+IMPL_RSHIFT:
   mov rcx, [DSP]          ; shift count
   add DSP, 8
   mov rax, [DSP]          ; value to shift

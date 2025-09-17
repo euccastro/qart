@@ -4,11 +4,11 @@
 
   section .text
 
-  global DOT
-  global NUMBER
-  global EMIT
-  global TYPE
-  global KEY
+  global IMPL_DOT
+  global IMPL_NUMBER
+  global IMPL_EMIT
+  global IMPL_TYPE
+  global IMPL_KEY
 
   extern NEXT
   extern buffer
@@ -23,7 +23,7 @@
 %endmacro
 
   ;; DOT ( n -- ) Pop and print number with trailing space
-DOT:
+IMPL_DOT:
   mov rax, [DSP]          ; Get number
   add DSP, 8              ; Drop it
   
@@ -74,7 +74,7 @@ DOT:
   jmp NEXT
 
   ;; EMIT ( c -- ) Output character
-EMIT:
+IMPL_EMIT:
   ;; Write directly from stack (low byte contains the character)
   mov rax, 1              ; sys_write
   LOAD_OUTPUT_FD_RDI
@@ -86,7 +86,7 @@ EMIT:
   jmp NEXT
 
   ;; TYPE ( c-addr u -- ) Output string
-TYPE:
+IMPL_TYPE:
   mov rax, 1              ; sys_write
   LOAD_OUTPUT_FD_RDI
   mov rsi, [DSP+8]        ; String address
@@ -97,7 +97,7 @@ TYPE:
   jmp NEXT
 
   ;; KEY ( -- c ) Read one character from stdin
-KEY:
+IMPL_KEY:
   ;; Make room on stack and zero it
   sub DSP, 8
   mov qword [DSP], 0      ; Clear all 8 bytes
@@ -121,7 +121,7 @@ KEY:
   jmp NEXT
 
   ;; NUMBER ( c-addr u -- n -1 | c-addr u 0 ) Parse string as signed integer
-NUMBER:
+IMPL_NUMBER:
   ;; Save original values for possible error return
   mov rax, [DSP]          ; Length (u)
   push rax

@@ -4,28 +4,28 @@
 
   section .text
 
-  global TO_R
-  global R_FROM
-  global R_FETCH
-  global FETCH
-  global STORE
-  global C_FETCH
-  global C_STORE
-  global STATE_word
-  global OUTPUT_word
-  global FLAGS_word
-  global HERE_word
-  global LATEST_word
-  global COMMA
-  global ALLOT
-  global IMMED_TEST
-  global IMMED
-  global STATE_FETCH
-  global STATE_STORE
-  global OUTPUT_FETCH
-  global OUTPUT_STORE
-  global DEBUG_FETCH
-  global DEBUG_STORE
+  global IMPL_TO_R
+  global IMPL_R_FROM
+  global IMPL_R_FETCH
+  global IMPL_FETCH
+  global IMPL_STORE
+  global IMPL_C_FETCH
+  global IMPL_C_STORE
+  global IMPL_STATE_word
+  global IMPL_OUTPUT_word
+  global IMPL_FLAGS_word
+  global IMPL_HERE_word
+  global IMPL_LATEST_word
+  global IMPL_COMMA
+  global IMPL_ALLOT
+  global IMPL_IMMED_TEST
+  global IMPL_IMMED
+  global IMPL_STATE_FETCH
+  global IMPL_STATE_STORE
+  global IMPL_OUTPUT_FETCH
+  global IMPL_OUTPUT_STORE
+  global IMPL_DEBUG_FETCH
+  global IMPL_DEBUG_STORE
 
   extern NEXT
   extern STATE
@@ -35,7 +35,7 @@
   extern LATEST
 
   ;; >R ( n -- ) (R: -- n) Move from data stack to return stack
-TO_R:
+IMPL_TO_R:
   mov rax, [DSP]          ; Get value from data stack
   add DSP, 8              ; Drop from data stack
   sub RSTACK, 8           ; Make room on return stack
@@ -43,7 +43,7 @@ TO_R:
   jmp NEXT
 
   ;; R> ( -- n) (R: n -- ) Move from return stack to data stack
-R_FROM:
+IMPL_R_FROM:
   mov rax, [RSTACK]       ; Get value from return stack
   add RSTACK, 8           ; Drop from return stack
   sub DSP, 8              ; Make room on data stack
@@ -51,21 +51,21 @@ R_FROM:
   jmp NEXT
 
   ;; R@ ( -- n) (R: n -- n) Copy top of return stack to data stack
-R_FETCH:
+IMPL_R_FETCH:
   mov rax, [RSTACK]       ; Peek at return stack top
   sub DSP, 8              ; Make room on data stack
   mov [DSP], rax          ; Push copy to data stack
   jmp NEXT
 
   ;; @ ( addr -- n ) Fetch 64-bit value from address
-FETCH:
+IMPL_FETCH:
   mov rax, [DSP]          ; Get address
   mov rax, [rax]          ; Fetch value from that address
   mov [DSP], rax          ; Replace address with value
   jmp NEXT
 
   ;; ! ( n addr -- ) Store 64-bit value to address
-STORE:
+IMPL_STORE:
   mov rax, [DSP]          ; Get address
   add DSP, 8              ; Drop it
   mov rdx, [DSP]          ; Get value
@@ -74,14 +74,14 @@ STORE:
   jmp NEXT
 
   ;; C@ ( addr -- c ) Fetch byte from address
-C_FETCH:
+IMPL_C_FETCH:
   mov rax, [DSP]          ; Get address
   movzx rax, byte [rax]   ; Fetch byte, zero-extended
   mov [DSP], rax          ; Replace address with byte value
   jmp NEXT
 
   ;; C! ( c addr -- ) Store byte to address
-C_STORE:
+IMPL_C_STORE:
   mov rax, [DSP]          ; Get address
   add DSP, 8              ; Drop it
   mov dl, [DSP]           ; Get byte value (low 8 bits)
@@ -90,36 +90,36 @@ C_STORE:
   jmp NEXT
 
   ;; STATE ( -- addr ) Push address of STATE variable
-STATE_word:
+IMPL_STATE_word:
   sub DSP, 8              ; Make room
   mov qword [DSP], STATE  ; Push address
   jmp NEXT
 
   ;; OUTPUT ( -- addr ) Push address of OUTPUT variable
-OUTPUT_word:
+IMPL_OUTPUT_word:
   sub DSP, 8              ; Make room
   mov qword [DSP], OUTPUT ; Push address
   jmp NEXT
 
   ;; FLAGS ( -- addr ) Push address of FLAGS variable
-FLAGS_word:
+IMPL_FLAGS_word:
   sub DSP, 8              ; Make room
   mov qword [DSP], FLAGS  ; Push address
   jmp NEXT
 
   ;; HERE ( -- addr ) Push address of HERE variable
-HERE_word:
+IMPL_HERE_word:
   sub DSP, 8              ; Make room
   mov qword [DSP], HERE  ; Push address
   jmp NEXT
 
   ;; LATEST ( -- addr ) Push address of LATEST variable
-LATEST_word:
+IMPL_LATEST_word:
   sub DSP, 8              ; Make room
   mov qword [DSP], LATEST  ; Push address
   jmp NEXT
 
-COMMA:
+IMPL_COMMA:
   mov rax, [DSP]
   add DSP, 8
   mov rdx, [HERE]      ; get current dictionary pointer
@@ -128,14 +128,14 @@ COMMA:
   jmp NEXT
 
   ;; ALLOT ( n -- ) Allocate n bytes in dictionary
-ALLOT:
+IMPL_ALLOT:
   mov rax, [DSP]          ; Get number of bytes to allocate
   add DSP, 8              ; Drop it
   add [HERE], rax         ; Advance HERE by n bytes
   jmp NEXT
 
   ;; IMMED? ( xt -- flag ) Test if word is immediate
-IMMED_TEST:
+IMPL_IMMED_TEST:
   mov rax, [DSP]      ; get xt (dictionary pointer)
   movzx rax, byte [rax+8]     ; get length/flags byte
   test rax, 0x80      ; test bit 7
@@ -146,7 +146,7 @@ IMMED_TEST:
   jmp NEXT
 
   ;; IMMED ( -- ) Make LATEST word immediate
-IMMED:
+IMPL_IMMED:
   mov rax, [LATEST]   ; get latest word
   or byte [rax+8], 0x80       ; set immediate bit
   jmp NEXT
@@ -161,7 +161,7 @@ IMMED:
 
   ;; STATE@ ( -- n )
   ;; Get current STATE (bit 0 of TLS->flags)
-STATE_FETCH:
+IMPL_STATE_FETCH:
   sub DSP, 8              ; Make room
   mov rax, [TLS+TLS_FLAGS] ; Get flags from descriptor
   and rax, 1              ; Isolate bit 0
@@ -170,7 +170,7 @@ STATE_FETCH:
 
   ;; STATE! ( n -- )
   ;; Set STATE (bit 0 of TLS->flags)
-STATE_STORE:
+IMPL_STATE_STORE:
   mov rax, [DSP]          ; Get new state
   add DSP, 8              ; Pop it
   and rax, 1              ; Ensure only bit 0
@@ -182,7 +182,7 @@ STATE_STORE:
 
   ;; OUTPUT@ ( -- n )
   ;; Get current OUTPUT (bits 1-2 of R13)
-OUTPUT_FETCH:
+IMPL_OUTPUT_FETCH:
   sub DSP, 8              ; Make room
   mov rax, [TLS+TLS_FLAGS] ; Get flags from descriptor
   shr rax, 1              ; Shift right to get bits 1-2
@@ -192,7 +192,7 @@ OUTPUT_FETCH:
 
   ;; OUTPUT! ( n -- )
   ;; Set OUTPUT (bits 1-2 of TLS->flags)
-OUTPUT_STORE:
+IMPL_OUTPUT_STORE:
   mov rax, [DSP]          ; Get new output
   add DSP, 8              ; Pop it
   and rax, 3              ; Ensure only 2 bits
@@ -205,7 +205,7 @@ OUTPUT_STORE:
 
   ;; DEBUG@ ( -- n )
   ;; Get DEBUG flag (bit 3 of TLS->flags)
-DEBUG_FETCH:
+IMPL_DEBUG_FETCH:
   sub DSP, 8              ; Make room
   mov rax, [TLS+TLS_FLAGS] ; Get flags from descriptor
   shr rax, 3              ; Shift right to get bit 3
@@ -215,7 +215,7 @@ DEBUG_FETCH:
 
   ;; DEBUG! ( n -- )
   ;; Set DEBUG flag (bit 3 of TLS->flags)
-DEBUG_STORE:
+IMPL_DEBUG_STORE:
   mov rax, [DSP]          ; Get new debug flag
   add DSP, 8              ; Pop it
   and rax, 1              ; Ensure only 1 bit
@@ -227,14 +227,14 @@ DEBUG_STORE:
   jmp NEXT
 
   ;; INTERACT ( -- ) Enable interactive mode (bit 4 of TLS->flags)
-  global INTERACT
-INTERACT:
+  global IMPL_INTERACT
+IMPL_INTERACT:
   or qword [TLS+TLS_FLAGS], 16  ; Set bit 4 (16 = 10000b)
   jmp NEXT
 
   ;; PROMPT ( -- ) Show prompt if interactive (bit 4 of TLS->flags)
-  global PROMPT
-PROMPT:
+  global IMPL_PROMPT
+IMPL_PROMPT:
   test qword [TLS+TLS_FLAGS], 16  ; Test bit 4 (interactive mode)
   jz .skip                         ; Skip if not interactive
   ; Print "> " to stdout
@@ -249,8 +249,8 @@ PROMPT:
 prompt_text: db "> "
 
   ;; BYE_MSG ( -- ) Show bye message if interactive (bit 4 of TLS->flags)
-  global BYE_MSG
-BYE_MSG:
+  global IMPL_BYE_MSG
+IMPL_BYE_MSG:
   test qword [TLS+TLS_FLAGS], 16  ; Test bit 4 (interactive mode)
   jz .skip                         ; Skip if not interactive
   ; Print "\nbye.\n" to stdout
@@ -265,8 +265,8 @@ BYE_MSG:
 bye_text: db 10, "bye.", 10  ; newline, "bye.", newline
 
   ;; IACR ( -- ) Output CR only if interactive (bit 4 of TLS->flags)
-  global IACR
-IACR:
+  global IMPL_IACR
+IMPL_IACR:
   test qword [TLS+TLS_FLAGS], 16  ; Test bit 4 (interactive mode)
   jz .skip                         ; Skip if not interactive
   ; Print newline to stdout

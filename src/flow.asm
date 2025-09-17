@@ -19,7 +19,8 @@ dict_THREAD_EXIT:
   dq 0                    ; No link - internal use only
   db 0                    ; Name length 0 (anonymous)
   times 7 db 0            ; Padding to 8 bytes
-  dq THREAD_EXIT          ; Code field
+THREAD_EXIT:              ; Execution token points here
+  dq THREAD_EXIT_IMPL     ; Points to implementation
 
   ;; Main program executed by ABORT: QUIT followed by thread-local cleanup
   extern QUIT
@@ -40,8 +41,7 @@ abort_program:
   global CC_SIZE
   global CALL_CC
   global SYSEXIT
-  global dict_SYSEXIT
-  global dict_THREAD_EXIT
+  global THREAD_EXIT
   global RESTORE_CONT
 
   extern data_stack_base
@@ -90,7 +90,7 @@ SYSEXIT:
 
   ;; THREAD_EXIT ( -- ) Call thread-local cleanup
   ;; Loads cleanup function from TLS and executes via NEXT
-THREAD_EXIT:
+THREAD_EXIT_IMPL:
   lea NEXTIP, [TLS+TLS_CLEANUP] ; Point NEXTIP to cleanup field in descriptor
   jmp NEXT                  ; NEXT will load and execute it
 
