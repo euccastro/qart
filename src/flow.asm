@@ -11,7 +11,8 @@ dict_SYSEXIT:
   dq 0                    ; No link - internal use only
   db 0                    ; Name length 0 (anonymous)
   times 7 db 0            ; Padding to 8 bytes
-  dq SYSEXIT              ; Code field
+SYSEXIT:
+  dq IMPL_SYSEXIT
 
   ;; Anonymous dictionary entry for THREAD-EXIT
   ;; Calls the thread-local cleanup function
@@ -34,12 +35,19 @@ abort_program:
   global DOCOL
   global DOCREATE
   global EXIT
+  global IMPL_EXIT
   global EXECUTE
+  global IMPL_EXECUTE
   global BRANCH
   global ZBRANCH
-  global ABORT_word
+  global IMPL_BRANCH
+  global IMPL_ZBRANCH
+  global ABORT
+  global IMPL_ABORT
   global CC_SIZE
+  global IMPL_CC_SIZE
   global CALL_CC
+  global IMPL_CALL_CC
   global SYSEXIT
   global THREAD_EXIT
   global RESTORE_CONT
@@ -75,7 +83,7 @@ DOCREATE:
   jmp NEXT
 
   ;; EXIT ( -- ) Return from colon definition
-EXIT:
+IMPL_EXIT:
   mov rax, [RSTACK]       ; Get saved NEXTIP
   add RSTACK, 8           ; Drop from return stack
   mov NEXTIP, rax             ; Restore NEXTIP
@@ -83,7 +91,7 @@ EXIT:
 
   ;; SYSEXIT ( -- ) Exit the entire process
   ;; Used as cleanup for main thread
-SYSEXIT:
+IMPL_SYSEXIT:
   mov rax, 60             ; sys_exit
   xor rdi, rdi
   syscall
@@ -96,19 +104,19 @@ THREAD_EXIT_IMPL:
 
   ;; EXECUTE ( xt -- ) Execute word given execution token
   ;; Execution token is a code field address
-EXECUTE:
+IMPL_EXECUTE:
   mov CURRIP, [DSP]          ; Get code field address from stack
   add DSP, 8              ; Drop from stack
   mov rax, [CURRIP]       ; Load code address from code field
   jmp rax                 ; Jump to the code
 
   ;; BRANCH ( -- ) Jump to absolute address
-BRANCH:
+IMPL_BRANCH:
   mov NEXTIP, [NEXTIP]            ; Load absolute address from next cell
   jmp NEXT
 
   ;; ZBRANCH ( n -- ) Jump to absolute address if TOS is zero
-ZBRANCH:
+IMPL_ZBRANCH:
   mov rdx, [NEXTIP]           ; Get absolute address
   add NEXTIP, 8               ; Skip past the address
   mov rax, [DSP]          ; Get flag
@@ -118,7 +126,7 @@ ZBRANCH:
   jmp NEXT
 
   ;; ABORT ( -- ) Clear stacks and execute RUN
-ABORT_word:
+IMPL_ABORT:
   ;; Clear data stack
   mov DSP, data_stack_base ; data_stack_base is a label, not a variable
   
@@ -136,7 +144,7 @@ ABORT_word:
   ;; CC-SIZE - Calculate size needed for a continuation
   ;; ( -- n )
   ;; Returns bytes needed to capture current continuation state
-CC_SIZE:
+IMPL_CC_SIZE:
   ;; Fixed header size: CONT_HEADER_SIZE bytes
   ;; +CONT_CODE:        Code pointer (8 bytes)
   ;; +CONT_DATA_SIZE:   Data stack depth in bytes (8 bytes)
@@ -163,7 +171,7 @@ CC_SIZE:
   ;; ( cont-addr xt -- cont-addr )
   ;; Captures current continuation into buffer at cont-addr,
   ;; then calls xt with cont-addr on stack
-CALL_CC:
+IMPL_CALL_CC:
   ;; Stack has: cont-addr xt
   mov r11, [DSP]          ; r11 = xt to call
   mov rdi, [DSP+8]        ; RDI = buffer for continuation
@@ -207,7 +215,7 @@ CALL_CC:
   ;; Now execute the function with cont-addr on stack
   ;; Stack currently has: cont-addr xt
   ;; EXECUTE will pop xt and execute it, leaving cont-addr
-  jmp EXECUTE
+  jmp IMPL_EXECUTE
 
   ;; RESTORE-CONT - Restore a continuation
   ;; This is called when a continuation is executed

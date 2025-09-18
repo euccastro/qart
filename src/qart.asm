@@ -55,7 +55,8 @@ bye_msg: db "bye."
 dict_EXIT:
   dq 0                        ; Link (null - last word in dictionary)
   db 4, "EXIT", 0, 0, 0       ; Length + name (padded to 8)
-  dq EXIT                     ; Code field
+EXIT:
+  dq IMPL_EXIT
 
 dict_DOT:
   dq dict_EXIT
@@ -239,17 +240,20 @@ DOUBLE:                   ; Execution token points here
 dict_EXECUTE:
   dq dict_DOUBLE          ; Link to previous
   db 7, "EXECUTE"         ; Name (7 chars exactly)
-  dq EXECUTE              ; Code field
+EXECUTE:                  ; Execution token points here
+  dq IMPL_EXECUTE
 
 dict_BRANCH:
   dq dict_EXECUTE
   db 70, "BRANCH", 0       ; 6 | COMPILE_ONLY_FLAG = 70
-  dq BRANCH
+BRANCH:                   ; Execution token points here
+  dq IMPL_BRANCH          ; Points to implementation
 
 dict_ZBRANCH:
   dq dict_BRANCH
   db 71, "0BRANCH"         ; 7 | COMPILE_ONLY_FLAG = 71
-  dq ZBRANCH
+ZBRANCH:                  ; Execution token points here
+  dq IMPL_ZBRANCH         ; Points to implementation
 
 dict_REFILL:
   dq dict_ZBRANCH         ; Link to previous
@@ -502,7 +506,7 @@ wrong_word_size_msg: db "Wrong word size (must be 1-7 chars): "
 print_and_abort:
   dq ERRTYPE              ; Print the word itself
   dq ERRCR                ; Print newline
-  dq ABORT_word
+  dq ABORT
 
 dict_TICK:
   dq dict_INTERPRET
@@ -661,7 +665,8 @@ QUIT:                     ; Execution token points here
 dict_ABORT:
   dq dict_QUIT            ; Link to previous
   db 5, "ABORT", 0, 0     ; Name
-  dq ABORT_word           ; Code field (primitive)
+ABORT:                    ; Execution token points here
+  dq IMPL_ABORT           ; Points to implementation
 
   ;; SHOWWORDS ( -- ) Debug word parsing by showing each word as bytes
 dict_SHOWWORDS:
@@ -762,7 +767,7 @@ CREATE:                       ; Execution token points here
   dq ERRTYPE
   dq ERRTYPE                  ; Print the word
   dq ERRCR
-  dq ABORT_word
+  dq ABORT
 
   .size_ok:
   dq SWAP                     ; (u c-addr)
@@ -900,13 +905,15 @@ DEBUG_STORE:              ; Execution token points here
 dict_CC_SIZE:
   dq dict_DEBUG_STORE
   db 7, "CC-SIZE"
-  dq CC_SIZE
+CC_SIZE:                  ; Execution token points here
+  dq IMPL_CC_SIZE
 
-extern CALL_CC
+extern IMPL_CALL_CC
 dict_CALL_CC:
   dq dict_CC_SIZE
   db 7, "CALL/CC"
-  dq CALL_CC
+CALL_CC:                  ; Execution token points here
+  dq IMPL_CALL_CC
 
   ;; INTERACT ( -- ) Enable interactive mode (prompts and bye message)
 dict_INTERACT:
@@ -966,11 +973,12 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern NEXT
   extern DOCOL
   extern DOCREATE
-  extern EXIT
-  extern EXECUTE
-  extern BRANCH
-  extern ZBRANCH
-  extern CC_SIZE
+  extern IMPL_EXIT
+  extern IMPL_EXECUTE
+  extern IMPL_ABORT
+  extern IMPL_BRANCH
+  extern IMPL_ZBRANCH
+  extern IMPL_CC_SIZE
   extern IMPL_LIT
   extern IMPL_DUP
   extern IMPL_DROP
@@ -1018,7 +1026,6 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern IMPL_PROMPT
   extern IMPL_BYE_MSG
   extern IMPL_IACR
-  extern ABORT_word
   extern IMPL_COMMA
   extern IMPL_ALLOT
   extern IMPL_IMMED_TEST
@@ -1040,4 +1047,4 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
 _start:
   ;; Call ABORT to start the system
   ;; ABORT will clear stacks and jump to QUIT
-  jmp ABORT_word
+  jmp IMPL_ABORT
