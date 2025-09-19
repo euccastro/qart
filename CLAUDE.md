@@ -106,6 +106,7 @@ The project is organized to separate source code, development tools, documentati
 - R15 dedicated to data stack pointer
 - R14 dedicated to return stack pointer
 - Dictionary-based execution model
+- Descriptor-before-entry dictionary layout: enables variable-length names while keeping fixed-size dictionary entries (24 bytes) for predictable DOCOL/DOCREATE offset calculations
 
 ## Register Usage
 
@@ -186,7 +187,7 @@ thread_func:
 - Output control: OUTPUT variable for stdout/stderr switching (now thread-local)
 - Debug control: Thread-local flags (bit 3 = verbose ASSERT)
 - EXECUTE for dynamic execution of words
-- Dictionary structure with 7-char names
+- Dictionary structure with variable-length names (descriptor-before-entry layout)
 - FIND for dictionary lookups (returns dictionary pointer as execution token)
 - NUMBER for parsing integers (returns success flag)
 - DOCOL runtime for colon definitions
@@ -532,11 +533,11 @@ Moving toward Missionary-style functional effects with structured concurrency:
   - Non-immediate words execute when interpreting, compile when compiling
   - Numbers are left on stack when interpreting, compiled as `LIT n` when compiling
 - **Colon compiler**: `:` creates dictionary entry with DOCOL and sets STATE=1; compilation handled by INTERPRET
-- **Dictionary structure**: Link pointer (8 bytes), name field (8 bytes with flags), code field (8 bytes)
-- **Dictionary flags in name length byte**:
-  - Bit 7: Immediate (IMMED_FLAG = 0x80)
-  - Bit 6: Compile-only (COMPILE_ONLY_FLAG = 0x40)  
-  - Bits 0-5: Name length (max 63 chars)
+- **Dictionary structure**: Descriptor-before-entry layout for variable-length names
+  - Word descriptor: Contains name length, characters, and flags (variable size)
+  - Dictionary entry: Link pointer (8 bytes), descriptor pointer (8 bytes), code field (8 bytes) - fixed 24-byte size
+  - Layout: `[descriptor][dict_entry_pointing_back_to_descriptor]`
+- **Dictionary flags**: Stored in word descriptor (format subject to change)
 
 ### Implemented Words
 
