@@ -59,9 +59,8 @@ IMPL_FIND:
 .found:
     ; Drop saved values
     add rsp, 16
-    ; Replace string with xt (code field address)
-    lea rax, [rdi+16]       ; Calculate code field address (dict + 16)
-    mov [DSP+8], rax        ; Replace c-addr with code field address
+    ; Replace string with dictionary pointer
+    mov [DSP+8], rdi        ; Replace c-addr with dictionary pointer
     mov qword [DSP], -1     ; Replace length with true flag (-1 for standard Forth)
     jmp NEXT
     

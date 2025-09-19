@@ -395,46 +395,52 @@ INTERPRET:                ; Execution token points here
   dq ZBRANCH, .done
 
   ;; Try to find in dictionary
-  dq FIND                 ; ( xt 1 | c-addr u 0 )
+  dq FIND                 ; ( dict-ptr 1 | c-addr u 0 )
   dq ZBRANCH, .try_number ; If not found, skip to .try_number
 
-  ;; Found - check what to do with it
-  dq DUP                  ; ( xt xt )
+  ;; Found - check what to do with it (dict-ptr is on stack)
+  dq DUP                  ; ( dict-ptr dict-ptr )
   dq LIT
-  dq 8                    ; ( xt xt 8 )
-  dq ADD                  ; ( xt name-field-addr )
-  dq C_FETCH              ; ( xt length-byte )
+  dq 8                    ; ( dict-ptr dict-ptr 8 )
+  dq ADD                  ; ( dict-ptr name-field-addr )
+  dq C_FETCH              ; ( dict-ptr length-byte )
 
   ;; First check compile-only in interpret mode
-  dq DUP                  ; ( xt length-byte length-byte )
+  dq DUP                  ; ( dict-ptr length-byte length-byte )
   dq LIT
-  dq COMPILE_ONLY_FLAG ; ( xt length-byte length-byte 0x40 )
-  dq AND                  ; ( xt length-byte compile-only? )
-  dq STATE_FETCH          ; ( xt length-byte compile-only? state )
-  dq ZEROEQ               ; ( xt length-byte compile-only? interpreting? )
-  dq AND                  ; ( xt length-byte error? )
+  dq COMPILE_ONLY_FLAG ; ( dict-ptr length-byte length-byte 0x40 )
+  dq AND                  ; ( dict-ptr length-byte compile-only? )
+  dq STATE_FETCH          ; ( dict-ptr length-byte compile-only? state )
+  dq ZEROEQ               ; ( dict-ptr length-byte compile-only? interpreting? )
+  dq AND                  ; ( dict-ptr length-byte error? )
   dq ZBRANCH, .no_compile_only_error
 
   ;; Compile-only error path
-  dq DROP                 ; ( xt )
+  dq DROP                 ; ( dict-ptr )
   dq BRANCH, .compile_only_error
 
-  .no_compile_only_error: ; ( xt length-byte )
+  .no_compile_only_error: ; ( dict-ptr length-byte )
   ;; Check if we should execute (immediate or interpreting)
   dq LIT
-  dq IMMED_FLAG       ; ( xt length-byte 0x80 )
-  dq AND                  ; ( xt immediate? )
-  dq STATE_FETCH          ; ( xt immediate? state )
-  dq ZEROEQ               ; ( xt immediate? interpreting? )
-  dq OR                   ; ( xt should-execute? )
+  dq IMMED_FLAG       ; ( dict-ptr length-byte 0x80 )
+  dq AND                  ; ( dict-ptr immediate? )
+  dq STATE_FETCH          ; ( dict-ptr immediate? state )
+  dq ZEROEQ               ; ( dict-ptr immediate? interpreting? )
+  dq OR                   ; ( dict-ptr should-execute? )
   dq ZBRANCH, .compile_it
 
-  ;; Execute the word
+  ;; Execute the word - need to get execution token
+  dq LIT                  ; ( dict-ptr 16 )
+  dq 16
+  dq ADD                  ; ( xt )
   dq EXECUTE              ; Execute the word
   dq BRANCH, .loop
 
-  .compile_it:            ; ( xt )
-  ;; Compile the word
+  .compile_it:            ; ( dict-ptr )
+  ;; Compile the word - need to get execution token
+  dq LIT                  ; ( dict-ptr 16 )
+  dq 16
+  dq ADD                  ; ( xt )
   dq COMMA
   dq BRANCH, .loop
 
@@ -445,7 +451,7 @@ INTERPRET:                ; Execution token points here
   dq LIT
   dq compile_only_msg_len
   dq ERRTYPE              ; Print "Interpreting compile-only word: "
-  ;; Need to get the word name from the dictionary entry
+  ;; Get word name from dictionary pointer (dict-ptr + 8 = name field)
   dq LIT
   dq 8
   dq ADD                  ; ( name-field-addr )
@@ -516,8 +522,12 @@ TICK:                     ; Execution token points here
   dq PARSE_WORD           ; ( -- c-addr u )
   dq DUP
   dq ZBRANCH, .missing_word
-  dq FIND                 ; ( xt -1 | c-addr u 0 )
+  dq FIND                 ; ( dict-ptr -1 | c-addr u 0 )
   dq ZBRANCH, .unknown_word
+  ;; Convert dictionary pointer to execution token
+  dq LIT
+  dq 16
+  dq ADD                  ; ( xt )
   dq EXIT
   .missing_word:
   dq LIT

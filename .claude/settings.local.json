@@ -36,7 +36,8 @@
       "Bash(dev/test-verbose.sh:*)",
       "Bash(./dev/test-cont.sh:*)",
       "Bash(./dev/test.sh:*)",
-      "Bash(out/qart:*)"
+      "Bash(out/qart:*)",
+      "Bash(cat:*)"
     ],
     "deny": []
   }

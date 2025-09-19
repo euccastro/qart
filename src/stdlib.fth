@@ -35,6 +35,9 @@
 : CELL- 8 - ;
 \ : CELLS 8 * ; \ Needs multiplication operator
 
+\ Dictionary helpers
+: WORDXT 16 + ; ( dict-word -- xt ) ( Convert dict pointer to execution token )
+
 \ I/O helpers
 : SPACE 32 EMIT ;
 : BL 32 ;
