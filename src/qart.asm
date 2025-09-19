@@ -52,231 +52,321 @@ bye_msg: db "bye."
   
   align 8
   ;; Start with last word and work backwards
+  ;; New format: descriptor_data then dict_entry with pointer back to descriptor
+
+EXIT_descriptor:
+  db 4, "EXIT", 0, 0, 0       ; Length + name (padded to 8)
 dict_EXIT:
   dq 0                        ; Link (null - last word in dictionary)
-  db 4, "EXIT", 0, 0, 0       ; Length + name (padded to 8)
+  dq EXIT_descriptor          ; Descriptor pointer
   dq EXIT                     ; Code field
 
+DOT_descriptor:
+  db 1, ".", 0, 0, 0, 0, 0, 0
 dict_DOT:
   dq dict_EXIT
-  db 1, ".", 0, 0, 0, 0, 0, 0
+  dq DOT_descriptor
   dq DOT
 
+EMIT_descriptor:
+  db 4, "EMIT", 0, 0, 0
 dict_EMIT:
   dq dict_DOT
-  db 4, "EMIT", 0, 0, 0
+  dq EMIT_descriptor
   dq EMIT
 
+KEY_descriptor:
+  db 3, "KEY", 0, 0, 0, 0
 dict_KEY:
   dq dict_EMIT
-  db 3, "KEY", 0, 0, 0, 0
+  dq KEY_descriptor
   dq KEY
 
+C_STORE_descriptor:
+  db 2, "C!", 0, 0, 0, 0, 0
 dict_C_STORE:
   dq dict_KEY
-  db 2, "C!", 0, 0, 0, 0, 0
+  dq C_STORE_descriptor
   dq C_STORE
 
+C_FETCH_descriptor:
+  db 2, "C@", 0, 0, 0, 0, 0
 dict_C_FETCH:
   dq dict_C_STORE
-  db 2, "C@", 0, 0, 0, 0, 0
+  dq C_FETCH_descriptor
   dq C_FETCH
 
+STORE_descriptor:
+  db 1, "!", 0, 0, 0, 0, 0, 0
 dict_STORE:
   dq dict_C_FETCH
-  db 1, "!", 0, 0, 0, 0, 0, 0
+  dq STORE_descriptor
   dq STORE
 
+FETCH_descriptor:
+  db 1, "@", 0, 0, 0, 0, 0, 0
 dict_FETCH:
   dq dict_STORE
-  db 1, "@", 0, 0, 0, 0, 0, 0
+  dq FETCH_descriptor
   dq FETCH
 
+R_FETCH_descriptor:
+  db 2, "R@", 0, 0, 0, 0, 0
 dict_R_FETCH:
   dq dict_FETCH
-  db 2, "R@", 0, 0, 0, 0, 0
+  dq R_FETCH_descriptor
   dq R_FETCH
 
+R_FROM_descriptor:
+  db 2, "R>", 0, 0, 0, 0, 0
 dict_R_FROM:
   dq dict_R_FETCH
-  db 2, "R>", 0, 0, 0, 0, 0
+  dq R_FROM_descriptor
   dq R_FROM
 
+TO_R_descriptor:
+  db 2, ">R", 0, 0, 0, 0, 0
 dict_TO_R:
   dq dict_R_FROM
-  db 2, ">R", 0, 0, 0, 0, 0
+  dq TO_R_descriptor
   dq TO_R
 
+ADD_descriptor:
+  db 1, "+", 0, 0, 0, 0, 0, 0
 dict_ADD:
   dq dict_TO_R
-  db 1, "+", 0, 0, 0, 0, 0, 0
+  dq ADD_descriptor
   dq ADD
 
+SUB_descriptor:
+  db 1, "-", 0, 0, 0, 0, 0, 0
 dict_SUB:
   dq dict_ADD
-  db 1, "-", 0, 0, 0, 0, 0, 0
+  dq SUB_descriptor
   dq SUB
 
+ZEROEQ_descriptor:
+  db 2, "0=", 0, 0, 0, 0, 0
 dict_ZEROEQ:
   dq dict_SUB
-  db 2, "0=", 0, 0, 0, 0, 0
+  dq ZEROEQ_descriptor
   dq ZEROEQ
 
+EQUAL_descriptor:
+  db 1, "=", 0, 0, 0, 0, 0, 0
 dict_EQUAL:
   dq dict_ZEROEQ
-  db 1, "=", 0, 0, 0, 0, 0, 0
+  dq EQUAL_descriptor
   dq EQUAL
 
+AND_descriptor:
+  db 3, "AND", 0, 0, 0, 0
 dict_AND:
   dq dict_EQUAL
-  db 3, "AND", 0, 0, 0, 0
+  dq AND_descriptor
   dq AND
 
+LSHIFT_descriptor:
+  db 6, "LSHIFT", 0
 dict_LSHIFT:
   dq dict_AND
-  db 6, "LSHIFT", 0
+  dq LSHIFT_descriptor
   dq LSHIFT
 
+OR_descriptor:
+  db 2, "OR", 0, 0, 0, 0, 0
 dict_OR:
   dq dict_LSHIFT
-  db 2, "OR", 0, 0, 0, 0, 0
+  dq OR_descriptor
   dq OR
 
+LESS_THAN_descriptor:
+  db 1, "<", 0, 0, 0, 0, 0, 0
 dict_LESS_THAN:
   dq dict_OR
-  db 1, "<", 0, 0, 0, 0, 0, 0
+  dq LESS_THAN_descriptor
   dq LESS_THAN
 
+RSHIFT_descriptor:
+  db 6, "RSHIFT", 0
 dict_RSHIFT:
   dq dict_LESS_THAN
-  db 6, "RSHIFT", 0
+  dq RSHIFT_descriptor
   dq RSHIFT
 
+DROP_descriptor:
+  db 4, "DROP", 0, 0, 0
 dict_DROP:
   dq dict_RSHIFT
-  db 4, "DROP", 0, 0, 0
+  dq DROP_descriptor
   dq DROP
 
+SWAP_descriptor:
+  db 4, "SWAP", 0, 0, 0
 dict_SWAP:
   dq dict_DROP
-  db 4, "SWAP", 0, 0, 0
+  dq SWAP_descriptor
   dq SWAP
 
+ROT_descriptor:
+  db 3, "ROT", 0, 0, 0, 0
 dict_ROT:
   dq dict_SWAP
-  db 3, "ROT", 0, 0, 0, 0
+  dq ROT_descriptor
   dq ROT
 
+TWO_DUP_descriptor:
+  db 4, "2DUP", 0, 0, 0
 dict_TWO_DUP:
   dq dict_ROT
-  db 4, "2DUP", 0, 0, 0
+  dq TWO_DUP_descriptor
   dq TWO_DUP
 
+TWO_DROP_descriptor:
+  db 5, "2DROP", 0, 0
 dict_TWO_DROP:
   dq dict_TWO_DUP
-  db 5, "2DROP", 0, 0
+  dq TWO_DROP_descriptor
   dq TWO_DROP
 
+OVER_descriptor:
+  db 4, "OVER", 0, 0, 0
 dict_OVER:
   dq dict_TWO_DROP
-  db 4, "OVER", 0, 0, 0
+  dq OVER_descriptor
   dq OVER
 
+DUP_descriptor:
+  db 3, "DUP", 0, 0, 0, 0
 dict_DUP:
   dq dict_OVER
-  db 3, "DUP", 0, 0, 0, 0
+  dq DUP_descriptor
   dq DUP
 
+SP_FETCH_descriptor:
+  db 3, "SP@", 0, 0, 0, 0
 dict_SP_FETCH:
   dq dict_DUP
-  db 3, "SP@", 0, 0, 0, 0
+  dq SP_FETCH_descriptor
   dq SP_FETCH
 
+LIT_descriptor:
+  db 67, "LIT", 0, 0, 0, 0  ; 3 | COMPILE_ONLY_FLAG = 67
 dict_LIT:
   dq dict_SP_FETCH
-  db 67, "LIT", 0, 0, 0, 0  ; 3 | COMPILE_ONLY_FLAG = 67
+  dq LIT_descriptor
   dq LIT
 
-  ;; Test colon definition: DOUBLE ( n -- n*2 ) 
+  ;; Test colon definition: DOUBLE ( n -- n*2 )
   ;; Equivalent to : DOUBLE DUP + ;
+DOUBLE_descriptor:
+  db 6, "DOUBLE", 0       ; Name
 dict_DOUBLE:
   dq dict_LIT             ; Link to previous
-  db 6, "DOUBLE", 0       ; Name
+  dq DOUBLE_descriptor    ; Descriptor pointer
   dq DOCOL                ; Code field points to DOCOL
   ;; Body starts here:
   dq dict_DUP             ; DUP
   dq dict_ADD             ; +
   dq dict_EXIT            ; EXIT (;)
 
+EXECUTE_descriptor:
+  db 7, "EXECUTE"         ; Name (7 chars exactly)
 dict_EXECUTE:
   dq dict_DOUBLE          ; Link to previous
-  db 7, "EXECUTE"         ; Name (7 chars exactly)
+  dq EXECUTE_descriptor   ; Descriptor pointer
   dq EXECUTE              ; Code field
 
+BRANCH_descriptor:
+  db 70, "BRANCH", 0       ; 6 | COMPILE_ONLY_FLAG = 70
 dict_BRANCH:
   dq dict_EXECUTE
-  db 70, "BRANCH", 0       ; 6 | COMPILE_ONLY_FLAG = 70
+  dq BRANCH_descriptor
   dq BRANCH
 
+ZBRANCH_descriptor:
+  db 71, "0BRANCH"         ; 7 | COMPILE_ONLY_FLAG = 71
 dict_ZBRANCH:
   dq dict_BRANCH
-  db 71, "0BRANCH"         ; 7 | COMPILE_ONLY_FLAG = 71
+  dq ZBRANCH_descriptor
   dq ZBRANCH
 
+REFILL_descriptor:
+  db 6, "REFILL", 0       ; Name
 dict_REFILL:
   dq dict_ZBRANCH         ; Link to previous
-  db 6, "REFILL", 0       ; Name
+  dq REFILL_descriptor
   dq REFILL               ; Code field
 
+WORD_descriptor:
+  db 4, "WORD", 0, 0, 0   ; Name
 dict_WORD:
   dq dict_REFILL          ; Link to previous
-  db 4, "WORD", 0, 0, 0   ; Name
+  dq WORD_descriptor
   dq PARSE_WORD           ; Code field
 
+BACKSLASH_descriptor:
+  db 129, 92, 0, 0, 0, 0, 0, 0 ; Name (ASCII code not to confuse emacs) - IMMEDIATE (bit 7 set)
 dict_BACKSLASH:
   dq dict_WORD            ; Link to previous
-  db 129, 92, 0, 0, 0, 0, 0, 0 ; Name (ASCII code not to confuse emacs) - IMMEDIATE (bit 7 set)
+  dq BACKSLASH_descriptor
   dq BACKSLASH            ; Code field
 
+SCANC_descriptor:
+  db 5, "SCANC", 0, 0    ; Name
 dict_SCANC:
   dq dict_BACKSLASH       ; Link to previous
-  db 5, "SCANC", 0, 0    ; Name
+  dq SCANC_descriptor
   dq SCAN_CHAR            ; Code field
 
+SOURCE_FETCH_descriptor:
+  db 7, "SOURCE@"        ; Name (7 chars exactly)
 dict_SOURCE_FETCH:
   dq dict_SCANC           ; Link to previous
-  db 7, "SOURCE@"        ; Name (7 chars exactly)
+  dq SOURCE_FETCH_descriptor
   dq SOURCE_FETCH         ; Code field
 
+LINE_NUMBER_FETCH_descriptor:
+  db 5, "LINE#", 0, 0    ; Name
 dict_LINE_NUMBER_FETCH:
   dq dict_SOURCE_FETCH    ; Link to previous
-  db 5, "LINE#", 0, 0    ; Name
+  dq LINE_NUMBER_FETCH_descriptor
   dq LINE_NUMBER_FETCH   ; Code field
 
+COLUMN_NUMBER_FETCH_descriptor:
+  db 4, "COL#", 0, 0, 0  ; Name
 dict_COLUMN_NUMBER_FETCH:
   dq dict_LINE_NUMBER_FETCH ; Link to previous
-  db 4, "COL#", 0, 0, 0  ; Name
+  dq COLUMN_NUMBER_FETCH_descriptor
   dq COLUMN_NUMBER_FETCH ; Code field
 
+FIND_descriptor:
+  db 4, "FIND", 0, 0, 0
 dict_FIND:
   dq dict_COLUMN_NUMBER_FETCH
-  db 4, "FIND", 0, 0, 0
+  dq FIND_descriptor
   dq FIND
 
+NUMBER_descriptor:
+  db 6, "NUMBER", 0
 dict_NUMBER:
   dq dict_FIND
-  db 6, "NUMBER", 0
+  dq NUMBER_descriptor
   dq NUMBER
 
+TYPE_descriptor:
+  db 4, "TYPE", 0, 0, 0
 dict_TYPE:
   dq dict_NUMBER
-  db 4, "TYPE", 0, 0, 0
+  dq TYPE_descriptor
   dq TYPE
 
   ;; ERRTYPE ( c-addr u -- ) Output string to stderr
+ERRTYPE_descriptor:
+  db 7, "ERRTYPE"
 dict_ERRTYPE:
   dq dict_TYPE
-  db 7, "ERRTYPE"
+  dq ERRTYPE_descriptor
   dq DOCOL                ; Colon definition
   ;; Save current OUTPUT
   dq dict_OUTPUT          ; ( c-addr u OUTPUT )
@@ -297,19 +387,23 @@ dict_ERRTYPE:
 
   ;; CR ( -- ) Output newline to stdout
   align 8
+CR_descriptor:
+  db 2, "CR", 0, 0, 0, 0, 0 ; Name must be exactly 8 bytes
 dict_CR:
   dq dict_ERRTYPE         ; Link to previous
-  db 2, "CR", 0, 0, 0, 0, 0 ; Name must be exactly 8 bytes
+  dq CR_descriptor
   dq DOCOL                ; Colon definition
   ;; Body starts here at offset 24
   dq dict_LIT, NEWLINE    ; Push newline character
   dq dict_EMIT            ; Output it
   dq dict_EXIT
 
-  ;; ERRCR ( -- ) Output newline to stderr  
+  ;; ERRCR ( -- ) Output newline to stderr
+ERRCR_descriptor:
+  db 5, "ERRCR", 0, 0
 dict_ERRCR:
   dq dict_CR              ; Link to previous
-  db 5, "ERRCR", 0, 0
+  dq ERRCR_descriptor
   dq DOCOL                ; Colon definition
   ;; Save current OUTPUT
   dq dict_OUTPUT          ; ( OUTPUT )
@@ -338,9 +432,11 @@ compile_only_msg: db "Interpreting compile-only word: "
 
   ;; INTERPRET ( -- ) Process words from input buffer
   align 8
+INTERPRET_descriptor:
+  db 7, "INTERPR"
 dict_INTERPRET:
   dq dict_ERRCR           ; Link to previous
-  db 7, "INTERPR"
+  dq INTERPRET_descriptor
   dq DOCOL                ; Colon definition
   .loop:
   ;; Get next word
@@ -443,8 +539,10 @@ missing_word_msg: db "Expected word, got EOF."
   missing_word_msg_len equ 23
 
   ;; Error messages for CREATE
-wrong_word_size_msg: db "Wrong word size (must be 1-7 chars): "
-  wrong_word_size_msg_len equ 37
+create_zero_length_msg: db "CREATE: name cannot be empty", 10
+  create_zero_length_msg_len equ $ - create_zero_length_msg
+create_too_long_msg: db "CREATE: name too long (max 63 chars)", 10
+  create_too_long_msg_len equ $ - create_too_long_msg
 
   align 8
 print_and_abort:
@@ -452,9 +550,11 @@ print_and_abort:
   dq dict_ERRCR           ; Print newline
   dq dict_ABORT
 
+TICK_descriptor:
+  db 1, "'", 0, 0, 0, 0, 0, 0
 dict_TICK:
   dq dict_INTERPRET
-  db 1, "'", 0, 0, 0, 0, 0, 0
+  dq TICK_descriptor
   dq DOCOL                ; Colon definition
   dq dict_WORD            ; ( -- c-addr u )
   dq dict_DUP
@@ -473,15 +573,19 @@ dict_TICK:
   dq dict_BRANCH, print_and_abort
 
   ;; STATE ( -- addr ) Push address of STATE variable
+STATE_descriptor:
+  db 5, "STATE", 0, 0     ; Name
 dict_STATE:
   dq dict_TICK       ; Link to previous
-  db 5, "STATE", 0, 0     ; Name
+  dq STATE_descriptor
   dq STATE_word           ; Code field
 
   ;; ASSERT ( flag -- ) Check assertion, print FAIL: line:col if false
+ASSERT_descriptor:
+  db 6, "ASSERT", 0       ; Name
 dict_ASSERT:
   dq dict_STATE           ; Link to previous
-  db 6, "ASSERT", 0       ; Name
+  dq ASSERT_descriptor
   dq DOCOL                ; Colon definition
   ;; Check if assertion failed
   dq dict_ZBRANCH, .fail
@@ -522,55 +626,71 @@ dict_ASSERT:
   dq dict_EXIT
 
   ;; OUTPUT ( -- addr ) Push address of OUTPUT variable
+OUTPUT_descriptor:
+  db 6, "OUTPUT", 0       ; Name
 dict_OUTPUT:
   dq dict_ASSERT          ; Link to previous
-  db 6, "OUTPUT", 0       ; Name
+  dq OUTPUT_descriptor
   dq OUTPUT_word          ; Code field
 
   ;; FLAGS ( -- addr ) Push address of FLAGS variable
+FLAGS_descriptor:
+  db 5, "FLAGS", 0, 0     ; Name
 dict_FLAGS:
   dq dict_OUTPUT          ; Link to previous
-  db 5, "FLAGS", 0, 0     ; Name
+  dq FLAGS_descriptor
   dq FLAGS_word           ; Code field
 
   ;; HERE ( -- addr ) Push address of HERE variable
+HERE_descriptor:
+  db 4, "HERE", 0, 0, 0     ; Name
 dict_HERE:
   dq dict_FLAGS          ; Link to previous
-  db 4, "HERE", 0, 0, 0     ; Name
+  dq HERE_descriptor
   dq HERE_word           ; Code field
 
   ;; LATEST ( -- addr ) Push address of HERE variable
+LATEST_descriptor:
+  db 6, "LATEST", 0
 dict_LATEST:
   dq dict_HERE          ; Link to previous
-  db 6, "LATEST", 0
+  dq LATEST_descriptor
   dq LATEST_word           ; Code field
 
   ;; PROMPT ( -- ) Show prompt if interactive
   align 8
+PROMPT_descriptor:
+  db 6, "PROMPT", 0
 dict_PROMPT:
   dq dict_LATEST
-  db 6, "PROMPT", 0
+  dq PROMPT_descriptor
   dq PROMPT
 
-  ;; BYE_MSG ( -- ) Show bye message if interactive  
+  ;; BYE_MSG ( -- ) Show bye message if interactive
   align 8
+BYE_MSG_descriptor:
+  db 7, "BYE-MSG"
 dict_BYE_MSG:
   dq dict_PROMPT
-  db 7, "BYE-MSG"
+  dq BYE_MSG_descriptor
   dq BYE_MSG
 
   ;; IACR ( -- ) Output CR only if interactive
-  align 8  
+  align 8
+IACR_descriptor:
+  db 4, "IACR", 0, 0, 0
 dict_IACR:
   dq dict_BYE_MSG
-  db 4, "IACR", 0, 0, 0
+  dq IACR_descriptor
   dq IACR
 
   ;; QUIT ( -- ) Main interpreter loop
   align 8
+QUIT_descriptor:
+  db 4, "QUIT", 0, 0, 0   ; Name
 dict_QUIT:
   dq dict_IACR           ; Link to previous
-  db 4, "QUIT", 0, 0, 0   ; Name
+  dq QUIT_descriptor
   dq DOCOL                ; Colon definition
   .loop:
   dq dict_PROMPT          ; Show prompt if interactive
@@ -585,15 +705,19 @@ dict_QUIT:
 
   ;; ABORT ( -- ) Clear stacks and jump to QUIT
   align 8
+ABORT_descriptor:
+  db 5, "ABORT", 0, 0     ; Name
 dict_ABORT:
   dq dict_QUIT            ; Link to previous
-  db 5, "ABORT", 0, 0     ; Name
+  dq ABORT_descriptor
   dq ABORT_word           ; Code field (primitive)
 
   ;; SHOWWORDS ( -- ) Debug word parsing by showing each word as bytes
+SHOWWORDS_descriptor:
+  db 5, "SHOWW", 0, 0
 dict_SHOWWORDS:
   dq dict_ABORT           ; Link to previous
-  db 5, "SHOWW", 0, 0
+  dq SHOWWORDS_descriptor
   dq DOCOL                ; Colon definition
   .loop:
   ;; Get next word
@@ -636,74 +760,116 @@ dict_SHOWWORDS:
   dq dict_CR
   dq dict_EXIT
 
+COMMA_descriptor:
+  db 1, ",", 0, 0, 0, 0, 0, 0
 dict_COMMA:
   dq dict_SHOWWORDS
-  db 1, ",", 0, 0, 0, 0, 0, 0
+  dq COMMA_descriptor
   dq COMMA
 
+ALLOT_descriptor:
+  db 5, "ALLOT", 0, 0
 dict_ALLOT:
   dq dict_COMMA
-  db 5, "ALLOT", 0, 0
+  dq ALLOT_descriptor
   dq ALLOT
 
+CREATE_descriptor:
+  db 6, "CREATE", 0
 dict_CREATE:
   dq dict_ALLOT
-  db 6, "CREATE", 0
+  dq CREATE_descriptor
   dq DOCOL
 
-  ;; Update linked list pointers
-  dq dict_HERE
-  dq dict_FETCH                 ; save original HERE before ,
-  dq dict_LATEST
-  dq dict_FETCH
-  dq dict_COMMA
-  dq dict_LATEST
-  dq dict_STORE
-
+  ;; Parse word name first
   dq dict_WORD                  ; (c-addr u)
-  
-  ;; Check word length is 1-7
+
+  ;; Validate name length (1-63 for new scheme)
   dq dict_DUP                   ; (c-addr u u)
-  dq dict_DUP                   ; (c-addr u u u)
-  dq dict_ZEROEQ                ; (c-addr u u is-zero)
-  dq dict_SWAP                  ; (c-addr u is-zero u)
-  dq dict_LIT, -8               ; (c-addr u is-zero u -8)
-  dq dict_AND                   ; (c-addr u is-zero u&~7)
-  dq dict_OR                    ; (c-addr u invalid?)
-  dq dict_ZBRANCH, .size_ok
-  
-  ;; Size error - print message and abort
-  dq dict_LIT, wrong_word_size_msg
-  dq dict_LIT, wrong_word_size_msg_len
+  dq dict_ZEROEQ                ; (c-addr u zero?)
+  dq dict_ZBRANCH, .length_ok
+  dq dict_LIT, create_zero_length_msg
+  dq dict_LIT, create_zero_length_msg_len
   dq dict_ERRTYPE
-  dq dict_ERRTYPE               ; Print the word
-  dq dict_ERRCR
   dq dict_ABORT
-  
-  .size_ok:
-  dq dict_SWAP                  ; (u c-addr)
-  dq dict_FETCH
-  dq dict_LIT, 8
-  dq dict_LSHIFT
-  dq dict_OR
-  dq dict_COMMA
-  dq dict_LIT, DOCREATE
-  dq dict_COMMA
+
+  .length_ok:
+  dq dict_DUP                   ; (c-addr u u)
+  dq dict_LIT, 63
+  dq dict_SWAP
+  dq dict_LESS_THAN             ; (c-addr u 63<u?)
+  dq dict_ZBRANCH, .size_ok
+  dq dict_LIT, create_too_long_msg
+  dq dict_LIT, create_too_long_msg_len
+  dq dict_ERRTYPE
+  dq dict_ABORT
+
+  .size_ok:                     ; (c-addr u)
+  ;; Store descriptor first: length byte + name + padding to 8 bytes
+  dq dict_HERE, dict_FETCH      ; (c-addr u descriptor-addr)
+  dq dict_TO_R                  ; (c-addr u) (R: descriptor-addr)
+
+  ;; Store length byte
+  dq dict_DUP                   ; (c-addr u u)
+  dq dict_HERE, dict_FETCH, dict_C_STORE
+  dq dict_LIT, 1, dict_ALLOT    ; Move past length byte
+
+  ;; Store name characters (simplified - copy up to 7 chars)
+  dq dict_DUP, dict_LIT, 7, dict_LESS_THAN ; (c-addr u u<7?)
+  dq dict_ZBRANCH, .use_seven_chars
+  ;; Use actual length
+  dq dict_BRANCH, .copy_chars
+  .use_seven_chars:
+  dq dict_DROP, dict_LIT, 7     ; Use 7 chars max
+  .copy_chars:                  ; (c-addr copy-count)
+
+  ;; Simple char-by-char copy
+  dq dict_DUP, dict_ZBRANCH, .done_copy
+  .copy_loop:
+    dq dict_OVER, dict_C_FETCH  ; (c-addr count char)
+    dq dict_HERE, dict_FETCH, dict_C_STORE
+    dq dict_LIT, 1, dict_ALLOT
+    dq dict_SWAP, dict_LIT, 1, dict_ADD, dict_SWAP ; advance source
+    dq dict_LIT, 1, dict_SUB    ; decrement count
+    dq dict_DUP, dict_ZBRANCH, .done_copy
+    dq dict_BRANCH, .copy_loop
+
+  .done_copy:
+  dq dict_DROP, dict_DROP       ; Clean up
+
+  ;; Pad to 8-byte boundary (always allocate up to 7 more bytes)
+  dq dict_LIT, 7, dict_ALLOT
+
+  ;; Now create dictionary entry
+  dq dict_LATEST, dict_FETCH, dict_COMMA ; Store link
+  dq dict_R_FROM, dict_COMMA             ; Store descriptor pointer
+  dq dict_LIT, DOCREATE, dict_COMMA      ; Store DOCREATE
+
+  ;; Update LATEST
+  dq dict_HERE, dict_FETCH, dict_LIT, 24, dict_SUB
+  dq dict_LATEST, dict_STORE
+
   dq dict_EXIT
 
+IMMED_TEST_descriptor:
+  db 6, "IMMED?", 0
 dict_IMMED_TEST:
   dq dict_CREATE
-  db 6, "IMMED?", 0
+  dq IMMED_TEST_descriptor
   dq IMMED_TEST
 
+IMMED_descriptor:
+  db 5, "IMMED", 0, 0
 dict_IMMED:
   dq dict_IMMED_TEST
-  db 5, "IMMED", 0, 0
+  dq IMMED_descriptor
   dq IMMED
 
+COLON_descriptor:
+  db 1, ":", 0, 0, 0, 0, 0, 0
 dict_COLON:
   dq dict_IMMED
-  db 1, ":", 0, 0, 0, 0, 0, 0
+  dq COLON_descriptor
   dq DOCOL
   dq dict_CREATE
 
@@ -720,91 +886,121 @@ dict_COLON:
   dq dict_STATE_STORE
   dq dict_EXIT
 
+SEMICOLON_descriptor:
+  db 129, ";", 0, 0, 0, 0, 0, 0
 dict_SEMICOLON:
   dq dict_COLON
-  db 129, ";", 0, 0, 0, 0, 0, 0
+  dq SEMICOLON_descriptor
   dq DOCOL
   dq dict_LIT, dict_EXIT, dict_COMMA
   dq dict_LIT, 0
   dq dict_STATE_STORE
   dq dict_EXIT
 
+THREAD_descriptor:
+  db 6, "THREAD", 0
 dict_THREAD:
   dq dict_SEMICOLON
-  db 6, "THREAD", 0
+  dq THREAD_descriptor
   dq THREAD
 
+WAIT_descriptor:
+  db 4, "WAIT", 0, 0, 0
 dict_WAIT:
   dq dict_THREAD
-  db 4, "WAIT", 0, 0, 0
+  dq WAIT_descriptor
   dq FWAIT
 
+WAKE_descriptor:
+  db 4, "WAKE", 0, 0, 0
 dict_WAKE:
   dq dict_WAIT
-  db 4, "WAKE", 0, 0, 0
+  dq WAKE_descriptor
   dq WAKE
 
+CLOCK_FETCH_descriptor:
+  db 6, "CLOCK@", 0
 dict_CLOCK_FETCH:
   dq dict_WAKE
-  db 6, "CLOCK@", 0
+  dq CLOCK_FETCH_descriptor
   dq CLOCK_FETCH
 
+SLEEP_descriptor:
+  db 5, "SLEEP", 0, 0
 dict_SLEEP:
   dq dict_CLOCK_FETCH
-  db 5, "SLEEP", 0, 0
+  dq SLEEP_descriptor
   dq SLEEP
 
   ;; STATE@ ( -- n ) Get compile/interpret state
+STATE_FETCH_descriptor:
+  db 6, "STATE@", 0
 dict_STATE_FETCH:
   dq dict_SLEEP
-  db 6, "STATE@", 0
+  dq STATE_FETCH_descriptor
   dq STATE_FETCH
 
-  ;; STATE! ( n -- ) Set compile/interpret state  
+  ;; STATE! ( n -- ) Set compile/interpret state
+STATE_STORE_descriptor:
+  db 6, "STATE!", 0
 dict_STATE_STORE:
   dq dict_STATE_FETCH
-  db 6, "STATE!", 0
+  dq STATE_STORE_descriptor
   dq STATE_STORE
 
   ;; OUTPUT@ ( -- n ) Get output stream
+OUTPUT_FETCH_descriptor:
+  db 7, "OUTPUT@"
 dict_OUTPUT_FETCH:
   dq dict_STATE_STORE
-  db 7, "OUTPUT@"
+  dq OUTPUT_FETCH_descriptor
   dq OUTPUT_FETCH
 
   ;; OUTPUT! ( n -- ) Set output stream
+OUTPUT_STORE_descriptor:
+  db 7, "OUTPUT!"
 dict_OUTPUT_STORE:
   dq dict_OUTPUT_FETCH
-  db 7, "OUTPUT!"
+  dq OUTPUT_STORE_descriptor
   dq OUTPUT_STORE
 
   ;; DEBUG@ ( -- n ) Get debug flag
+DEBUG_FETCH_descriptor:
+  db 6, "DEBUG@", 0
 dict_DEBUG_FETCH:
   dq dict_OUTPUT_STORE
-  db 6, "DEBUG@", 0
+  dq DEBUG_FETCH_descriptor
   dq DEBUG_FETCH
 
   ;; DEBUG! ( n -- ) Set debug flag
+DEBUG_STORE_descriptor:
+  db 6, "DEBUG!", 0
 dict_DEBUG_STORE:
   dq dict_DEBUG_FETCH
-  db 6, "DEBUG!", 0
+  dq DEBUG_STORE_descriptor
   dq DEBUG_STORE
 
+CC_SIZE_descriptor:
+  db 7, "CC-SIZE"
 dict_CC_SIZE:
   dq dict_DEBUG_STORE
-  db 7, "CC-SIZE"
+  dq CC_SIZE_descriptor
   dq CC_SIZE
 
 extern CALL_CC
+CALL_CC_descriptor:
+  db 7, "CALL/CC"
 dict_CALL_CC:
   dq dict_CC_SIZE
-  db 7, "CALL/CC"
+  dq CALL_CC_descriptor
   dq CALL_CC
 
   ;; INTERACT ( -- ) Enable interactive mode (prompts and bye message)
+INTERACT_descriptor:
+  db 7, "INTERAC"
 dict_INTERACT:
   dq dict_CALL_CC
-  db 7, "INTERAC"
+  dq INTERACT_descriptor
   dq INTERACT
 
 
