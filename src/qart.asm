@@ -781,71 +781,42 @@ dict_CREATE:
   dq CREATE_descriptor
   dq DOCOL
 
-  ;; Parse word name first
+  ;; Parse word name
   dq dict_WORD                  ; (c-addr u)
 
-  ;; Validate name length (1-63 for new scheme)
+  ;; Check word length is 1-7 (keep original validation for now)
   dq dict_DUP                   ; (c-addr u u)
-  dq dict_ZEROEQ                ; (c-addr u zero?)
-  dq dict_ZBRANCH, .length_ok
-  dq dict_LIT, create_zero_length_msg
-  dq dict_LIT, create_zero_length_msg_len
-  dq dict_ERRTYPE
-  dq dict_ABORT
-
-  .length_ok:
-  dq dict_DUP                   ; (c-addr u u)
-  dq dict_LIT, 63
-  dq dict_SWAP
-  dq dict_LESS_THAN             ; (c-addr u 63<u?)
+  dq dict_DUP                   ; (c-addr u u u)
+  dq dict_ZEROEQ                ; (c-addr u u is-zero)
+  dq dict_SWAP                  ; (c-addr u is-zero u)
+  dq dict_LIT, -8               ; (c-addr u is-zero u -8)
+  dq dict_AND                   ; (c-addr u is-zero u&~7)
+  dq dict_OR                    ; (c-addr u invalid?)
   dq dict_ZBRANCH, .size_ok
+
+  ;; Size error - print message and abort
   dq dict_LIT, create_too_long_msg
   dq dict_LIT, create_too_long_msg_len
   dq dict_ERRTYPE
+  dq dict_ERRTYPE               ; Print the word
+  dq dict_ERRCR
   dq dict_ABORT
 
   .size_ok:                     ; (c-addr u)
-  ;; Store descriptor first: length byte + name + padding to 8 bytes
-  dq dict_HERE, dict_FETCH      ; (c-addr u descriptor-addr)
-  dq dict_TO_R                  ; (c-addr u) (R: descriptor-addr)
+  ;; Store descriptor first exactly like original: length + name in 8 bytes
+  dq dict_SWAP                  ; (u c-addr)
+  dq dict_FETCH                 ; (u first-8-bytes-of-name)
+  dq dict_LIT, 8
+  dq dict_LSHIFT
+  dq dict_OR                    ; (length-in-high-bits | first-8-bytes)
+  dq dict_COMMA                 ; Store descriptor
 
-  ;; Store length byte
-  dq dict_DUP                   ; (c-addr u u)
-  dq dict_HERE, dict_FETCH, dict_C_STORE
-  dq dict_LIT, 1, dict_ALLOT    ; Move past length byte
+  ;; Store dictionary entry: [link][descriptor_ptr][code]
+  dq dict_LATEST, dict_FETCH, dict_COMMA    ; Store link to previous
+  dq dict_HERE, dict_FETCH, dict_LIT, 16, dict_SUB, dict_COMMA  ; Descriptor pointer
+  dq dict_LIT, DOCREATE, dict_COMMA         ; Store DOCREATE
 
-  ;; Store name characters (simplified - copy up to 7 chars)
-  dq dict_DUP, dict_LIT, 7, dict_LESS_THAN ; (c-addr u u<7?)
-  dq dict_ZBRANCH, .use_seven_chars
-  ;; Use actual length
-  dq dict_BRANCH, .copy_chars
-  .use_seven_chars:
-  dq dict_DROP, dict_LIT, 7     ; Use 7 chars max
-  .copy_chars:                  ; (c-addr copy-count)
-
-  ;; Simple char-by-char copy
-  dq dict_DUP, dict_ZBRANCH, .done_copy
-  .copy_loop:
-    dq dict_OVER, dict_C_FETCH  ; (c-addr count char)
-    dq dict_HERE, dict_FETCH, dict_C_STORE
-    dq dict_LIT, 1, dict_ALLOT
-    dq dict_SWAP, dict_LIT, 1, dict_ADD, dict_SWAP ; advance source
-    dq dict_LIT, 1, dict_SUB    ; decrement count
-    dq dict_DUP, dict_ZBRANCH, .done_copy
-    dq dict_BRANCH, .copy_loop
-
-  .done_copy:
-  dq dict_DROP, dict_DROP       ; Clean up
-
-  ;; Pad to 8-byte boundary (always allocate up to 7 more bytes)
-  dq dict_LIT, 7, dict_ALLOT
-
-  ;; Now create dictionary entry
-  dq dict_LATEST, dict_FETCH, dict_COMMA ; Store link
-  dq dict_R_FROM, dict_COMMA             ; Store descriptor pointer
-  dq dict_LIT, DOCREATE, dict_COMMA      ; Store DOCREATE
-
-  ;; Update LATEST
+  ;; Update LATEST to point to new dictionary entry
   dq dict_HERE, dict_FETCH, dict_LIT, 24, dict_SUB
   dq dict_LATEST, dict_STORE
 
