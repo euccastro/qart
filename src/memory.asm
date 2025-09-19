@@ -137,7 +137,8 @@ ALLOT:
   ;; IMMED? ( xt -- flag ) Test if word is immediate
 IMMED_TEST:
   mov rax, [DSP]      ; get xt (dictionary pointer)
-  movzx rax, byte [rax+8]     ; get length/flags byte
+  mov rax, [rax+8]    ; get descriptor pointer
+  movzx rax, byte [rax]       ; get length/flags byte from descriptor
   test rax, 0x80      ; test bit 7
   setnz al            ; set AL to 1 if immediate
   movzx rax, al
@@ -148,7 +149,8 @@ IMMED_TEST:
   ;; IMMED ( -- ) Make LATEST word immediate
 IMMED:
   mov rax, [LATEST]   ; get latest word
-  or byte [rax+8], 0x80       ; set immediate bit
+  mov rax, [rax+8]    ; get descriptor pointer
+  or byte [rax], 0x80         ; set immediate bit in descriptor
   jmp NEXT
 
   ;; Thread-local flags using R13

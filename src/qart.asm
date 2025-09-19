@@ -355,7 +355,8 @@ dict_INTERPRET:
   ;; Found - check what to do with it
   dq dict_DUP             ; ( xt xt )
   dq dict_LIT, 8          ; ( xt xt 8 )
-  dq dict_ADD             ; ( xt name-field-addr )
+  dq dict_ADD             ; ( xt descriptor-ptr-addr )
+  dq dict_FETCH           ; ( xt descriptor-ptr )
   dq dict_C_FETCH         ; ( xt length-byte )
   
   ;; First check compile-only in interpret mode

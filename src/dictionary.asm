@@ -31,17 +31,18 @@ FIND:
     jz .not_found
     
     ; Compare lengths first
-    movzx rax, byte [rdi+8] ; Get word's length
-    and rax, NAME_LENGTH_MASK ; Mask off immediate and compile-only bits
-    cmp rax, rcx
+    mov rax, [rdi+8]        ; Get descriptor pointer
+    movzx rbx, byte [rax]   ; Get word's length from descriptor
+    and rbx, NAME_LENGTH_MASK ; Mask off immediate and compile-only bits
+    cmp rbx, rcx
     jne .next_word
-    
+
     ; Lengths match, compare names
     push rcx
     push rsi
     push rdi
-    
-    lea rdi, [rdi+9]        ; Point to name in dictionary
+
+    lea rdi, [rax+1]        ; Point to name in descriptor (descriptor+1)
     ; rsi already points to search string
     ; rcx already has length
     repe cmpsb              ; Compare strings
