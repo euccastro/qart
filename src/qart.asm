@@ -859,10 +859,29 @@ dict_IMMED:
   dq IMMED_descriptor
   dq IMMED
 
+CONSTANT_descriptor:
+  db 8, "CONSTANT"
+  align 8
+dict_CONSTANT:
+  dq dict_IMMED
+  dq CONSTANT_descriptor
+  dq DOCOL
+  dq dict_CREATE
+  ;; replace DOCREATE with DOCONST
+  dq dict_LIT, DOCONST
+  dq dict_HERE
+  dq dict_FETCH                 ; Get HERE value, not address
+  dq dict_LIT, 8
+  dq dict_SUB
+  dq dict_STORE
+  ;; Store value from the stack
+  dq dict_COMMA
+  dq dict_EXIT
+
 COLON_descriptor:
   db 1, ":", 0, 0, 0, 0, 0, 0
 dict_COLON:
-  dq dict_IMMED
+  dq dict_CONSTANT
   dq COLON_descriptor
   dq DOCOL
   dq dict_CREATE
@@ -1046,6 +1065,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern NEXT
   extern DOCOL
   extern DOCREATE
+  extern DOCONST
   extern EXIT
   extern EXECUTE
   extern BRANCH

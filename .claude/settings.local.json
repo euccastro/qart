@@ -38,7 +38,15 @@
       "Bash(./dev/test.sh:*)",
       "Bash(out/qart:*)",
       "Bash(timeout:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:wiki.libsdl.org)",
+      "Bash(cmake:*)",
+      "Bash(gcc:*)",
+      "Bash(pkg-config:*)",
+      "Read(//usr/lib/x86_64-linux-gnu/**)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }

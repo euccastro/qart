@@ -489,40 +489,49 @@ ANSWER 42 = ASSERT
 
 SP@ R@ = ASSERT
 
-R> DROP
-
 \ Test ROT ( a b c -- b c a )
 \ With 1 2 3: a=1 b=2 c=3, result should be b c a = 2 3 1
 \ Top of stack after ROT is 'a' = 1
 1 2 3 ROT 1 = ASSERT 3 = ASSERT 2 = ASSERT
 10 20 30 ROT 10 = ASSERT 30 = ASSERT 20 = ASSERT
 
+SP@ R@ = ASSERT
+
 \ Test basic threading (minimal - see test-thread.fth for more)
 ' EXIT THREAD 0= ASSERT    \ Thread creation should succeed
 
+SP@ R@ = ASSERT
+
 \ Test CC-SIZE with various stack configurations
-\ Test 1: Baseline (2 return addresses on return stack)
-CC-SIZE 48 = ASSERT
+\ Test 1: Baseline (3 return addresses on return stack (incl. saved data stack address)
+CC-SIZE 56 = ASSERT
 \ 32 (header) + 16 (2 return addresses: abort_program+8 and QUIT's call to INTERPRET)
 \ abort_program+8 points to dict_SYSEXIT, saved when DOCOL entered QUIT
 
 \ Test 2: One item on data stack
-42 CC-SIZE 56 = ASSERT DROP
-\ 48 (baseline) + 8 (one data item)
+42 CC-SIZE 64 = ASSERT DROP
 
-\ Test 3: Multiple items on data stack  
-1 2 3 CC-SIZE 72 = ASSERT 
+\ Test 3: Multiple items on data stack
+1 2 3 CC-SIZE 80 = ASSERT
 2DROP DROP
-\ 48 (baseline) + 24 (three data items)
 
 \ Test 4: With return stack usage in colon definition
 : TEST-R
-  >R CC-SIZE 64 = ASSERT R> DROP ;
+  >R CC-SIZE 72 = ASSERT R> DROP ;
 5 TEST-R
-\ 48 (baseline) + 8 (saved value) + 8 (TEST-R's return address)
 
 \ Test 5: Many data stack items
 10 20 30 40 50   \ 5 items on data stack
-CC-SIZE 88 = ASSERT
-\ 48 (baseline) + 40 (five data items)
+CC-SIZE 96 = ASSERT
 2DROP 2DROP DROP
+
+SP@ R@ = ASSERT
+
+\ Test constants
+
+12345 CONSTANT TEST-CONSTANT
+TEST-CONSTANT 12345 = ASSERT
+
+
+SP@ R@ = ASSERT
+R> DROP

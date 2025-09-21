@@ -32,6 +32,7 @@ abort_program:
   global NEXT
   global DOCOL
   global DOCREATE
+  global DOCONST
   global EXIT
   global EXECUTE
   global BRANCH
@@ -70,6 +71,12 @@ DOCOL:
 DOCREATE:
   sub DSP, 8              ; Make room on data stack
   lea rax, [CURRIP+24]       ; Address after link(8) + name(8) + code(8)
+  mov [DSP], rax          ; Push data field address
+  jmp NEXT
+
+DOCONST:
+  sub DSP, 8              ; Make room on data stack
+  mov rax, [CURRIP+24]       ; Address after link(8) + name(8) + code(8)
   mov [DSP], rax          ; Push data field address
   jmp NEXT
 
