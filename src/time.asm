@@ -77,3 +77,6 @@ SLEEP:
     
     ; Ignore return value (0 on success, -EINTR if interrupted)
     jmp NEXT
+
+;; Mark stack as non-executable (for security)
+section .note.GNU-stack noalloc noexec nowrite progbits

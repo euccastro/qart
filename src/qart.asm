@@ -1017,8 +1017,15 @@ dict_INTERACT:
   dq INTERACT
 
 
-  ;; LATEST points to the most recent word
-LATEST: dq dict_INTERACT
+  ;; SDL module interface - export where SDL chain should link to
+  global dict_FIRST_SDL
+dict_FIRST_SDL equ dict_INTERACT
+
+  ;; Import the end of SDL dictionary chain
+  extern dict_LAST_SDL
+
+  ;; LATEST points to the most recent word (now including SDL words)
+LATEST: dq dict_LAST_SDL
   
   align 8
 
@@ -1035,15 +1042,24 @@ pass_msg_len equ 6
 dict_space: resq 65536
 data_stack: resq 1024
 data_stack_base:          ; Base of data stack (high address, grows down)
-  
+
 return_stack: resq 512    ; Return stack (smaller than data stack)
 return_stack_base:        ; Base of return stack (high address, grows down)
 
 input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
 
+;; Mark stack as non-executable (for security)
+section .note.GNU-stack noalloc noexec nowrite progbits
+
   section .text
   global _start
   global buffer
+  global __dso_handle
+
+  ;; Required symbol for C runtime compatibility with static libraries
+  ;; Points to itself to identify this executable as a DSO
+__dso_handle:
+  dq __dso_handle
   global minus_sign
   global space
   global LATEST

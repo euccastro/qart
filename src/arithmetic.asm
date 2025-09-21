@@ -93,3 +93,6 @@ RSHIFT:
   sar rax, cl             ; arithmetic shift right (preserves sign)
   mov [DSP], rax
   jmp NEXT
+
+;; Mark stack as non-executable (for security)
+section .note.GNU-stack noalloc noexec nowrite progbits

@@ -81,3 +81,6 @@ SP_FETCH:
     sub DSP, 8              ; Make room
     mov [DSP], rax          ; Push the saved pointer
     jmp NEXT
+
+;; Mark stack as non-executable (for security)
+section .note.GNU-stack noalloc noexec nowrite progbits

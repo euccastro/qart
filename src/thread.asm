@@ -210,5 +210,8 @@ WAKE:
     ; Return value is number actually woken
     ; Replace n with actual count
     mov [DSP], rax
-    
+
     jmp NEXT
+
+;; Mark stack as non-executable (for security)
+section .note.GNU-stack noalloc noexec nowrite progbits

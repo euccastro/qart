@@ -75,3 +75,5 @@ FIND:
     sub DSP, 8
     mov qword [DSP], 0
     jmp NEXT
+;; Mark stack as non-executable (for security)
+section .note.GNU-stack noalloc noexec nowrite progbits

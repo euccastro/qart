@@ -272,3 +272,6 @@ RESTORE_CONT:
   ;; Restore NEXTIP and continue
   mov NEXTIP, [NEXTIP+CONT_SAVED_IP]     ; Load saved NEXTIP from continuation
   jmp NEXT                  ; Continue execution
+
+;; Mark stack as non-executable (for security)
+section .note.GNU-stack noalloc noexec nowrite progbits

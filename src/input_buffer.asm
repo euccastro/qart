@@ -225,3 +225,6 @@ SCAN_CHAR:
     sub DSP, 8              ; Make room on stack
     mov qword [DSP], -1
     jmp NEXT
+
+;; Mark stack as non-executable (for security)
+section .note.GNU-stack noalloc noexec nowrite progbits
