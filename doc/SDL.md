@@ -82,21 +82,29 @@ call some_function
 add rsp, 16           ; Clean stack (2 params × 8 bytes)
 ```
 
-## Common SDL3 Constants
+## SDL3 Constants
 
-### Initialization (SDL_init.h)
-```asm
-%define SDL_INIT_VIDEO     0x00000020
-%define SDL_INIT_AUDIO     0x00000010
-%define SDL_INIT_JOYSTICK  0x00000200
+SDL3 constants are now defined in Forth using CONSTANT definitions in `src/sdl.fth`:
+
+### Current Constants Available
+```forth
+32 CONSTANT SDL_INIT_VIDEO        \ 0x00000020
+4 CONSTANT SDL_WINDOW_SHOWN       \ 0x00000004
 ```
 
-### Window Creation (SDL_video.h)
-```asm
-%define SDL_WINDOWPOS_CENTERED    0x2FFF0000
-%define SDL_WINDOW_SHOWN          0x00000004
-%define SDL_WINDOW_RESIZABLE      0x00000020
-%define SDL_WINDOW_FULLSCREEN     0x00000001
+### Usage in Forth Code
+```forth
+SDL_INIT_VIDEO SDL_INIT           \ Initialize SDL video subsystem
+0= IF ." SDL init failed" THEN    \ Check for success (0 = success)
+```
+
+### Adding New Constants
+To add more SDL constants, simply append to `src/sdl.fth`:
+```forth
+\ Add to src/sdl.fth:
+16 CONSTANT SDL_INIT_AUDIO        \ 0x00000010
+512 CONSTANT SDL_INIT_JOYSTICK    \ 0x00000200
+805306368 CONSTANT SDL_WINDOWPOS_CENTERED  \ 0x2FFF0000
 ```
 
 ### Renderer (SDL_render.h)
@@ -180,28 +188,24 @@ sdl_demo:
 
 ## Integration with Forth
 
-### Creating SDL Forth Words
+### Available SDL Words
 
-You can wrap SDL functions as Forth words:
+SDL functions are implemented as Forth words in `src/sdl.asm` using exact SDL naming (e.g., `SDL_Init`, `SDL_CreateWindow`, `SDL_Delay`). Constants are defined in `src/sdl.fth`.
 
-```asm
-;; SDL-INIT ( flags -- result )
-SDL_INIT_word:
-    dq 0                          ; Link
-    dq SDL_INIT_descriptor
-    dq SDL_INIT_code
+### Working Example
 
-SDL_INIT_descriptor:
-    db 8, "SDL-INIT", 0, 0, 0, 0, 0, 0
+See `dev/test/manual/sdl-minimal.fth` for a complete working example demonstrating:
+- SDL initialization and error checking
+- Constant usage (SDL_INIT_VIDEO, SDL_WINDOW_SHOWN)
+- Proper handling of headless environments
+- SDL cleanup
 
-SDL_INIT_code:
-    mov rdi, [DSP]                ; Get flags from data stack
-    add DSP, 8                    ; Pop from stack
-    call SDL_Init                 ; Call SDL function
-    sub DSP, 8                    ; Push result
-    mov [DSP], rax
-    jmp NEXT
+Run the example with the provided script:
+```bash
+dev/sdl-test.sh dev/test/manual/sdl-minimal.fth
 ```
+
+The script automatically loads SDL constants from `src/sdl.fth` before running the test.
 
 ### Error Handling
 Always check SDL function return values:
@@ -261,10 +265,15 @@ Debug version enables:
 
 ## Examples in Project
 
-See `src/sdl_example.asm` for a complete working example of:
-- SDL initialization
-- Window and renderer creation
-- Basic rendering
-- Proper cleanup
+See `dev/test/manual/sdl-minimal.fth` for a working Forth example, or run:
+```bash
+dev/sdl-test.sh dev/test/manual/sdl-minimal.fth
+```
 
-This can be integrated into the Forth dictionary as SDL-related words for graphics programming.
+The example demonstrates:
+- SDL initialization with error handling
+- Proper use of SDL constants
+- Graceful handling of headless environments
+- SDL cleanup
+
+For implementing new SDL functionality, see `src/sdl.asm` for the pattern of wrapping SDL functions as Forth words.

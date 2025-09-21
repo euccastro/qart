@@ -55,6 +55,8 @@ The project is organized to separate source code, development tools, documentati
   - `dictionary.asm` - Dictionary lookup (FIND)
   - `input_buffer.asm` - Input buffer management and word parsing (REFILL, BACKSLASH, PARSE_WORD/WORD)
   - `thread.asm` - Threading primitives (THREAD, WAIT, WAKE)
+  - `sdl.asm` - SDL3 wrapper functions for graphics and multimedia
+  - `sdl.fth` - SDL3 constants defined in Forth
   - `forth.inc` - Common definitions (register assignments, constants)
 - `dev/` - Development tools and tests
   - `test.fth` - Regression test suite (run with `dev/test.sh`)
@@ -217,6 +219,12 @@ thread_func:
 - **ALLOT**: Allocate dictionary space by advancing HERE
 - **SCANC**: Search for character in input buffer and skip to it
 - **SOURCE@**: Get current position address in input buffer
+- **SDL3 integration**: Complete graphics/multimedia FFI with static linking
+  - SDL3 function wrappers in `src/sdl.asm` with modular dictionary design
+  - SDL3 constants in `src/sdl.fth` using CONSTANT definitions
+  - Direct assembly-to-C calls following System V AMD64 ABI
+  - 3.4MB executable with 5.8MB SDL3 library statically linked
+  - Ready for window creation, rendering, input handling, audio, etc.
 
 ### Standard Library (stdlib.fth)
 
@@ -666,7 +674,7 @@ Moving toward Missionary-style functional effects with structured concurrency:
 1. **Structured concurrency**: Missionary-style functional effects with task composition
 2. **Delimited continuations**: RESET/SHIFT for composable control flow
 3. **Persistent data structures**: Immutable collections with structural sharing
-4. **Host interfacing**: Graphics and desktop application support (likely via terminal UI initially)
+4. **Graphics applications**: Build interactive desktop applications using SDL3 integration ✓
 5. **Networking**: Raw socket programming for distributed computing
 
 ## Interactive Mode
