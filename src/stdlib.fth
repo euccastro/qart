@@ -43,6 +43,11 @@
 \ Skip single space after ."; print any spaces after that.
 : ." SOURCE@ 1+ 34 SCANC 1- TYPE ;
 
+( -- addr u )
+\ Add string to dictionary space, null terminated, return address and length
+\ (not including terminating 0)
+: S" SOURCE@ 1 + HERE @ DUP >R 34 SCANC 1 - DUP DUP >R ALLOT CMOVE 0 , R> R> SWAP ;
+
 \ State control words for immediate execution in compile mode
 : [ 0 STATE! ; IMMED  ( Switch to interpret mode )
 : ] 1 STATE! ;        ( Switch to compile mode )
