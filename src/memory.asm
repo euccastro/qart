@@ -281,3 +281,22 @@ IACR:
   jmp NEXT
 
 iacr_newline: db 10      ; just a newline
+
+  ;; CMOVE ( c-addr1 c-addr2 u -- ) Copy u bytes from c-addr1 to c-addr2
+  global CMOVE
+CMOVE:
+  mov rcx, [DSP]          ; u (byte count)
+  mov rdi, [DSP+8]        ; c-addr2 (destination)
+  mov rsi, [DSP+16]       ; c-addr1 (source)
+  add DSP, 24             ; Drop all three arguments
+
+  ; Handle zero count
+  test rcx, rcx
+  jz .done
+
+  ; Copy bytes forward (assumes no overlap or dest < src)
+  cld                     ; Clear direction flag (forward)
+  rep movsb               ; Copy rcx bytes from [rsi] to [rdi]
+
+.done:
+  jmp NEXT

@@ -1,2 +1,7 @@
 * stack
 ** mais tests para CALL/CC
+** remove unnecessary assembly definitions for flag words
+** fix create error messages
+*** allow 0?
+** mirar por outras oportunidades de shave off some add/sub [DSP]s
+** considerar afeitar um qword por palavra tendo offsets no descriptor, em vez de links altogether?

@@ -767,10 +767,17 @@ dict_COMMA:
   dq COMMA_descriptor
   dq COMMA
 
+CMOVE_descriptor:
+  db 5, "CMOVE", 0, 0
+dict_CMOVE:
+  dq dict_COMMA
+  dq CMOVE_descriptor
+  dq CMOVE
+
 ALLOT_descriptor:
   db 5, "ALLOT", 0, 0
 dict_ALLOT:
-  dq dict_COMMA
+  dq dict_CMOVE
   dq ALLOT_descriptor
   dq ALLOT
 
@@ -1091,6 +1098,7 @@ input_buffer: resb INPUT_BUFFER_SIZE  ; Input line buffer
   extern WAKE
   extern CLOCK_FETCH
   extern SLEEP
+  extern CMOVE
 
   ;; ---- Main Program ----
 
