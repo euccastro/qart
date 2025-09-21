@@ -3,10 +3,10 @@
 This document describes known limitations of the qart Forth implementation.
 
 ## Word Name Length
-- **Maximum: 7 characters**
-- Dictionary structure allocates exactly 8 bytes for length (1 byte) + name (7 bytes)
-- Words longer than 7 characters cannot be defined
-- Example: `VERYLONGWORD` will abort with "Wrong word size" error
+- **Maximum: 63 characters**
+- Dictionary structure uses variable-length descriptors with 8-byte alignment
+- Words longer than 63 characters cannot be defined (limited by 6 bits in length field)
+- Example: `VERYLONGWORDNAMETHATISTHELONGESTPOSSIBLELENGTHATSIXTYTHREE` works correctly
 
 ## Stack Sizes
 - **Data Stack**: 1024 items (8KB)
@@ -36,10 +36,11 @@ This document describes known limitations of the qart Forth implementation.
 - **Buffer size**: 20 bytes for number conversion
   - Sufficient for 64-bit integers but hardcoded
 
-## Dictionary Limitations  
-- **Fixed entry size**: 24 bytes per word header
-  - 8 bytes link
-  - 8 bytes name (including length byte with immediate flag in bit 7)
+## Dictionary Limitations
+- **Variable entry size**: 24 bytes per word header + variable descriptor
+  - Variable-length descriptor: 1 length byte + name bytes (8-byte aligned)
+  - 8 bytes link pointer
+  - 8 bytes descriptor pointer
   - 8 bytes code field
   - Additional space for word body (colon definitions, CREATE data)
 - **Dictionary space**: 512KB allocated in .bss

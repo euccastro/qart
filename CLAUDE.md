@@ -453,7 +453,7 @@ Moving toward Missionary-style functional effects with structured concurrency:
 - **LIT/BRANCH use NEXTIP**: These read inline data and advance NEXTIP, so they're not EXECUTEd directly
 - **EXECUTE conditional logic**: Sets CURRIP only for words that need it (DOCOL, DOCREATE), not for primitives
 - **Primitives must handle their own `jmp NEXT`**: Unlike colon definitions
-- **Dictionary name field**: Exactly 8 bytes (1 length + up to 7 name chars)
+- **Dictionary name field**: Variable length (1 length byte + up to 63 name chars, 8-byte aligned)
 - **Immediate flag in bit 7**: FIND masks with 0x7F when comparing names
 - **SYSEXIT for clean termination**: No special 0 sentinel in EXIT; ABORT runs abort_program (QUIT then SYSEXIT)
 
