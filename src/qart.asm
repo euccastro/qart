@@ -791,13 +791,13 @@ dict_CREATE:
   ;; Parse word name
   dq dict_WORD                  ; (c-addr u)
 
-  ;; Check word length is 1-7 (keep original validation for now)
+  ;; Check word length is 1-63
   dq dict_DUP                   ; (c-addr u u)
   dq dict_DUP                   ; (c-addr u u u)
   dq dict_ZEROEQ                ; (c-addr u u is-zero)
   dq dict_SWAP                  ; (c-addr u is-zero u)
-  dq dict_LIT, -8               ; (c-addr u is-zero u -8)
-  dq dict_AND                   ; (c-addr u is-zero u&~7)
+  dq dict_LIT, -64              ; (c-addr u is-zero u -64)
+  dq dict_AND                   ; (c-addr u is-zero u&~63)
   dq dict_OR                    ; (c-addr u invalid?)
   dq dict_ZBRANCH, .size_ok
 
@@ -810,17 +810,33 @@ dict_CREATE:
   dq dict_ABORT
 
   .size_ok:                     ; (c-addr u)
-  ;; Store descriptor first exactly like original: length + name in 8 bytes
-  dq dict_SWAP                  ; (u c-addr)
-  dq dict_FETCH                 ; (u first-8-bytes-of-name)
-  dq dict_LIT, 8
-  dq dict_LSHIFT
-  dq dict_OR                    ; (length-in-high-bits | first-8-bytes)
-  dq dict_COMMA                 ; Store descriptor
+  ;; Store variable-length descriptor with 8-byte alignment
+  ;; Save descriptor start position
+  dq dict_HERE, dict_FETCH      ; (c-addr u desc-start)
+  dq dict_TO_R                  ; (c-addr u) (R: desc-start)
+
+  ;; First store length byte
+  dq dict_DUP                   ; (c-addr u u)
+  dq dict_HERE, dict_FETCH      ; (c-addr u u here)
+  dq dict_C_STORE               ; (c-addr u) - store length
+  dq dict_LIT, 1, dict_ALLOT    ; advance HERE by 1
+
+  ;; Copy name bytes using CMOVE: (c-addr u)
+  dq dict_HERE, dict_FETCH      ; (c-addr u dest)
+  dq dict_SWAP                  ; (c-addr dest u)
+  dq dict_DUP                   ; (c-addr dest u u)
+  dq dict_ALLOT                 ; (c-addr dest u) - advance HERE by u
+  dq dict_CMOVE                 ; Copy u bytes from c-addr to dest
+
+  ;; Align HERE to 8-byte boundary
+  dq dict_HERE, dict_FETCH      ; (here)
+  dq dict_LIT, 7, dict_ADD      ; (here+7)
+  dq dict_LIT, -8, dict_AND     ; ((here+7) & ~7)
+  dq dict_HERE, dict_STORE      ; Store aligned HERE
 
   ;; Store dictionary entry: [link][descriptor_ptr][code]
   dq dict_LATEST, dict_FETCH, dict_COMMA    ; Store link to previous
-  dq dict_HERE, dict_FETCH, dict_LIT, 16, dict_SUB, dict_COMMA  ; Descriptor pointer
+  dq dict_R_FROM, dict_COMMA    ; Store descriptor pointer from return stack
   dq dict_LIT, DOCREATE, dict_COMMA         ; Store DOCREATE
 
   ;; Update LATEST to point to new dictionary entry
