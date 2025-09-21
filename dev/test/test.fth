@@ -249,6 +249,59 @@ DUP @ 305420031 = ASSERT              \ Should be 0x123456FF
 
 SP@ R@ = ASSERT
 
+\ Test CMOVE (character move)
+CREATE CMOVE_SRC 20 ALLOT
+CREATE CMOVE_DEST 20 ALLOT
+
+\ Test zero-length copy
+CMOVE_SRC CMOVE_DEST 0 CMOVE    \ Should do nothing
+SP@ R@ = ASSERT
+
+\ Test single byte copy
+65 CMOVE_SRC C!                 \ Store 'A' at source
+CMOVE_SRC CMOVE_DEST 1 CMOVE    \ Copy 1 byte
+CMOVE_DEST C@ 65 = ASSERT       \ Should read 'A'
+
+\ Test multi-byte copy
+66 CMOVE_SRC 1 + C!             \ Store 'B' at source+1
+67 CMOVE_SRC 2 + C!             \ Store 'C' at source+2
+68 CMOVE_SRC 3 + C!             \ Store 'D' at source+3
+
+\ Clear destination first
+0 CMOVE_DEST C!
+0 CMOVE_DEST 1 + C!
+0 CMOVE_DEST 2 + C!
+0 CMOVE_DEST 3 + C!
+
+\ Copy 4 bytes
+CMOVE_SRC CMOVE_DEST 4 CMOVE
+CMOVE_DEST C@ 65 = ASSERT       \ 'A'
+CMOVE_DEST 1 + C@ 66 = ASSERT   \ 'B'
+CMOVE_DEST 2 + C@ 67 = ASSERT   \ 'C'
+CMOVE_DEST 3 + C@ 68 = ASSERT   \ 'D'
+
+\ Test partial copy (only first 2 bytes) - clear ALL destination bytes first
+0 CMOVE_DEST C!                 \ Clear all destination bytes
+0 CMOVE_DEST 1 + C!
+0 CMOVE_DEST 2 + C!
+0 CMOVE_DEST 3 + C!
+CMOVE_SRC CMOVE_DEST 2 CMOVE    \ Copy only 2 bytes
+CMOVE_DEST C@ 65 = ASSERT       \ 'A' should be copied
+CMOVE_DEST 1 + C@ 66 = ASSERT   \ 'B' should be copied
+CMOVE_DEST 2 + C@ 0 = ASSERT    \ Should remain 0
+CMOVE_DEST 3 + C@ 0 = ASSERT    \ Should remain 0
+
+SP@ R@ = ASSERT
+
+\ Test variable-length word names (regression test)
+: TESTWORD 123 ;         \ 8-character name
+: VERYLONGWORDNAMETHATISTHELONGESTPOSSIBLELENGTHATSIXTYTHREE 456 ;  \ 63-character name
+
+TESTWORD 123 = ASSERT
+VERYLONGWORDNAMETHATISTHELONGESTPOSSIBLELENGTHATSIXTYTHREE 456 = ASSERT
+
+SP@ R@ = ASSERT
+
 \ Test user-defined word DOUBLE
 21 DOUBLE 42 = ASSERT
 0 DOUBLE 0 = ASSERT
